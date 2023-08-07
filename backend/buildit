@@ -1,0 +1,3 @@
+./gradlew bootJar
+docker buildx build -t registry.cloud.okteto.net/torfstack/kayvault:latest .
+docker push registry.cloud.okteto.net/torfstack/kayvault:latest
