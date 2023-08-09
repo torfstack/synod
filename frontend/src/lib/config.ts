@@ -3,6 +3,6 @@ let okteto="https://kayvault-torfstack.cloud.okteto.net"
 
 let secretPath = "/secret"
 
-let backendUrl = okteto 
+let backendUrl = localhost
 let backendSecretsUrl = backendUrl + secretPath
 export default backendSecretsUrl

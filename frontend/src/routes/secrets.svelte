@@ -2,6 +2,8 @@
     import { auth } from '$lib/auth'
     import backendSecretsUrl from '$lib/config';
     import type { UserCredential } from 'firebase/auth';
+    import {Alert, Button} from 'flowbite-svelte';
+    import { Icon } from 'flowbite-svelte-icons';
 
     export let currentUser: UserCredential | null
 
@@ -29,7 +31,7 @@
         }
     })
 
-    function getSecretsFromServer() {
+    async function getSecretsFromServer() {
         let user = currentUser as UserCredential
         return user.user.getIdToken().then(async token => {
             console.log(token)
@@ -43,10 +45,12 @@
             .then(body => {
                 secrets = body as Secret[]
             })
+            .catch(err => {
+            })
         });
     }
 
-    function uploadSecret() {
+    async function uploadSecret() {
         let user = currentUser as UserCredential
         return user.user.getIdToken().then(async token => {
             console.log(token)
@@ -131,6 +135,11 @@
         </div>
 
         <div class="container p-3">
+            <Alert color="red" dismissable>
+                <Icon name="info-circle-solid" slot="icon" class="h-4 w-4"/>
+                <span class="font-medium">Danger alert!</span>
+                Change a few things up and try submitting again.
+            </Alert>
             <div class="row">
                 <div class="col-10">
                     <h1 class="display-3">Manage your secrets</h1>
@@ -150,7 +159,7 @@
                         <input bind:value={filterValue} type="text" placeholder="Add/Search Secrets" name="New Secret">
                     </div>
                     <div class="col create">
-                        <button type="button" class="button-create btn btn-primary text-uppercase btn-outline" data-bs-toggle="modal" data-bs-target="#exampleModal">Create</button>
+                        <Button color="blue" data-bs-toggle="modal" data-bs-target="#exampleModal">Create</Button>
                     </div>
                 </div>
             </div>
