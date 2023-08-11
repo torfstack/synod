@@ -1,8 +1,8 @@
-let localhost="http://localhost:8080";
-let okteto="https://kayvault-torfstack.cloud.okteto.net"
+const localhost="http://localhost:8080";
+const okteto="https://kayvault-torfstack.cloud.okteto.net"
 
-let secretPath = "/secret"
+const secretPath = "/secret"
 
-let backendUrl = localhost
-let backendSecretsUrl = backendUrl + secretPath
+const backendUrl = localhost;
+const backendSecretsUrl = backendUrl + secretPath
 export default backendSecretsUrl
