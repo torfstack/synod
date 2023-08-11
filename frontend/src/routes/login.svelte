@@ -1,15 +1,15 @@
 <script lang="ts"> 
     import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, type UserCredential } from "firebase/auth";
     import { auth } from "$lib/auth"
+    import { Img, Checkbox, Input, Label, Helper, Heading, Mark, Span, P, Button} from "flowbite-svelte";
 
-    let email: string = "";
-    let password: string = "";
+    let email = "";
+    let password = "";
     export let currentUser: UserCredential | null = null
 
     function registerNewUser(): void {
         createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                currentUser = userCredential;
+            .then((userCredential) => { currentUser = userCredential;
             })
             
             .catch((error) => {
@@ -37,38 +37,38 @@
     }
 </script>
 
-<div class="container p-3">
-    <h1 class="display-3">KayVault</h1>
-    <small class="text-body-secondary">Login or register to manage your secrets</small>
+<div class="bg-gradient-to-b from-gray-50">
+    <div class="p-3">
+        <Heading class="text-center mb-2 text-7xl" tag="h1"><Span class="font-mono" gradient>Kay</Span>Vault</Heading>
+        <P class="text-center">Login or register to manage your <Mark>secrets</Mark></P>
 
-    <br>
-    <br>
+        <br>
 
-    <div class="border rounded bg-light p-3">
-        <form>
-            <div class="mb-3">
-                <button class="btn btn-secondary text-uppercase btn-outline" on:click={signInWithGoogle}>
-                    <div class="d-flex align-items-center">
-                        <img src="https://img.icons8.com/color/16/000000/google-logo.png">Signup Using Google
+        <div class="flex justify-center">
+            <div class="w-3/5 p-6 rounded bg-gradient-to-r from-sky-500 to-emerald-600 dark:bg-gray-600">
+                <form>
+                    <div class="mb-3">
+                        <Button color="alternative">
+                            <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Signup Using Google
+                        </Button>
                     </div>
-                </button>
+                    <div class="mb-3">
+                        <Label>Email address</Label>
+                        <Input type="text" bind:email placeholder="kay@vault.com"></Input>
+                        <Helper>We use Firebase Authentication to store user login information.</Helper>
+                    </div>
+                    <div class="mb-3">
+                        <Label>Password</Label>
+                        <Input type="password" bind:password placeholder="much secret"></Input>
+                    </div>
+                    <div class="mb-3">
+                        <Checkbox>Remember me</Checkbox>
+                    </div>
+                    <Button on:click={loginUser}>Login</Button>
+                    <Button color="alternative" on:click={registerNewUser}>Register</Button>
+                </form>
             </div>
-            <div class="mb-3">
-                <label for="exampleInputEmail1" class="form-label">Email address</label>
-                <input bind:value={email} type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"/>
-                <div id="emailHelp" class="form-text">We use Firebase Authentication to store user login information.</div>
-            </div>
-            <div class="mb-3">
-                <label for="exampleInputPassword1" class="form-label">Password</label>
-                <input bind:value={password} type="password" class="form-control" id="exampleInputPassword1">
-            </div>
-            <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="exampleCheck1">
-                <label class="form-check-label" for="exampleCheck1">Remember me</label>
-            </div>
-            <button type="submit" class="btn btn-primary" on:click={loginUser}>Login</button>
-            <button type="submit" class="btn btn-secondary" on:click={registerNewUser}>Register</button>
-        </form>
+        </div>
+
     </div>
 </div>
-

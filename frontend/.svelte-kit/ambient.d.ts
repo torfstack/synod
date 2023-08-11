@@ -28,23 +28,13 @@
 declare module '$env/static/private' {
 	export const SHELL: string;
 	export const npm_command: string;
-	export const LSCOLORS: string;
 	export const npm_config_userconfig: string;
-	export const COLORTERM: string;
 	export const npm_config_cache: string;
-	export const LESS: string;
-	export const TERM_PROGRAM_VERSION: string;
-	export const TMUX: string;
 	export const npm_config_resolution_mode: string;
 	export const I3SOCK: string;
-	export const _P9K_TTY: string;
 	export const NODE: string;
-	export const TERMINATOR_DBUS_PATH: string;
-	export const P9K_TTY: string;
-	export const TMUX_PLUGIN_MANAGER_PATH: string;
 	export const COLOR: string;
 	export const npm_config_local_prefix: string;
-	export const TERMINATOR_UUID: string;
 	export const DESKTOP_SESSION: string;
 	export const npm_config_globalconfig: string;
 	export const EDITOR: string;
@@ -55,7 +45,6 @@ declare module '$env/static/private' {
 	export const LOGNAME: string;
 	export const XDG_SESSION_TYPE: string;
 	export const npm_config_init_module: string;
-	export const _: string;
 	export const XAUTHORITY: string;
 	export const WINDOWPATH: string;
 	export const MOTD_SHOWN: string;
@@ -63,11 +52,8 @@ declare module '$env/static/private' {
 	export const HOME: string;
 	export const USERNAME: string;
 	export const LANG: string;
-	export const LS_COLORS: string;
 	export const XDG_CURRENT_DESKTOP: string;
 	export const npm_package_version: string;
-	export const VTE_VERSION: string;
-	export const TERMINATOR_DBUS_NAME: string;
 	export const INIT_CWD: string;
 	export const npm_lifecycle_script: string;
 	export const npm_config_npm_version: string;
@@ -76,12 +62,9 @@ declare module '$env/static/private' {
 	export const npm_package_name: string;
 	export const npm_config_prefix: string;
 	export const USER: string;
-	export const TMUX_PANE: string;
 	export const DISPLAY: string;
 	export const npm_lifecycle_event: string;
 	export const SHLVL: string;
-	export const PAGER: string;
-	export const _P9K_SSH_TTY: string;
 	export const XDG_VTNR: string;
 	export const XDG_SESSION_ID: string;
 	export const npm_config_user_agent: string;
@@ -89,7 +72,6 @@ declare module '$env/static/private' {
 	export const XDG_RUNTIME_DIR: string;
 	export const DEBUGINFOD_URLS: string;
 	export const npm_package_json: string;
-	export const P9K_SSH: string;
 	export const XDG_DATA_DIRS: string;
 	export const npm_config_noproxy: string;
 	export const PATH: string;
@@ -98,12 +80,10 @@ declare module '$env/static/private' {
 	export const GDMSESSION: string;
 	export const DBUS_SESSION_BUS_ADDRESS: string;
 	export const npm_config_global_prefix: string;
-	export const tmux_version: string;
 	export const MAIL: string;
 	export const npm_node_execpath: string;
 	export const npm_config_engine_strict: string;
-	export const OLDPWD: string;
-	export const TERM_PROGRAM: string;
+	export const _: string;
 	export const NODE_ENV: string;
 }
 
@@ -136,23 +116,13 @@ declare module '$env/dynamic/private' {
 	export const env: {
 		SHELL: string;
 		npm_command: string;
-		LSCOLORS: string;
 		npm_config_userconfig: string;
-		COLORTERM: string;
 		npm_config_cache: string;
-		LESS: string;
-		TERM_PROGRAM_VERSION: string;
-		TMUX: string;
 		npm_config_resolution_mode: string;
 		I3SOCK: string;
-		_P9K_TTY: string;
 		NODE: string;
-		TERMINATOR_DBUS_PATH: string;
-		P9K_TTY: string;
-		TMUX_PLUGIN_MANAGER_PATH: string;
 		COLOR: string;
 		npm_config_local_prefix: string;
-		TERMINATOR_UUID: string;
 		DESKTOP_SESSION: string;
 		npm_config_globalconfig: string;
 		EDITOR: string;
@@ -163,7 +133,6 @@ declare module '$env/dynamic/private' {
 		LOGNAME: string;
 		XDG_SESSION_TYPE: string;
 		npm_config_init_module: string;
-		_: string;
 		XAUTHORITY: string;
 		WINDOWPATH: string;
 		MOTD_SHOWN: string;
@@ -171,11 +140,8 @@ declare module '$env/dynamic/private' {
 		HOME: string;
 		USERNAME: string;
 		LANG: string;
-		LS_COLORS: string;
 		XDG_CURRENT_DESKTOP: string;
 		npm_package_version: string;
-		VTE_VERSION: string;
-		TERMINATOR_DBUS_NAME: string;
 		INIT_CWD: string;
 		npm_lifecycle_script: string;
 		npm_config_npm_version: string;
@@ -184,12 +150,9 @@ declare module '$env/dynamic/private' {
 		npm_package_name: string;
 		npm_config_prefix: string;
 		USER: string;
-		TMUX_PANE: string;
 		DISPLAY: string;
 		npm_lifecycle_event: string;
 		SHLVL: string;
-		PAGER: string;
-		_P9K_SSH_TTY: string;
 		XDG_VTNR: string;
 		XDG_SESSION_ID: string;
 		npm_config_user_agent: string;
@@ -197,7 +160,6 @@ declare module '$env/dynamic/private' {
 		XDG_RUNTIME_DIR: string;
 		DEBUGINFOD_URLS: string;
 		npm_package_json: string;
-		P9K_SSH: string;
 		XDG_DATA_DIRS: string;
 		npm_config_noproxy: string;
 		PATH: string;
@@ -206,12 +168,10 @@ declare module '$env/dynamic/private' {
 		GDMSESSION: string;
 		DBUS_SESSION_BUS_ADDRESS: string;
 		npm_config_global_prefix: string;
-		tmux_version: string;
 		MAIL: string;
 		npm_node_execpath: string;
 		npm_config_engine_strict: string;
-		OLDPWD: string;
-		TERM_PROGRAM: string;
+		_: string;
 		NODE_ENV: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: string]: string | undefined;
