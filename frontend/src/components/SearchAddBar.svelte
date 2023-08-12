@@ -2,13 +2,19 @@
     import {ButtonGroup, Input, InputAddon} from "flowbite-svelte";
     import {Icon} from "flowbite-svelte-icons";
     export let filterValue: string;
+    export let clickedAdd: boolean;
+
+    function didClickAdd() {
+        clickedAdd = false
+        clickedAdd = true
+    }
 </script>
 
 <div class="flex justify-center">
     <div class="lg:w-1/2 2xl:w-3/4">
         <ButtonGroup class="flex">
             <InputAddon>
-                <button>
+                <button on:click={didClickAdd}>
                     <Icon name="plus-outline" data-bs-toggle="modal" data-bs-target="#exampleModal" />
                 </button>
             </InputAddon>

@@ -9,7 +9,7 @@
     import SearchAddBar from "../components/SearchAddBar.svelte";
 
     export let currentUser: UserCredential | null
-    let filterValue = "", secrets: Secret[] = [];
+    let filterValue = "", secrets: Secret[] = [], openModal = false;
 
     $: shown = secrets.filter((s: Secret) => {
         let trimmed = filterValue.trim()
@@ -80,11 +80,8 @@
     }
 </style>
 
-<html lang="en">
-<body>
-
 <div class="container p-3">
-    <AddSecretModal uploadSecret={uploadSecret}/>
+    <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
 
     <div class="gap-4 flex flex-col items-center">
         <KayHeader text="Keep your" />
@@ -93,7 +90,7 @@
 
     <br/>
 
-    <SearchAddBar bind:filterValue={filterValue}/>
+    <SearchAddBar bind:clickedAdd={openModal} bind:filterValue={filterValue}/>
 
     <br/>
 
@@ -103,5 +100,3 @@
         {/each}
     </div>
 </div>
-</body>
-</html>
