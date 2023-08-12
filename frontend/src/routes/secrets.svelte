@@ -87,7 +87,7 @@
     <AddSecretModal uploadSecret={uploadSecret}/>
 
     <div class="gap-4 flex flex-col items-center">
-        <KayHeader text="Manage your" />
+        <KayHeader text="Keep your" />
         <Button class="lg:absolute lg:top-4 lg:right-4" on:click={logout}>Logout</Button>
     </div>
 

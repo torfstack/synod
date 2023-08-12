@@ -48,7 +48,7 @@
 
 <div class="bg-gradient-to-b from-gray-50">
     <div class="p-3">
-        <KayHeader text="Login or register to manage your"/>
+        <KayHeader text="Login or register to keep your"/>
 
         <br>
 
