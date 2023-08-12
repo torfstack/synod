@@ -1,11 +1,10 @@
 <script lang="ts">
-    import { auth } from '$lib/auth'
+    import {auth} from '$lib/auth'
     import backendSecretsUrl from '$lib/config';
-    import type { UserCredential } from 'firebase/auth';
-    import {Button, ButtonGroup, Input, InputAddon} from 'flowbite-svelte';
-    import { Icon, icons } from 'flowbite-svelte-icons';
+    import type {UserCredential} from 'firebase/auth';
+    import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
-    import type { Secret } from "$lib/secret";
+    import type {Secret} from "$lib/secret";
     import AddSecretModal from "../components/AddSecretModal.svelte";
     import SearchAddBar from "../components/SearchAddBar.svelte";
 

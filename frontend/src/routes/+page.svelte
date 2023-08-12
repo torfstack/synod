@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { UserCredential } from "firebase/auth";
+    import type {UserCredential} from "firebase/auth";
     import Login from "./login.svelte"
     import Secrets from "./secrets.svelte";
 

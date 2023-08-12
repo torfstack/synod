@@ -1,7 +1,13 @@
-<script lang="ts"> 
-    import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, type UserCredential } from "firebase/auth";
-    import { auth } from "$lib/auth"
-    import { Img, Checkbox, Input, Label, Helper, Heading, Mark, Span, P, Button} from "flowbite-svelte";
+<script lang="ts">
+    import {
+        createUserWithEmailAndPassword,
+        GoogleAuthProvider,
+        signInWithEmailAndPassword,
+        signInWithPopup,
+        type UserCredential
+    } from "firebase/auth";
+    import {auth} from "$lib/auth"
+    import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
     import {Icon} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
 
