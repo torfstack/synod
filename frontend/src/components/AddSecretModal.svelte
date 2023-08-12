@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { Secret } from "$lib/secret"
+    import {Secret} from "$lib/secret"
     import {Button, Input, Label, Modal} from "flowbite-svelte";
+    import {slide} from "svelte/transition";
 
     export let uploadSecret: (n: Secret) => Promise<void>;
     export let openModal: boolean;
@@ -17,7 +18,7 @@
     }
 </script>
 
-<Modal title="New secret" bind:open={openModal} autoclose outsideclose>
+<Modal transition={slide} title="New secret" bind:open={openModal} autoclose outsideclose>
     <div class="mb-3">
         <Label>Name</Label>
         <Input bind:value={inputKey} type="text"></Input>
