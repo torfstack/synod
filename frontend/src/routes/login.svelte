@@ -2,6 +2,8 @@
     import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, type UserCredential } from "firebase/auth";
     import { auth } from "$lib/auth"
     import { Img, Checkbox, Input, Label, Helper, Heading, Mark, Span, P, Button} from "flowbite-svelte";
+    import {Icon} from "flowbite-svelte-icons";
+    import KayHeader from "../components/KayHeader.svelte";
 
     let email = "";
     let password = "";
@@ -24,6 +26,7 @@
                 currentUser = userCredential;
             })
             .catch((error) => {
+
                 // email and password did not match
             });
     }
@@ -39,27 +42,32 @@
 
 <div class="bg-gradient-to-b from-gray-50">
     <div class="p-3">
-        <Heading class="text-center mb-2 text-7xl" tag="h1"><Span class="font-mono" gradient>Kay</Span>Vault</Heading>
-        <P class="text-center">Login or register to manage your <Mark>secrets</Mark></P>
+        <KayHeader text="Login or register to manage your"/>
 
         <br>
 
         <div class="flex justify-center">
-            <div class="w-3/5 p-6 rounded bg-gradient-to-r from-sky-500 to-emerald-600 dark:bg-gray-600">
+            <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r from-sky-500 to-emerald-600 dark:bg-gray-600">
                 <form>
                     <div class="mb-3">
-                        <Button color="alternative">
-                            <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Signup Using Google
+                        <Button color="alternative" on:click={signInWithGoogle}>
+                            <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Google Login
                         </Button>
                     </div>
                     <div class="mb-3">
-                        <Label>Email address</Label>
-                        <Input type="text" bind:email placeholder="kay@vault.com"></Input>
-                        <Helper>We use Firebase Authentication to store user login information.</Helper>
+                        <Label class="space-y-2">
+                            <span>Email address</span>
+                            <Input type="email" size="md" bind:value={email} placeholder="kay@vault.com">
+                                <Icon name="envelope-solid" slot="left"></Icon>
+                            </Input>
+                            <Helper>We use Firebase Authentication to store user login information.</Helper>
+                        </Label>
                     </div>
                     <div class="mb-3">
-                        <Label>Password</Label>
-                        <Input type="password" bind:password placeholder="much secret"></Input>
+                        <Label class="space-y-2">
+                            <span>Password</span>
+                            <Input type="password" size="md" bind:value={password} placeholder="much secret"></Input>
+                        </Label>
                     </div>
                     <div class="mb-3">
                         <Checkbox>Remember me</Checkbox>
