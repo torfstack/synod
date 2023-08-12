@@ -72,8 +72,10 @@
                     <div class="mb-3">
                         <Checkbox>Remember me</Checkbox>
                     </div>
-                    <Button on:click={loginUser}>Login</Button>
-                    <Button color="alternative" on:click={registerNewUser}>Register</Button>
+                    <div class="grid lg:grid-cols-2 gap-4">
+                        <Button on:click={loginUser}>Login</Button>
+                        <Button color="alternative" on:click={registerNewUser}>Register</Button>
+                    </div>
                 </form>
             </div>
         </div>

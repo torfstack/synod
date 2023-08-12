@@ -2,11 +2,12 @@
     import { auth } from '$lib/auth'
     import backendSecretsUrl from '$lib/config';
     import type { UserCredential } from 'firebase/auth';
-    import {Button, Input} from 'flowbite-svelte';
-    import { Icon } from 'flowbite-svelte-icons';
+    import {Button, ButtonGroup, Input, InputAddon} from 'flowbite-svelte';
+    import { Icon, icons } from 'flowbite-svelte-icons';
     import KayHeader from "../components/KayHeader.svelte";
     import type { Secret } from "$lib/secret";
     import AddSecretModal from "../components/AddSecretModal.svelte";
+    import SearchAddBar from "../components/SearchAddBar.svelte";
 
     export let currentUser: UserCredential | null
     let filterValue = "", secrets: Secret[] = [];
@@ -96,18 +97,10 @@
 
     <br/>
 
-    <div class="container text-center">
-        <div class="row">
-            <div class="input col-10">
-                <Input bind:value={filterValue} type="text" size="lg" placeholder="Add/Search Secrets" name="New Secret">
-                    <Icon name="search-outline" slot="left"></Icon>
-                </Input>
-            </div>
-            <div class="col create">
-                <Button color="blue" data-bs-toggle="modal" data-bs-target="#exampleModal">Create</Button>
-            </div>
-        </div>
-    </div>
+    <SearchAddBar bind:filterValue={filterValue}/>
+
+    <br/>
+
     <div class="secrets">
         {#each shown as secret}
             <p>Name:{secret.key} Value:{secret.value}, Url:{secret.url}</p>
