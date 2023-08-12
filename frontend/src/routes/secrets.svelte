@@ -76,15 +76,8 @@
 </script>
 
 <style>
-    .input {
-        text-align: center;
-    }
     .secrets {
         text-align: center;
-    }
-    .create {
-        text-align: center;
-        margin: auto;
     }
 </style>
 
@@ -93,7 +86,11 @@
 
 <div class="container p-3">
     <AddSecretModal uploadSecret={uploadSecret}/>
-    <KayHeader text="Manage your"/>
+
+    <div class="gap-4 flex flex-col items-center">
+        <KayHeader text="Manage your" />
+        <Button class="lg:absolute lg:top-4 lg:right-4" on:click={logout}>Logout</Button>
+    </div>
 
     <br/>
 
