@@ -11,7 +11,7 @@ import java.io.FileInputStream
 class FirebaseTokenValidator : TokenValidator {
 
     private val app: FirebaseApp by lazy {
-        val secret = FileInputStream("kayvault.json")
+        val secret = FileInputStream("/opt/kayvault/kayvault.json")
         FirebaseApp.initializeApp(
             FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(secret))
