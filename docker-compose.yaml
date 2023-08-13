@@ -1,12 +1,13 @@
 version: "0.0.1"
 services:
   backend:
+    working_dir: /opt/kayvault
     image: ghcr.io/torfstack/kayvault-backend:latest
     ports:
       - 8080:8080
     restart: unless-stopped
     volumes:
-      - $PWD/kayvault.json:/kayvault.json
+      - $PWD/kayvault.json:/opt/kayvault/kayvault.json
   frontend:
     image: ghcr.io/torfstack/kayvault-frontend:latest
     ports:
