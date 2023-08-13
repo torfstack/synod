@@ -16,7 +16,7 @@ services:
       MYSQL_USER: kayvault
       MYSQL_PASSWORD: password
   kayvault:
-    image: registry.cloud.okteto.net/torfstack/kayvault:latest
+    image: ghcr.io/torfstack/kayvault-backend:latest
     ports:
       - 8080:8080
     deploy:
@@ -25,6 +25,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      FIREBASE_SECRET: ${FIREBASE_SECRET}
+    volumes:
+      - $PWD/kayvault.json:kayvault.json
 

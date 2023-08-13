@@ -38,7 +38,7 @@ out/
 .vscode/
 
 ### FIREBASE ###
-kayvault-c8416-d1b77965b6ee.json
+backend/kayvault.json
 
 ### OKTETO LOGIN TOKEN ###
 dockersecret

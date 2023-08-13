@@ -5,15 +5,16 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import org.springframework.stereotype.Component
+import java.io.FileInputStream
 
 @Component
 class FirebaseTokenValidator : TokenValidator {
 
     private val app: FirebaseApp by lazy {
-        val secret = System.getenv("FIREBASE_SECRET")
+        val secret = FileInputStream("kayvault.json")
         FirebaseApp.initializeApp(
             FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(secret.byteInputStream()))
+                .setCredentials(GoogleCredentials.fromStream(secret))
                 .build()
         )
     }

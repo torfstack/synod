@@ -57,5 +57,5 @@ tasks.withType<Test> {
 
 tasks.named("bootRun") {
 	(this as JavaExec).jvmArgs = listOf("-Dspring.profiles.active=dev")
-	environment("FIREBASE_SECRET", file("./kayvault-c8416-d1b77965b6ee.json").readText())
+	environment("FIREBASE_SECRET", file("./kayvault.json").readText())
 }
