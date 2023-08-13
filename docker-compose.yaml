@@ -1,7 +1,6 @@
 version: "0.0.1"
 services:
   backend:
-    working_dir: /opt/kayvault
     image: ghcr.io/torfstack/kayvault-backend:latest
     ports:
       - 8080:8080
