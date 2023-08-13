@@ -75,12 +75,6 @@
     getSecretsFromServer()
 </script>
 
-<style>
-    .secrets {
-        text-align: center;
-    }
-</style>
-
 <div class="from-gray-200 bg-gradient-to-b p-3">
     <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
 
