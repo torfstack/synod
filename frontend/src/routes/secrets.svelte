@@ -7,6 +7,7 @@
     import type {Secret} from "$lib/secret";
     import AddSecretModal from "../components/AddSecretModal.svelte";
     import SearchAddBar from "../components/SearchAddBar.svelte";
+    import SecretsList from "../components/SecretsList.svelte";
 
     export let currentUser: UserCredential | null
     let filterValue = "", secrets: Secret[] = [], openModal = false;
@@ -80,11 +81,11 @@
     }
 </style>
 
-<div class="container p-3">
+<div class="from-gray-200 bg-gradient-to-b p-3">
     <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
 
     <div class="gap-4 flex flex-col items-center">
-        <KayHeader text="Keep your" />
+        <KayHeader text="Keeping " />
         <Button class="lg:absolute lg:top-4 lg:right-4" on:click={logout}>Logout</Button>
     </div>
 
@@ -94,9 +95,7 @@
 
     <br/>
 
-    <div class="secrets">
-        {#each shown as secret}
-            <p>Name:{secret.key} Value:{secret.value}, Url:{secret.url}</p>
-        {/each}
+    <div class="flex justify-center">
+        <SecretsList secrets={shown}/>
     </div>
 </div>

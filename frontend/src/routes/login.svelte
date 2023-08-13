@@ -46,9 +46,9 @@
     }
 </script>
 
-<div class="bg-gradient-to-b from-gray-50">
+<div class="bg-gradient-to-b from-gray-200">
     <div class="p-3">
-        <KayHeader text="Login or register to keep your"/>
+        <KayHeader text="Login or register, keep "/>
 
         <br>
 
