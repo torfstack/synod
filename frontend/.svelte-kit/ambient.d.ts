@@ -28,11 +28,17 @@
 declare module '$env/static/private' {
 	export const SHELL: string;
 	export const npm_command: string;
+	export const LSCOLORS: string;
 	export const npm_config_userconfig: string;
 	export const npm_config_cache: string;
+	export const LESS: string;
+	export const TERMINAL_EMULATOR: string;
 	export const npm_config_resolution_mode: string;
 	export const I3SOCK: string;
+	export const _P9K_TTY: string;
 	export const NODE: string;
+	export const P9K_TTY: string;
+	export const TERM_SESSION_ID: string;
 	export const COLOR: string;
 	export const npm_config_local_prefix: string;
 	export const DESKTOP_SESSION: string;
@@ -41,17 +47,21 @@ declare module '$env/static/private' {
 	export const GTK_MODULES: string;
 	export const XDG_SEAT: string;
 	export const PWD: string;
-	export const XDG_SESSION_DESKTOP: string;
 	export const LOGNAME: string;
+	export const XDG_SESSION_DESKTOP: string;
 	export const XDG_SESSION_TYPE: string;
 	export const npm_config_init_module: string;
+	export const _: string;
 	export const XAUTHORITY: string;
+	export const DESKTOP_STARTUP_ID: string;
+	export const CR_PAT: string;
 	export const WINDOWPATH: string;
 	export const MOTD_SHOWN: string;
 	export const GDM_LANG: string;
 	export const HOME: string;
 	export const USERNAME: string;
 	export const LANG: string;
+	export const LS_COLORS: string;
 	export const XDG_CURRENT_DESKTOP: string;
 	export const npm_package_version: string;
 	export const INIT_CWD: string;
@@ -65,6 +75,8 @@ declare module '$env/static/private' {
 	export const DISPLAY: string;
 	export const npm_lifecycle_event: string;
 	export const SHLVL: string;
+	export const PAGER: string;
+	export const _P9K_SSH_TTY: string;
 	export const XDG_VTNR: string;
 	export const XDG_SESSION_ID: string;
 	export const npm_config_user_agent: string;
@@ -72,6 +84,8 @@ declare module '$env/static/private' {
 	export const XDG_RUNTIME_DIR: string;
 	export const DEBUGINFOD_URLS: string;
 	export const npm_package_json: string;
+	export const P9K_SSH: string;
+	export const FIG_JETBRAINS_SHELL_INTEGRATION: string;
 	export const XDG_DATA_DIRS: string;
 	export const npm_config_noproxy: string;
 	export const PATH: string;
@@ -83,7 +97,7 @@ declare module '$env/static/private' {
 	export const MAIL: string;
 	export const npm_node_execpath: string;
 	export const npm_config_engine_strict: string;
-	export const _: string;
+	export const OLDPWD: string;
 	export const NODE_ENV: string;
 }
 
@@ -116,11 +130,17 @@ declare module '$env/dynamic/private' {
 	export const env: {
 		SHELL: string;
 		npm_command: string;
+		LSCOLORS: string;
 		npm_config_userconfig: string;
 		npm_config_cache: string;
+		LESS: string;
+		TERMINAL_EMULATOR: string;
 		npm_config_resolution_mode: string;
 		I3SOCK: string;
+		_P9K_TTY: string;
 		NODE: string;
+		P9K_TTY: string;
+		TERM_SESSION_ID: string;
 		COLOR: string;
 		npm_config_local_prefix: string;
 		DESKTOP_SESSION: string;
@@ -129,17 +149,21 @@ declare module '$env/dynamic/private' {
 		GTK_MODULES: string;
 		XDG_SEAT: string;
 		PWD: string;
-		XDG_SESSION_DESKTOP: string;
 		LOGNAME: string;
+		XDG_SESSION_DESKTOP: string;
 		XDG_SESSION_TYPE: string;
 		npm_config_init_module: string;
+		_: string;
 		XAUTHORITY: string;
+		DESKTOP_STARTUP_ID: string;
+		CR_PAT: string;
 		WINDOWPATH: string;
 		MOTD_SHOWN: string;
 		GDM_LANG: string;
 		HOME: string;
 		USERNAME: string;
 		LANG: string;
+		LS_COLORS: string;
 		XDG_CURRENT_DESKTOP: string;
 		npm_package_version: string;
 		INIT_CWD: string;
@@ -153,6 +177,8 @@ declare module '$env/dynamic/private' {
 		DISPLAY: string;
 		npm_lifecycle_event: string;
 		SHLVL: string;
+		PAGER: string;
+		_P9K_SSH_TTY: string;
 		XDG_VTNR: string;
 		XDG_SESSION_ID: string;
 		npm_config_user_agent: string;
@@ -160,6 +186,8 @@ declare module '$env/dynamic/private' {
 		XDG_RUNTIME_DIR: string;
 		DEBUGINFOD_URLS: string;
 		npm_package_json: string;
+		P9K_SSH: string;
+		FIG_JETBRAINS_SHELL_INTEGRATION: string;
 		XDG_DATA_DIRS: string;
 		npm_config_noproxy: string;
 		PATH: string;
@@ -171,7 +199,7 @@ declare module '$env/dynamic/private' {
 		MAIL: string;
 		npm_node_execpath: string;
 		npm_config_engine_strict: string;
-		_: string;
+		OLDPWD: string;
 		NODE_ENV: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: string]: string | undefined;
