@@ -79,8 +79,8 @@
 <div class="p-3">
     <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
 
-    <div class="gap-4 items-center flex flex-col">
-        <Button class="lg:top-4 lg:right-4" on:click={logout}>Logout</Button>
+    <div class="justify-center flex">
+        <Button on:click={logout}>Logout</Button>
     </div>
 
     <br/>

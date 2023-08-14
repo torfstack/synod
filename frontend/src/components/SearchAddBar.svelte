@@ -11,7 +11,7 @@
 </script>
 
 <div class="flex justify-center">
-    <div class="lg:w-1/2 2xl:w-3/4">
+    <div class="lg:w-1/2">
         <ButtonGroup class="flex">
             <InputAddon>
                 <button on:click={didClickAdd}>
