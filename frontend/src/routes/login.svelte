@@ -46,18 +46,18 @@
     }
 </script>
 
-<div class="bg-gradient-to-b from-gray-200">
+<div>
+    <KayHeader text="Login or register, keep "/>
     <div class="p-3">
-        <KayHeader text="Login or register, keep "/>
 
         <br>
 
         <div class="flex justify-center">
-            <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r from-sky-500 to-emerald-600 dark:bg-gray-600">
+            <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r from-sky-500 to-gray-600">
                 <form>
                     <div class="mb-3">
                         <Button color="alternative" on:click={signInWithGoogle}>
-                            <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Google Login
+                            <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Login with Google
                         </Button>
                     </div>
                     <div class="mb-3">

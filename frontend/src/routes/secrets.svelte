@@ -75,12 +75,12 @@
     getSecretsFromServer()
 </script>
 
-<div class="from-gray-200 bg-gradient-to-b p-3">
+<KayHeader text="Keeping " />
+<div class="p-3">
     <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
 
-    <div class="gap-4 flex flex-col items-center">
-        <KayHeader text="Keeping " />
-        <Button class="lg:absolute lg:top-4 lg:right-4" on:click={logout}>Logout</Button>
+    <div class="gap-4 items-center flex flex-col">
+        <Button class="lg:top-4 lg:right-4" on:click={logout}>Logout</Button>
     </div>
 
     <br/>
