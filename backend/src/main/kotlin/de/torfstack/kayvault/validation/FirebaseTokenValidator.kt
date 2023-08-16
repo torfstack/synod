@@ -4,10 +4,10 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 import java.io.FileInputStream
 
-@Component
+@Service
 class FirebaseTokenValidator : TokenValidator {
 
     private val app: FirebaseApp by lazy {
