@@ -53,10 +53,10 @@
         <br>
 
         <div class="flex justify-center">
-            <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r from-sky-500 to-gray-600">
+            <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r dark:from-sky-800 from-sky-500 dark:to-gray-900 to-gray-600">
                 <form>
                     <div class="mb-3">
-                        <Button color="alternative" on:click={signInWithGoogle}>
+                        <Button color="light" on:click={signInWithGoogle}>
                             <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Login with Google
                         </Button>
                     </div>
@@ -80,7 +80,7 @@
                     </div>
                     <div class="grid lg:grid-cols-2 gap-4">
                         <Button on:click={loginUser}>Login</Button>
-                        <Button color="alternative" on:click={registerNewUser}>Register</Button>
+                        <Button color="light" on:click={registerNewUser}>Register</Button>
                     </div>
                 </form>
             </div>
