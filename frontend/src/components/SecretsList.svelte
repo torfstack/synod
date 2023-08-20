@@ -4,12 +4,14 @@
     export let secrets: Secret[]
 </script>
 
-<Listgroup active class="w-full lg:w-1/2 2xl:w-2/5">
-    {#each secrets as secret}
-        <ListgroupItem class="">
-            <P weight="semibold">{secret.key}</P>
-            &nbsp;
-            <P italic>[{secret.url}]</P>
-        </ListgroupItem>
-    {/each}
-</Listgroup>
+{#if secrets.length > 0}
+    <Listgroup active class="w-full lg:w-1/2 2xl:w-2/5">
+        {#each secrets as secret}
+            <ListgroupItem class="">
+                <P weight="semibold">{secret.key}</P>
+                &nbsp;
+                <P italic>[{secret.url}]</P>
+            </ListgroupItem>
+        {/each}
+    </Listgroup>
+{/if}
