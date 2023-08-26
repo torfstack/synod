@@ -16,6 +16,7 @@
             inputTags
         );
         uploadSecret(secret)
+        reset()
     }
 
     function handleKeyPress(event: KeyboardEvent) {
@@ -25,6 +26,13 @@
             inputTag = ""
             inputTags = inputTags
         }
+    }
+
+    function reset() {
+        inputKey = ""
+        inputValue = ""
+        inputUrl = ""
+        inputTags = []
     }
 </script>
 
