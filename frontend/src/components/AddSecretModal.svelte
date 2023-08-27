@@ -55,10 +55,12 @@
 <Modal transition={slide} title="New secret" bind:open={openModal} outsideclose>
     <div class="mb-3">
         <TextInput label="Name" bind:value={inputKey} bind:error={inputKeyError}
+                   errorText="Can not be empty"
                    required={true}/>
     </div>
     <div class="mb-3">
         <TextInput label="Secret" bind:value={inputValue} bind:error={inputValueError}
+                   errorText="Can not be empty"
                    required={true}/>
     </div>
     <div class="mb-3">

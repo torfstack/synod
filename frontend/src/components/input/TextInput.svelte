@@ -5,6 +5,7 @@
     export let label: string
     export let handleKeyPress: ((event: KeyboardEvent) => void) | null = null
     export let error: boolean | null = null
+    export let errorText: string | null = null
     export let required: boolean | null = null
     export let placeholder: string | null = null
 
@@ -21,7 +22,7 @@
            placeholder={placeholder}></Input>
     {#if required}
         <Helper color={ error ? "red" : "gray" } class="mt-2">
-            * Required
+            { error && errorText ? errorText : "*required" }
         </Helper>
     {/if}
 </div>
