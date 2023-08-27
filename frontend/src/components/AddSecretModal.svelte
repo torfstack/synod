@@ -1,31 +1,47 @@
 <script lang="ts">
     import {Secret} from "$lib/secret"
-    import {Badge, Button, Input, Label, Modal, P} from "flowbite-svelte";
+    import {Badge, Button, Modal, P} from "flowbite-svelte";
     import {slide} from "svelte/transition";
+    import TextInput from "./input/TextInput.svelte";
 
     export let uploadSecret: (n: Secret) => Promise<void>;
     export let openModal: boolean;
 
-    let inputKey: string, inputValue: string, inputUrl: string, inputTag: string, inputTags: string[] = []
+    let inputKey = "", inputValue = "", inputUrl = "", inputTag = "", inputTags: string[] = []
+    let inputKeyError = false, inputValueError = false;
 
     function handleSecret() {
-        let secret = new Secret(
+        if (checkForError()) {
+            console.log("some error occured")
+            return
+        }
+        uploadSecret(constructSecret())
+        reset()
+        openModal = false
+    }
+
+    function constructSecret(): Secret {
+        return new Secret(
             inputKey,
             inputValue,
             inputUrl,
             inputTags
         );
-        uploadSecret(secret)
-        reset()
     }
 
     function handleKeyPress(event: KeyboardEvent) {
         console.log(event.key)
-        if (event.key == "Enter") {
+        if (event.key == "Enter" && inputTag != "") {
             inputTags.push(inputTag)
             inputTag = ""
             inputTags = inputTags
         }
+    }
+
+    function checkForError(): boolean {
+        inputKeyError = inputKey == ""
+        inputValueError = inputValue == ""
+        return inputKeyError || inputValueError
     }
 
     function reset() {
@@ -36,34 +52,31 @@
     }
 </script>
 
-<Modal transition={slide} title="New secret" bind:open={openModal} autoclose outsideclose>
+<Modal transition={slide} title="New secret" bind:open={openModal} outsideclose>
     <div class="mb-3">
-        <Label>Name</Label>
-        <Input bind:value={inputKey} type="text"></Input>
+        <TextInput label="Name" bind:value={inputKey} bind:error={inputKeyError}
+                   required={true}/>
     </div>
     <div class="mb-3">
-        <Label>Secret</Label>
-        <Input bind:value={inputValue} type="text"></Input>
+        <TextInput label="Secret" bind:value={inputValue} bind:error={inputValueError}
+                   required={true}/>
     </div>
     <div class="mb-3">
-        <Label>URL</Label>
-        <Input bind:value={inputUrl} type="text"></Input>
+        <TextInput label="URL" bind:value={inputUrl}/>
     </div>
     <div class="mb-3">
-        <Label>Tags</Label>
-        <Input bind:value={inputTag} type="text" on:keypress={handleKeyPress}
-               placeholder="Type something and press 'Enter' to add a tag"></Input>
-        <P slot="left" class="p-2">
+        <TextInput label="Tags" bind:value={inputTag} handleKeyPress={handleKeyPress}
+                   placeholder="Type something and press 'Enter' to add a tag"/>
+        <P slot="left" class="p-4 h-8">
             {#each inputTags as tag}
-                <Badge class="mr-2" transition={slide} dismissable>
+                <Badge class="mr-2 mb-2" transition={slide} dismissable>
                     #{tag}
                 </Badge>
             {/each}
-            &nbsp;
         </P>
     </div>
     <svelte:fragment slot="footer">
-        <Button color="alternative" data-bs-dismiss="modal">Close</Button>
-        <Button color="blue" data-bs-dismiss="modal" on:click={handleSecret}>Save changes</Button>
+        <Button color="alternative" on:click={() => (openModal = false)}>Close</Button>
+        <Button color="blue" on:click={handleSecret}>Save changes</Button>
     </svelte:fragment>
 </Modal>
