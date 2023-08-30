@@ -33,7 +33,7 @@
 
     function handleKeyPress(event: KeyboardEvent) {
         console.log(event.key)
-        if (event.key == "Enter" && inputTag != "") {
+        if (event.key == "Enter" && inputTag != "" && inputTags.indexOf(inputTag) == -1) {
             inputTags.push(inputTag)
             inputTag = ""
             inputTags = inputTags
