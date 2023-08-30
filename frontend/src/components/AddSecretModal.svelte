@@ -56,7 +56,7 @@
     function dismissTag(tag: string) {
         const index = inputTags.indexOf(tag)
         if (index > -1) {
-            inputTags = inputTags.splice(index, 1)
+            inputTags.splice(index, 1)
         }
     }
 </script>
