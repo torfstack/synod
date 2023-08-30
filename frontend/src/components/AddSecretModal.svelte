@@ -15,7 +15,9 @@
             console.log("some error occured")
             return
         }
-        uploadSecret(constructSecret())
+        const secret = constructSecret()
+        console.log("uploading secret", secret)
+        uploadSecret(secret)
         reset()
         openModal = false
     }
@@ -50,6 +52,13 @@
         inputUrl = ""
         inputTags = []
     }
+
+    function dismissTag(tag: string) {
+        const index = inputTags.indexOf(tag)
+        if (index > -1) {
+            inputTags = inputTags.splice(index, 1)
+        }
+    }
 </script>
 
 <Modal transition={slide} title="New secret" bind:open={openModal} outsideclose>
@@ -71,7 +80,7 @@
                    placeholder="Type something and press 'Enter' to add a tag"/>
         <P slot="left" class="p-4 h-8">
             {#each inputTags as tag}
-                <Badge class="mr-2 mb-2" transition={slide} dismissable>
+                <Badge class="mr-2 mb-2" transition={slide} dismissable on:dismiss={() => dismissTag(tag)}>
                     #{tag}
                 </Badge>
             {/each}
