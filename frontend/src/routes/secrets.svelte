@@ -1,6 +1,6 @@
 <script lang="ts">
-    import {auth} from '$lib/auth'
-    import backendSecretsUrl from '$lib/config';
+    import {authorization} from '$lib/authorization.js'
+    import backendSecretsUrl from '$lib/configuration';
     import type {UserCredential} from 'firebase/auth';
     import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
@@ -69,13 +69,13 @@
 
     function logout() {
         currentUser = null
-        auth.signOut()
+        authorization.signOut()
     }
 
     getSecretsFromServer()
 </script>
 
-<KayHeader text="Keeping " />
+<KayHeader text="Keeping "/>
 <div class="p-3">
     <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
 

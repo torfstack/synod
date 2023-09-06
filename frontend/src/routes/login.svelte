@@ -1,12 +1,6 @@
 <script lang="ts">
-    import {
-        createUserWithEmailAndPassword,
-        GoogleAuthProvider,
-        signInWithEmailAndPassword,
-        signInWithPopup,
-        type UserCredential
-    } from "firebase/auth";
-    import {auth} from "$lib/auth"
+    import {createUserWithEmailAndPassword, signInWithEmailAndPassword, type UserCredential} from "firebase/auth";
+    import {authorization, signInWithGoogle} from "$lib/authorization"
     import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
     import {Icon} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
@@ -16,10 +10,11 @@
     export let currentUser: UserCredential | null = null
 
     function registerNewUser(): void {
-        createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => { currentUser = userCredential;
+        createUserWithEmailAndPassword(authorization, email, password)
+            .then((userCredential) => {
+                currentUser = userCredential;
             })
-            
+
             .catch((error) => {
                 const errorCode = error.code;
                 const errorMessage = error.message;
@@ -27,7 +22,7 @@
     }
 
     function loginUser(): void {
-        signInWithEmailAndPassword(auth, email, password)
+        signInWithEmailAndPassword(authorization, email, password)
             .then((userCredential) => {
                 currentUser = userCredential;
             })
@@ -37,12 +32,10 @@
             });
     }
 
-    function signInWithGoogle(): void {
-        const provider = new GoogleAuthProvider()
-        signInWithPopup(auth, provider)
-            .then((userCredential) => {
-                currentUser = userCredential;
-            });
+    function loginGoogle(): void {
+        signInWithGoogle().then((userCredential: UserCredential) => {
+            currentUser = userCredential;
+        });
     }
 </script>
 
@@ -56,7 +49,7 @@
             <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r dark:from-sky-800 from-sky-500 dark:to-gray-900 to-gray-600">
                 <form>
                     <div class="mb-3">
-                        <Button color="light" on:click={signInWithGoogle}>
+                        <Button color="light" on:click={loginGoogle}>
                             <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Login with Google
                         </Button>
                     </div>
