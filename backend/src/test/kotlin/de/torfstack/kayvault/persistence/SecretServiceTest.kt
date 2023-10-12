@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.containsOnly
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
+import assertk.assertions.isTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -17,6 +18,9 @@ class SecretServiceTest {
 
     @Autowired
     lateinit var secretService: SecretService
+
+    @Autowired
+    lateinit var cryptService: CryptService
 
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 2, 3, 400])
@@ -39,5 +43,25 @@ class SecretServiceTest {
         secretService.addSecretForUser("A", SecretModel(secretValue = "secret", secretKey = "key", secretUrl = "url"))
         val actual = secretService.secretsForUser("B")
         assertThat(actual).isEmpty()
+    }
+
+    @Test
+    fun `encrypt is executed on add secret`() {
+        val secret = SecretModel(secretKey = "key", secretUrl = "url", secretValue = "secret")
+        secretService.addSecretForUser("user", secret)
+        assertThat(cryptServiceMock().encryptGotCalled).isTrue()
+    }
+
+    @Test
+    fun `decrypt is executed on get secret`() {
+        val secret = SecretModel(secretKey = "key", secretUrl = "url", secretValue = "secret")
+        secretService.addSecretForUser("user", secret)
+
+        secretService.secretsForUser("user")
+        assertThat(cryptServiceMock().decryptGotCalled).isTrue()
+    }
+
+    private fun cryptServiceMock(): CryptServiceMock {
+        return cryptService as CryptServiceMock
     }
 }
