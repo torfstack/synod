@@ -10,7 +10,8 @@ class SecretEntity {
     var secretId: Long = 0
 
     @Column(name = "secretValue")
-    var secretValue: String = ""
+    @Lob
+    var secretValue: ByteArray = ByteArray(0)
 
     @Column(name = "secretKey")
     var secretKey: String = ""

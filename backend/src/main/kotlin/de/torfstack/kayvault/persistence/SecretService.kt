@@ -10,7 +10,7 @@ class SecretService @Autowired constructor(val repo: SecretRepository, val crypt
             SecretModel(
                 secretUrl = it.secretUrl,
                 secretKey = it.secretKey,
-                secretValue = cryptService.decrypt(it.secretValue)
+                secretValue = String(cryptService.decrypt(it.secretValue))
             )
         }
     }
@@ -18,7 +18,7 @@ class SecretService @Autowired constructor(val repo: SecretRepository, val crypt
     fun addSecretForUser(user: String, model: SecretModel) {
         repo.save(
             SecretEntity().also {
-                it.secretValue = cryptService.encrypt(model.secretValue)
+                it.secretValue = cryptService.encrypt(model.secretValue.toByteArray())
                 it.secretKey = model.secretKey
                 it.secretUrl = model.secretUrl
                 it.forUser = user

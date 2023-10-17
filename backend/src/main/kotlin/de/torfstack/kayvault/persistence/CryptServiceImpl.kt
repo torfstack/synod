@@ -20,32 +20,31 @@ class CryptServiceImpl : CryptService {
         }
     }
 
-    override fun encrypt(plaintext: String): String {
+    override fun encrypt(plaintext: ByteArray): ByteArray {
         val iv = ByteArray(12)
         SecureRandom().nextBytes(iv)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         val spec = GCMParameterSpec(128, iv)
         cipher.init(Cipher.ENCRYPT_MODE, key(), spec)
-        val encrypted = cipher.doFinal(plaintext.toByteArray())
+        val encrypted = cipher.doFinal(plaintext)
         val complete = ByteArray(12+encrypted.size)
 
         iv.copyInto(complete)
         encrypted.copyInto(complete, 12)
 
-        return String(complete)
+        return complete
     }
 
-    override fun decrypt(complete: String): String {
-        val bytes = complete.toByteArray()
-        val iv = bytes.copyOfRange(0, 12)
-        val ciphertext = bytes.copyOfRange(12, bytes.size)
+    override fun decrypt(complete: ByteArray): ByteArray {
+        val iv = complete.copyOfRange(0, 12)
+        val ciphertext = complete.copyOfRange(12, complete.size)
 
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         val spec = GCMParameterSpec(128, iv)
         cipher.init(Cipher.DECRYPT_MODE, key(), spec)
         val decrypted = cipher.doFinal(ciphertext)
 
-        return String(decrypted)
+        return decrypted
     }
 
     private fun key(): SecretKey {
