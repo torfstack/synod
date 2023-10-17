@@ -21,7 +21,7 @@ class FirebaseTokenValidator : TokenValidator {
 
     override fun validate(token: String): TokenValidator.VerificationResult {
         val auth = FirebaseAuth.getInstance(app)
-        return  try {
+        return try {
             val parsedJwt = auth.verifyIdToken(token)
             TokenValidator.ValidVerification(parsedJwt.uid)
         } catch (e: Exception) {
