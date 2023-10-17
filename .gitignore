@@ -1,5 +1,7 @@
 ## Backend
 HELP.md
+backend/kayvault.json
+backend/key.file
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
