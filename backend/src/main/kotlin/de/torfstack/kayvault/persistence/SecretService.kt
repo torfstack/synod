@@ -1,5 +1,6 @@
 package de.torfstack.kayvault.persistence
 
+import de.torfstack.kayvault.crypto.CryptService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 

@@ -1,4 +1,4 @@
-package de.torfstack.kayvault.persistence
+package de.torfstack.kayvault.crypto
 
 interface CryptService {
     fun encrypt(plaintext: ByteArray): ByteArray

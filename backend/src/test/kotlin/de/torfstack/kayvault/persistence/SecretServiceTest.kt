@@ -5,6 +5,7 @@ import assertk.assertions.containsOnly
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isTrue
+import de.torfstack.kayvault.crypto.CryptService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
