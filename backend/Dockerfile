@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17
+FROM amazoncorretto:17-alpine
 
 RUN mkdir /opt/kayvault
 COPY build/libs/kayvault*SNAPSHOT.jar /opt/kayvault/kayvault.jar
