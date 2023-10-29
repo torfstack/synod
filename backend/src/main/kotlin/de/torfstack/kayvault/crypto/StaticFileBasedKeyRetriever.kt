@@ -11,11 +11,19 @@ import kotlin.io.path.Path
 class StaticFileBasedKeyRetriever: KeyRetriever {
 
     override fun key(): ByteArray {
-        if (!Files.exists(Path("key.file"))) {
-            val key = ByteArray(32)
-            SecureRandom().nextBytes(key)
-            Files.write(Path("key.file"), key, StandardOpenOption.CREATE_NEW)
+        return retrieveKey()
+    }
+
+    companion object {
+        fun retrieveKey(): ByteArray {
+            return synchronized(this) {
+                if (!Files.exists(Path("key.file"))) {
+                    val key = ByteArray(32)
+                    SecureRandom().nextBytes(key)
+                    Files.write(Path("key.file"), key, StandardOpenOption.CREATE_NEW)
+                }
+                Files.readAllBytes(Path("key.file"))
+            }
         }
-        return Files.readAllBytes(Path("key.file"))
     }
 }
