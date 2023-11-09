@@ -23,6 +23,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - run: ./buildit
+      - name: test
+        run: ./gradlew clean test
+        working-directory: ./backend
+      - name: release
+        run: ./buildit
         working-directory: ./backend
 
