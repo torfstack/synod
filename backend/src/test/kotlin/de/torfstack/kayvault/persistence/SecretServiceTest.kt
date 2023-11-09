@@ -4,13 +4,17 @@ import assertk.assertThat
 import assertk.assertions.containsOnly
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
-import assertk.assertions.isTrue
 import de.torfstack.kayvault.crypto.CryptService
+import org.hamcrest.Matchers
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import org.mockito.AdditionalMatchers
+import org.mockito.Mockito
+import org.mockito.Mockito.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.test.annotation.DirtiesContext
 
 @SpringBootTest
@@ -20,7 +24,7 @@ class SecretServiceTest {
     @Autowired
     lateinit var secretService: SecretService
 
-    @Autowired
+    @SpyBean
     lateinit var cryptService: CryptService
 
     @ParameterizedTest
@@ -50,19 +54,14 @@ class SecretServiceTest {
     fun `encrypt is executed on add secret`() {
         val secret = SecretModel(secretKey = "key", secretUrl = "url", secretValue = "secret")
         secretService.addSecretForUser("user", secret)
-        assertThat(cryptServiceMock().encryptGotCalled).isTrue()
+        verify(cryptService).encrypt("secret".toByteArray())
     }
 
     @Test
     fun `decrypt is executed on get secret`() {
         val secret = SecretModel(secretKey = "key", secretUrl = "url", secretValue = "secret")
         secretService.addSecretForUser("user", secret)
-
         secretService.secretsForUser("user")
-        assertThat(cryptServiceMock().decryptGotCalled).isTrue()
-    }
-
-    private fun cryptServiceMock(): CryptServiceMock {
-        return cryptService as CryptServiceMock
+        verify(cryptService).decrypt(any() ?: ByteArray(0))
     }
 }
