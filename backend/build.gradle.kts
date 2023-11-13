@@ -1,8 +1,8 @@
-import org.jetbrains.kotlin.config.JvmTarget
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-        id("org.springframework.boot") version "3.0.7"
+	id("org.springframework.boot") version "3.0.7"
 	id("io.spring.dependency-management") version "1.1.0"
 	kotlin("jvm") version "1.8.20"
 	kotlin("plugin.spring") version "1.8.20"
@@ -53,6 +53,11 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	testLogging {
+		events.add(TestLogEvent.FAILED)
+		events.add(TestLogEvent.PASSED)
+		events.add(TestLogEvent.SKIPPED)
+	}
 }
 
 tasks.named("bootRun") {

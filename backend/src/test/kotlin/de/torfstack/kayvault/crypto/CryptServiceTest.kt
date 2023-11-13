@@ -2,10 +2,7 @@ package de.torfstack.kayvault.crypto
 
 import assertk.assertAll
 import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isFailure
-import assertk.assertions.isNotEqualTo
-import assertk.assertions.isSuccess
+import assertk.assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -16,11 +13,17 @@ class CryptServiceTest {
     @Autowired
     lateinit var cryptService: CryptService
 
+    companion object {
+        const val TAG_LENGTH = 16
+        const val NONCE_LENGTH = 12
+    }
+
     @Test
-    fun `encrypt returns ciphertext different from ciphertext`() {
+    fun `encrypt returns ciphertext different from ciphertext of correct length`() {
         val plaintext = "Testing plaintext".toByteArray()
         val ciphertext = cryptService.encrypt(plaintext)
         assertThat(ciphertext).isNotEqualTo(plaintext)
+        assertThat(ciphertext).hasSize(plaintext.size + TAG_LENGTH + NONCE_LENGTH)
     }
 
     @Test
