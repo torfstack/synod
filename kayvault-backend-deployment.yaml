@@ -15,10 +15,19 @@ spec:
         app: kayvault-backend
     spec:
       containers:
-      - name: kayvault-backend
-        image: ghcr.io/torfstack/kayvault-backend:latest
-        ports:
-        - containerPort: 4000
-          hostPort: 4000
+        - name: kayvault-backend
+          image: ghcr.io/torfstack/kayvault-backend:latest
+          ports:
+            - containerPort: 4000
+              hostPort: 4000
+          volumeMounts:
+            - mountPath: "/opt/kayvault/kayvault.json"
+              subPath: "kayvault.json"
+              name: secret-kayvault-json
+              readOnly: true
+      volumes:
+        - name: secret-kayvault-json
+          secret:
+            secretName: kayvault-json
       imagePullSecrets:
         - name: regcred
