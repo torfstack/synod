@@ -13,6 +13,8 @@ spring:
       hibernate:
         hbm2ddl:
           auto: "update"
+server:
+  port: 4000
 
 ---
 
@@ -31,3 +33,5 @@ spring:
       hibernate:
         hbm2ddl:
           auto: "update"
+server:
+  port: 4000
