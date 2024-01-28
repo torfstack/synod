@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kayvault-frontend-deployment
+  labels:
+    app: kayvault-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kayvault-frontend
+  template:
+    metadata:
+      labels:
+        app: kayvault-frontend
+    spec:
+      containers:
+      - name: kayvault-frontend
+        image: ghcr.io/torfstack/kayvault-frontend:latest
+        ports:
+        - containerPort: 3000
+          hostPort: 3000
+      imagePullSecrets:
+        - name: regcred

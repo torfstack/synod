@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kayvault-backend-deployment
+  labels:
+    app: kayvault-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kayvault-backend
+  template:
+    metadata:
+      labels:
+        app: kayvault-backend
+    spec:
+      containers:
+      - name: kayvault-backend
+        image: ghcr.io/torfstack/kayvault-backend:latest
+        ports:
+        - containerPort: 4000
+          hostPort: 4000
+      imagePullSecrets:
+        - name: regcred
