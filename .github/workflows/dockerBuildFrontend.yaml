@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: 21
           cache: npm
+        working-directory: ./frontend
       - name: release
         run: ./buildit
         working-directory: ./frontend
