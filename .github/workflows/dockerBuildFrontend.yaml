@@ -1,0 +1,29 @@
+name: docker-build-frontend
+run-name: ${{ github.actor }} is building the kayvault frontend docker image
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  build-it:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+          cache: npm
+      - name: release
+        run: ./buildit
+        working-directory: ./frontend
+
