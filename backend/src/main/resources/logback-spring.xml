@@ -7,7 +7,7 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
     </root>
-    <logger name="de.torfstack.kayvault" level="DEBUG"/>
+    <logger name="com.torfstack.kayvault" level="DEBUG"/>
 </springProfile>
 
 <springProfile name="prod">

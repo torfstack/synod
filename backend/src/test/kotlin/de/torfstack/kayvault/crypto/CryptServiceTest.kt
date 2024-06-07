@@ -1,4 +1,4 @@
-package de.torfstack.kayvault.crypto
+package com.torfstack.kayvault.crypto
 
 import assertk.assertAll
 import assertk.assertThat

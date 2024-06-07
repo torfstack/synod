@@ -1,9 +1,9 @@
-package de.torfstack.kayvault.controller
+package com.torfstack.kayvault.controller
 
 import assertk.assertThat
 import assertk.assertions.hasSize
-import de.torfstack.kayvault.persistence.SecretService
-import de.torfstack.kayvault.validation.TokenValidator
+import com.torfstack.kayvault.persistence.SecretService
+import com.torfstack.kayvault.validation.TokenValidator
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito

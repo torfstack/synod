@@ -45,7 +45,7 @@
         let user = currentUser as UserCredential
         return user.user.getIdToken().then(async token => {
             console.log(token)
-            fetch(backendSecretsUrl, {
+            await fetch(backendSecretsUrl, {
                 method: "POST",
                 mode: "cors",
                 cache: "no-cache",
@@ -59,11 +59,7 @@
                     url: s.url
                 })
             })
-                .then(resp => resp.json())
-                .then(body => {
-                    secrets = body
-                    console.log(secrets)
-                })
+            await getSecretsFromServer()
         })
     }
 

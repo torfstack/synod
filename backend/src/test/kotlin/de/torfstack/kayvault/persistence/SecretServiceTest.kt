@@ -1,10 +1,10 @@
-package de.torfstack.kayvault.persistence
+package com.torfstack.kayvault.persistence
 
 import assertk.assertThat
 import assertk.assertions.containsOnly
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
-import de.torfstack.kayvault.crypto.CryptService
+import com.torfstack.kayvault.crypto.CryptService
 import org.hamcrest.Matchers
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
