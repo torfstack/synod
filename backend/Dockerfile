@@ -1,6 +1,10 @@
-FROM amazoncorretto:17-alpine
+FROM alpine:3.20.0
 
 RUN mkdir /opt/kayvault
-COPY build/libs/kayvault*SNAPSHOT.jar /opt/kayvault/kayvault.jar
-CMD ["java", "-Dspring.profiles.active=dev", "-jar", "/opt/kayvault/kayvault.jar"]
 
+WORKDIR /opt/kayvault
+
+COPY /bin/kayvault-backend kayvault-backend
+COPY /sql/migrations sql/migrations
+
+CMD ["./kayvault-backend"]

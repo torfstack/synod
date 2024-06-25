@@ -35,6 +35,7 @@ func (s *Server) Start() {
 
 	e.Use(middleware.CORS())
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		println(err.Error())
 		_ = c.JSON(500, map[string]string{"error": err.Error()})
 	}
 

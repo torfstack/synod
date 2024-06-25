@@ -1,3 +1,0 @@
-./gradlew bootJar
-docker buildx build -t ghcr.io/torfstack/kayvault-backend:latest .
-docker push ghcr.io/torfstack/kayvault-backend:latest
