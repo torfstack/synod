@@ -10,9 +10,9 @@ import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class SecretControllerTest {
 
-    @MockBean
+    @MockitoBean
     lateinit var tokenValidator: TokenValidator
 
     @Autowired
@@ -51,14 +51,18 @@ class SecretControllerTest {
 
     @Test
     fun `secret for one user can be retrieved`() {
-        mockMvc.perform(post("/secret").header("Authorization", "Bearer $MOCK_USER")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""
+        mockMvc.perform(
+            post("/secret").header("Authorization", "Bearer $MOCK_USER")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                 {
                     "key": "system",
                     "value": "abc-def-ghij"
                 }
-            """.trimIndent()))
+            """.trimIndent()
+                )
+        )
             .andExpect(status().isOk)
 
         val secrets = secretService.secretsForUser(MOCK_USER)

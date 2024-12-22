@@ -5,17 +5,15 @@ import assertk.assertions.containsOnly
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import com.torfstack.kayvault.crypto.CryptService
-import org.hamcrest.Matchers
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import org.mockito.AdditionalMatchers
-import org.mockito.Mockito
-import org.mockito.Mockito.*
+import org.mockito.Mockito.any
+import org.mockito.Mockito.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
@@ -24,7 +22,7 @@ class SecretServiceTest {
     @Autowired
     lateinit var secretService: SecretService
 
-    @SpyBean
+    @MockitoSpyBean
     lateinit var cryptService: CryptService
 
     @ParameterizedTest

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: kayvault-backend
-          image: ghcr.io/torfstack/kayvault-backend:latest
+          image: ghcr.io/torfstack/kayvault-backend:0.0.2
           ports:
             - containerPort: 4000
               hostPort: 4000
