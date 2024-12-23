@@ -4,12 +4,10 @@ import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
 import org.springframework.web.filter.CommonsRequestLoggingFilter
 
-private val log = KotlinLogging.logger {  }
+private val log = KotlinLogging.logger { }
 
 @SpringBootApplication
 class KayVaultApplication

@@ -1,13 +1,28 @@
-FROM gradle:8.12.0-jdk23-alpine AS builder
+ARG BUILD_IMAGE=gradle:8.12.0-jdk21-alpine
+ARG RUN_IMAGE=eclipse-temurin:21-alpine
 
-WORKDIR /opt/kayvault
-COPY . .
+FROM $BUILD_IMAGE AS pre-build-cache
 
-RUN ./gradlew clean bootJar
+ARG BUILD_HOME=/opt/kayvault
 
-FROM eclipse-temurin:23-alpine AS runner
+WORKDIR $BUILD_HOME
+COPY build.gradle.kts settings.gradle.kts gradle $BUILD_HOME/
 
-RUN mkdir /opt/kayvault
-COPY --from=builder /opt/kayvault/build/libs/kayvault*SNAPSHOT.jar /opt/kayvault/kayvault.jar
-CMD ["java", "-Dspring.profiles.active=dev", "-jar", "/opt/kayvault/kayvault.jar"]
+RUN gradle dependencies
+
+FROM pre-build-cache AS builder
+
+ARG BUILD_HOME=/opt/kayvault
+
+WORKDIR $BUILD_HOME
+COPY src $BUILD_HOME/src
+
+RUN gradle bootJar
+
+FROM $RUN_IMAGE AS runner
+
+ARG BUILD_HOME=/opt/kayvault
+
+COPY --from=builder $BUILD_HOME/build/libs/kayvault*SNAPSHOT.jar kayvault.jar
+CMD ["java", "-Dspring.profiles.active=dev", "-jar", "kayvault.jar"]
 

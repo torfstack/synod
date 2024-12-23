@@ -2,7 +2,8 @@ package com.torfstack.kayvault.persistence
 
 import jakarta.persistence.*
 
-@Entity(name = "secrets")
+@Entity
+@Table(name = "secrets")
 class SecretEntity {
 
     @Id

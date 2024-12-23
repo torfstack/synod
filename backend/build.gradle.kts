@@ -10,8 +10,8 @@ plugins {
 
 group = "com.torfstack"
 version = "0.0.1-SNAPSHOT"
-java.sourceCompatibility = JavaVersion.VERSION_23
-java.targetCompatibility = JavaVersion.VERSION_23
+java.sourceCompatibility = JavaVersion.VERSION_21
+java.targetCompatibility = JavaVersion.VERSION_21
 
 repositories {
     mavenCentral()
@@ -46,10 +46,10 @@ dependencies {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_23)
+        jvmTarget.set(JvmTarget.JVM_21)
+        // enable strict null checks for JSR-305 annotations (e.g. @NotNull)
         freeCompilerArgs = listOf("-Xjsr305=strict")
     }
-
 }
 
 tasks.withType<Test> {

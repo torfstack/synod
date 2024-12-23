@@ -6,7 +6,7 @@ import com.torfstack.kayvault.validation.TokenValidator
 import mu.KotlinLogging
 import org.springframework.web.bind.annotation.*
 
-val Log = KotlinLogging.logger{}
+val Log = KotlinLogging.logger {}
 
 @RestController
 @CrossOrigin
@@ -20,7 +20,10 @@ class SecretController(val secretService: SecretService, val tokenVerifier: Toke
     }
 
     @PostMapping("secret")
-    fun postSecret(@RequestHeader authorization: String, @RequestBody entity: SecretRequestEntity): List<SecretRequestEntity> {
+    fun postSecret(
+        @RequestHeader authorization: String,
+        @RequestBody entity: SecretRequestEntity
+    ): List<SecretRequestEntity> {
         val user = userFromHeader(authorization)
         Log.info { "adding a secret for user $user" }
         secretService.addSecretForUser(user, entity.toModel())
@@ -34,6 +37,7 @@ class SecretController(val secretService: SecretService, val tokenVerifier: Toke
                 Log.warn { "token could not be verified" }
                 throw IllegalArgumentException("token could not be verified", result.ex)
             }
+
             is TokenValidator.ValidVerification -> {
                 Log.debug { "validated token successfully and got user ${result.user}" }
                 return result.user
