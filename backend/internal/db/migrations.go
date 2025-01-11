@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/pressly/goose/v3"
 	"os"
+    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (

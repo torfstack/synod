@@ -26,6 +26,11 @@ func (s *Server) Start() {
 		Password: "mysecretpassword",
 		DBName:   "kayvault",
 	}}
+    err := db.Migrate(context.Background(), cfg.DB.ConnectionString())
+    if err != nil {
+        panic(err)
+    }
+
 	database := db.NewDatabase(cfg.DB)
 
 	authentication, err := auth.NewFireBaseAuth(context.Background(), database)
