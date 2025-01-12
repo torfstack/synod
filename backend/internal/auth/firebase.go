@@ -2,13 +2,14 @@ package auth
 
 import (
 	"context"
-	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/auth"
-	"google.golang.org/api/option"
 	"main/internal/convert/fromdb"
 	"main/internal/db"
 	"main/internal/models"
 	"strings"
+
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
+	"google.golang.org/api/option"
 )
 
 type fireBaseAuth struct {

@@ -9,7 +9,7 @@ COPY sql sql
 
 RUN CGO_ENABLED=0 go build -o bin/kayvault-backend cmd/main.go
 
-FROM alpine:3.20.0 AS runner
+FROM alpine:3.21.2 AS runner
 
 COPY --from=builder /opt/kayvault-backend/bin/kayvault-backend kayvault-backend
 COPY sql/migrations sql/migrations
