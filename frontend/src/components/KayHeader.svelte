@@ -1,6 +1,10 @@
 <script lang="ts">
     import {Banner, Heading, Mark, P, Span, DarkMode} from "flowbite-svelte";
-    export let text: string;
+    interface Props {
+        text: string;
+    }
+
+    let { text }: Props = $props();
 </script>
 
 <div>

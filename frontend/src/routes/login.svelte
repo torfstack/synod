@@ -8,12 +8,16 @@
     } from "firebase/auth";
     import {auth} from "$lib/auth"
     import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
-    import {Icon} from "flowbite-svelte-icons";
+    import {EnvelopeSolid} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
 
-    let email = "";
-    let password = "";
-    export let currentUser: UserCredential | null = null
+    let email = $state("");
+    let password = $state("");
+    interface Props {
+        currentUser?: UserCredential | null;
+    }
+
+    let { currentUser = $bindable(null) }: Props = $props();
 
     function registerNewUser(): void {
         createUserWithEmailAndPassword(auth, email, password)
@@ -63,8 +67,10 @@
                     <div class="mb-3">
                         <Label class="space-y-2">
                             <span>Email address</span>
-                            <Input type="email" size="md" bind:value={email} placeholder="kay@vault.com">
-                                <Icon name="envelope-solid" slot="left"></Icon>
+                            <Input bind:value={email} placeholder="kay@vault.com" size="md" type="email">
+                                {#snippet left()}
+                                    <EnvelopeSolid name="envelope-solid" />
+                                {/snippet}
                             </Input>
                             <Helper>We use Firebase Authentication to store user login information.</Helper>
                         </Label>
@@ -72,7 +78,7 @@
                     <div class="mb-3">
                         <Label class="space-y-2">
                             <span>Password</span>
-                            <Input type="password" size="md" bind:value={password} placeholder="much secret"></Input>
+                            <Input bind:value={password} placeholder="much secret" size="md" type="password"></Input>
                         </Label>
                     </div>
                     <div class="mb-3">

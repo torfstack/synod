@@ -3,7 +3,7 @@
     import Login from "./login.svelte"
     import Secrets from "./secrets.svelte";
 
-    let currentUser: UserCredential | null = null;
+    let currentUser: UserCredential | null = $state(null);
 </script>
 
 {#if currentUser}
