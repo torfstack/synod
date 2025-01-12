@@ -1,0 +1,18 @@
+version: '3'
+
+tasks:
+    build-backend:
+        cmds:
+        - docker buildx build -t ghcr.io/torfstack/kayvault-backend:0.0.6 backend
+        - docker push ghcr.io/torfstack/kayvault-backend:0.0.6
+    build-frontend:
+        cmds:
+        - docker buildx build -t ghcr.io/torfstack/kayvault-frontend:0.0.2 frontend
+        - docker push ghcr.io/torfstack/kayvault-frontend:0.0.2
+    build:
+        cmds:
+        - task: build-backend
+        - task: build-frontend
+    deploy:
+        cmds:
+        - helm upgrade --install kayvault deployment

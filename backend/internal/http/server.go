@@ -2,11 +2,12 @@ package http
 
 import (
 	"context"
-	"github.com/labstack/echo/v4" 
-    "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"main/internal/auth"
 	"main/internal/config"
 	"main/internal/db"
+	"os"
 )
 
 type Server struct {
@@ -19,17 +20,28 @@ func NewServer() *Server {
 func (s *Server) Start() {
 	e := echo.New()
 
-	cfg := config.Config{DB: config.DBConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "postgres",
-		Password: "mysecretpassword",
-		DBName:   "kayvault",
-	}}
-    err := db.Migrate(context.Background(), cfg.DB.ConnectionString())
-    if err != nil {
-        panic(err)
-    }
+	postgresPw := os.Getenv("POSTGRES_PASSWORD")
+	if postgresPw == "" {
+		panic("POSTGRES_PASSWORD environment variable not set")
+	}
+	postgresHost := os.Getenv("POSTGRES_HOST")
+	if postgresHost == "" {
+		postgresHost = "localhost"
+	}
+
+	cfg := config.Config{
+		DB: config.DBConfig{
+			Host:     postgresHost,
+			Port:     5432,
+			User:     "postgres",
+			Password: postgresPw,
+			DBName:   "kayvault",
+		},
+	}
+	err := db.Migrate(context.Background(), cfg.DB.ConnectionString())
+	if err != nil {
+		panic(err)
+	}
 
 	database := db.NewDatabase(cfg.DB)
 
