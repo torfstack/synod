@@ -1,28 +1,17 @@
-ARG BUILD_IMAGE=gradle:8.12.0-jdk21-alpine
-ARG RUN_IMAGE=eclipse-temurin:21-alpine
+FROM golang:1.23.4 AS builder
 
-FROM $BUILD_IMAGE AS pre-build-cache
+WORKDIR /opt/kayvault-backend
 
-ARG BUILD_HOME=/opt/kayvault
+COPY go.mod go.sum ./
+COPY internal internal
+COPY cmd cmd
+COPY sql sql
 
-WORKDIR $BUILD_HOME
-COPY build.gradle.kts settings.gradle.kts gradle $BUILD_HOME/
+RUN CGO_ENABLED=0 go build -o bin/kayvault-backend cmd/main.go
 
-RUN gradle dependencies
+FROM alpine:3.21.2 AS runner
 
-FROM pre-build-cache AS builder
+COPY --from=builder /opt/kayvault-backend/bin/kayvault-backend kayvault-backend
+COPY sql/migrations sql/migrations
 
-ARG BUILD_HOME=/opt/kayvault
-
-WORKDIR $BUILD_HOME
-COPY src $BUILD_HOME/src
-
-RUN gradle bootJar
-
-FROM $RUN_IMAGE AS runner
-
-ARG BUILD_HOME=/opt/kayvault
-
-COPY --from=builder $BUILD_HOME/build/libs/kayvault*SNAPSHOT.jar kayvault.jar
-CMD ["java", "-Dspring.profiles.active=dev", "-jar", "kayvault.jar"]
-
+CMD ["./kayvault-backend"]

@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '23'
+          java-version: '17'
       - name: test
         run: ./gradlew clean test
         working-directory: ./backend

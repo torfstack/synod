@@ -1,13 +1,25 @@
 <script lang="ts">
     import {Helper, Input, Label} from "flowbite-svelte";
 
-    export let value: string
-    export let label: string
-    export let handleKeyPress: ((event: KeyboardEvent) => void) | null = null
-    export let error: boolean | null = null
-    export let errorText: string | null = null
-    export let required: boolean | null = null
-    export let placeholder: string | null = null
+    interface Props {
+        value: string;
+        label: string;
+        handleKeyPress?: ((event: KeyboardEvent) => void) | null;
+        error?: boolean | null;
+        errorText?: string | null;
+        required?: boolean | null;
+        placeholder?: string | null;
+    }
+
+    let {
+        value = $bindable(),
+        label,
+        handleKeyPress = null,
+        error = $bindable(null),
+        errorText = null,
+        required = null,
+        placeholder = null
+    }: Props = $props();
 
     function clearError() {
         error = false

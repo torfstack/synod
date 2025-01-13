@@ -1,7 +1,11 @@
 <script lang="ts">
     import {Listgroup, ListgroupItem, P} from "flowbite-svelte";
     import type {Secret} from "$lib/secret";
-    export let secrets: Secret[]
+    interface Props {
+        secrets: Secret[];
+    }
+
+    let { secrets }: Props = $props();
 </script>
 
 {#if secrets.length > 0}

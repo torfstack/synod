@@ -4,6 +4,6 @@ const deployed = "https://kayvault.torfstack.com/api"
 
 const secretPath = "/secret"
 
-const backendUrl = localhost
+const backendUrl = deployed
 const backendSecretsUrl = backendUrl + secretPath
 export default backendSecretsUrl

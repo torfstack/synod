@@ -1,2 +1,0 @@
-kubectl delete deployment kayvault-frontend-deployment
-kubectl delete deployment kayvault-backend-deployment

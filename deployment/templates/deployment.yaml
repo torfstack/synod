@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.appName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appName }}
+    spec:
+      volumes:
+        - name: kayvault-json
+          secret:
+            secretName: kayvault-json
+      containers:
+        - name: kayvault-backend
+          image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
+          ports:
+            - containerPort: 4000
+              hostPort: 4000
+          volumeMounts:
+            - mountPath: "/kayvault.json"
+              subPath: "kayvault.json"
+              name: kayvault-json
+              readOnly: true
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kayvault
+                  key: postgres-password
+            - name: POSTGRES_HOST
+              value: {{ .Values.backend.postgres.host }}
+        - name: kayvault-frontend
+          image: {{ .Values.frontend.image }}:{{ .Values.frontend.tag }}
+          ports:
+            - containerPort: 3000
+              hostPort: 3000
+      imagePullSecrets:
+        - name: regcred
+  strategy:
+    type: Recreate

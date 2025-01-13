@@ -61,24 +61,24 @@
     }
 </script>
 
-<Modal transition={slide} title="New secret" bind:open={openModal} outsideclose>
+<Modal bind:open={openModal} outsideclose title="New secret" transition={slide}>
     <div class="mb-3">
-        <TextInput label="Name" bind:value={inputKey} bind:error={inputKeyError}
-                   errorText="Can not be empty"
+        <TextInput bind:error={inputKeyError} bind:value={inputKey} errorText="Can not be empty"
+                   label="Name"
                    required={true}/>
     </div>
     <div class="mb-3">
-        <TextInput label="Secret" bind:value={inputValue} bind:error={inputValueError}
-                   errorText="Can not be empty"
+        <TextInput bind:error={inputValueError} bind:value={inputValue} errorText="Can not be empty"
+                   label="Secret"
                    required={true}/>
     </div>
     <div class="mb-3">
-        <TextInput label="URL" bind:value={inputUrl}/>
+        <TextInput bind:value={inputUrl} label="URL"/>
     </div>
     <div class="mb-3">
-        <TextInput label="Tags" bind:value={inputTag} handleKeyPress={handleKeyPress}
+        <TextInput bind:value={inputTag} handleKeyPress={handleKeyPress} label="Tags"
                    placeholder="Type something and press 'Enter' to add a tag"/>
-        <P slot="left" class="p-4 h-8">
+        <P class="p-4 h-8">
             {#each inputTags as tag}
                 <Badge class="mr-2 mb-2" transition={slide} dismissable on:dismiss={() => dismissTag(tag)}>
                     #{tag}

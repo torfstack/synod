@@ -1,8 +1,12 @@
 <script lang="ts">
     import {ButtonGroup, Input, InputAddon} from "flowbite-svelte";
-    import {Icon} from "flowbite-svelte-icons";
-    export let filterValue: string;
-    export let clickedAdd: boolean;
+    import { PlusOutline } from "flowbite-svelte-icons";
+    interface Props {
+        filterValue: string;
+        clickedAdd: boolean;
+    }
+
+    let { filterValue = $bindable(), clickedAdd = $bindable() }: Props = $props();
 
     function didClickAdd() {
         clickedAdd = false
@@ -14,11 +18,11 @@
     <div class="lg:w-1/2">
         <ButtonGroup class="flex">
             <InputAddon>
-                <button on:click={didClickAdd}>
-                    <Icon name="plus-outline" data-bs-toggle="modal" data-bs-target="#exampleModal" />
+                <button onclick={didClickAdd}>
+                    <PlusOutline data-bs-target="#exampleModal" data-bs-toggle="modal" name="plus-outline" />
                 </button>
             </InputAddon>
-            <Input bind:value={filterValue} type="text" size="lg" placeholder="Add/Search Secrets" name="New Secret">
+            <Input bind:value={filterValue} name="New Secret" placeholder="Add/Search Secrets" size="lg" type="text">
             </Input>
         </ButtonGroup>
     </div>

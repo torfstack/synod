@@ -9,10 +9,14 @@
     import SearchAddBar from "../components/SearchAddBar.svelte";
     import SecretsList from "../components/SecretsList.svelte";
 
-    export let currentUser: UserCredential | null
-    let filterValue = "", secrets: Secret[] = [], openModal = false;
+    interface Props {
+        currentUser: UserCredential | null;
+    }
 
-    $: shown = secrets.filter((s: Secret) => {
+    let { currentUser = $bindable() }: Props = $props();
+    let filterValue = $state(""), secrets: Secret[] = $state([]), openModal = $state(false);
+
+    let shown = $derived(secrets.filter((s: Secret) => {
         let trimmed = filterValue.trim()
         const regex = /[A-Z]/
         let hasOnlyLower = trimmed.match(regex) == null
@@ -21,7 +25,7 @@
         } else {
             return s.value.indexOf(trimmed) != -1
         }
-    })
+    }))
 
     async function getSecretsFromServer() {
         let user = currentUser as UserCredential

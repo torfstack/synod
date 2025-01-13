@@ -1,2 +1,0 @@
-kubectl apply -f kayvault-backend-deployment.yaml
-kubectl apply -f kayvault-frontend-deployment.yaml
