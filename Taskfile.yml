@@ -1,24 +1,34 @@
 version: '3'
 
+dotenv: ['versions']
+
 tasks:
   backend-build:
     dir: backend
     cmds:
-      - docker buildx build -t ghcr.io/torfstack/kayvault-backend:0.0.6 .
-      - docker push ghcr.io/torfstack/kayvault-backend:0.0.6
+      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-backend:$NEXT_BACKEND_VERSION .
   backend-test:
     dir: backend
     cmds:
-      - go test ./...
+      - cmd: go test ./...
+  backend-release:
+    dir: backend
+    cmds:
+      - task: backend-build
+      - cmd: docker push ghcr.io/torfstack/kayvault-backend:$NEXT_BACKEND_VERSION
   frontend-build:
     dir: frontend
     cmds:
-      - docker buildx build -t ghcr.io/torfstack/kayvault-frontend:0.0.2 .
-      - docker push ghcr.io/torfstack/kayvault-frontend:0.0.2
-  build:
+      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-frontend:$NEXT_FRONTEND_VERSION .
+  frontend-release:
+    dir: frontend
+    cmds:
+      - task: frontend-build
+      - cmd: docker push ghcr.io/torfstack/kayvault-frontend:$NEXT_FRONTEND_VERSION
+  release:
     cmds:
       - task: build-backend
       - task: build-frontend
   deploy:
     cmds:
-      - helm upgrade --install kayvault deployment
+      - cmd: helm upgrade --install kayvault deployment
