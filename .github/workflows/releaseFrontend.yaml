@@ -1,15 +1,15 @@
-name: build-backend
-run-name: ${{ github.actor }} is building the kayvault backend docker image
+name: build-frontend
+run-name: ${{ github.actor }} is building the kayvault frontend docker image
 
 on:
   push:
-    paths:
-      - backend/**
     branches:
       - 'main'
+    paths:
+      - frontend/**
 
 jobs:
-  build:
+  build-it:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,17 +23,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: setup golang
-        uses: actions/setup-go@v5
-        with:
-          go-version: '^1.23.4'
       - name: install task
-        uses: arudino/setup-task@v2
+        uses: arduino/setup-task@v2
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: test backend
-        run: task backend-test
-      - name: release backend
-        run: task backend-release
+      - name: release frontend
+        run: task frontend-release
 
