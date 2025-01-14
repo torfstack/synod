@@ -16,7 +16,7 @@ var (
 
 type SessionService interface {
     // CreateSession creates a new session for the given user.
-    CreateSession(user int64) (*Session, error)
+    CreateSession(user int32) (*Session, error)
 
     // GetSession returns the session for the given token.
     GetSession(token string) (*Session, error)
@@ -27,8 +27,8 @@ type SessionService interface {
 
 type Session struct {
     Token string
-    UserID int64
-    ExpiresAt int64
+    UserID int32
+    ExpiresAt time.Time 
 }
 
 type sessionStore map[string]*Session
@@ -43,12 +43,12 @@ func NewSessionService() SessionService {
     }
 }
 
-func (s *sessionService) CreateSession(user int64) (*Session, error) {
+func (s *sessionService) CreateSession(user int32) (*Session, error) {
     uuid := generateUUID()
     session := &Session{
         Token: uuid,
         UserID: user,
-        ExpiresAt: time.Now().Unix() + SessionDuration,
+        ExpiresAt: time.Now().Add(SessionDuration),
     }
     s.store[uuid] = session
     return session, nil

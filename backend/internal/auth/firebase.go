@@ -34,7 +34,7 @@ func NewFireBaseAuth(ctx context.Context, database db.Database) (Auth, error) {
 }
 
 func (f *fireBaseAuth) GetUser(ctx context.Context, token string) (*models.User, error) {
-	token = strings.TrimPrefix(token, "Bearer")
+	token = strings.TrimPrefix(token, "Bearer ")
 	res, err := f.auth.VerifyIDToken(ctx, token)
 	if err != nil {
 		return nil, err

@@ -11,15 +11,13 @@ import (
 )
 
 type Server struct {
+    database       db.Database
+    sessionService auth.SessionService
+    firebaseAuth   auth.Auth
+    cfg            config.Config
 }
 
 func NewServer() *Server {
-	return &Server{}
-}
-
-func (s *Server) Start() {
-	e := echo.New()
-
 	postgresPw := os.Getenv("POSTGRES_PASSWORD")
 	if postgresPw == "" {
 		panic("POSTGRES_PASSWORD environment variable not set")
@@ -38,14 +36,24 @@ func (s *Server) Start() {
 			DBName:   "kayvault",
 		},
 	}
-	err := db.Migrate(context.Background(), cfg.DB.ConnectionString())
+
+	return &Server{
+        sessionService: auth.NewSessionService(),
+        cfg:            cfg,
+    }
+}
+
+func (s *Server) Start() {
+	e := echo.New()
+
+	err := db.Migrate(context.Background(), s.cfg.DB.ConnectionString())
 	if err != nil {
 		panic(err)
 	}
 
-	database := db.NewDatabase(cfg.DB)
+	database := db.NewDatabase(s.cfg.DB)
 
-	authentication, err := auth.NewFireBaseAuth(context.Background(), database)
+	s.firebaseAuth, err = auth.NewFireBaseAuth(context.Background(), database)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
@@ -56,8 +64,11 @@ func (s *Server) Start() {
 		_ = c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	e.GET("/secret", GetSecrets(database, authentication))
-	e.POST("/secret", PostSecret(database, authentication))
+    secrets := e.Group("/secrets", s.SessionCheck)
+    secrets.GET("", s.GetSecrets)
+    secrets.POST("", s.PostSecret)
+
+    e.POST("/auth", s.Auth)
 
 	e.Logger.Fatal(e.Start(":4000"))
 }
