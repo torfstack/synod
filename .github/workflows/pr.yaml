@@ -25,4 +25,9 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: test backend
         run: task backend-test
+      - name: lint backend
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          working-directory: backend
 
