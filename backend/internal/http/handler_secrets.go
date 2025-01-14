@@ -46,7 +46,10 @@ func PostSecret(db db.Database, auth auth.Auth) func(echo.Context) error {
 		}
 
 		var input models.Secret
-		c.Bind(&input)
+		err = c.Bind(&input)
+        if err != nil {
+            return err
+        }
 
 		err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, user.ID))
 		if err != nil {
