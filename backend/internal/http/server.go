@@ -2,19 +2,19 @@ package http
 
 import (
 	"context"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"main/internal/auth"
 	"main/internal/config"
 	"main/internal/db"
 	"os"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Server struct {
-    database       db.Database
-    sessionService auth.SessionService
-    firebaseAuth   auth.Auth
-    cfg            config.Config
+	database       db.Database
+	sessionService auth.SessionService
+	firebaseAuth   auth.Auth
+	cfg            config.Config
 }
 
 func NewServer() *Server {
@@ -38,9 +38,9 @@ func NewServer() *Server {
 	}
 
 	return &Server{
-        sessionService: auth.NewSessionService(),
-        cfg:            cfg,
-    }
+		sessionService: auth.NewSessionService(),
+		cfg:            cfg,
+	}
 }
 
 func (s *Server) Start() {
@@ -58,17 +58,25 @@ func (s *Server) Start() {
 		e.Logger.Fatal(err)
 	}
 
-	e.Use(middleware.CORS())
+	/*	e.Use(
+			middleware.CORSWithConfig(
+				middleware.CORSConfig{
+					AllowOrigins:     []string{"http://127.0.0.1:5173"},
+					AllowCredentials: true,
+				},
+			),
+		)
+	*/
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		println(err.Error())
 		_ = c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-    secrets := e.Group("/secrets", s.SessionCheck)
-    secrets.GET("", s.GetSecrets)
-    secrets.POST("", s.PostSecret)
+	secrets := e.Group("/secrets", s.SessionCheck)
+	secrets.GET("", s.GetSecrets)
+	secrets.POST("", s.PostSecret)
 
-    e.POST("/auth", s.Auth)
+	e.POST("/auth", s.Auth)
 
 	e.Logger.Fatal(e.Start(":4000"))
 }

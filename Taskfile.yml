@@ -27,8 +27,8 @@ tasks:
       - cmd: docker push ghcr.io/torfstack/kayvault-frontend:$NEXT_FRONTEND_VERSION
   release:
     cmds:
-      - task: build-backend
-      - task: build-frontend
+      - task: backend-release
+      - task: frontend-release
   deploy:
     cmds:
       - cmd: helm upgrade --install kayvault deployment

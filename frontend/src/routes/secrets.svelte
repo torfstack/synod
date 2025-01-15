@@ -1,6 +1,6 @@
 <script lang="ts">
     import {auth} from '$lib/auth'
-    import backendSecretsUrl from '$lib/config';
+    import urls from '$lib/config';
     import type {UserCredential} from 'firebase/auth';
     import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
@@ -31,11 +31,9 @@
         let user = currentUser as UserCredential
         return user.user.getIdToken().then(async token => {
             console.log(token)
-            return fetch(backendSecretsUrl, {
+            return fetch(urls.backendSecretsUrl, {
                 method: "GET",
-                headers: {
-                    "Authorization": "Bearer" + token
-                }
+                credentials: "include",
             })
                 .then(resp => resp.json())
                 .then(body => {
@@ -49,14 +47,14 @@
         let user = currentUser as UserCredential
         return user.user.getIdToken().then(async token => {
             console.log(token)
-            await fetch(backendSecretsUrl, {
+            await fetch(urls.backendSecretsUrl, {
                 method: "POST",
                 mode: "cors",
                 cache: "no-cache",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer" + token
                 },
+                credentials: "include",
                 body: JSON.stringify({
                     value: s.value,
                     key: s.key,

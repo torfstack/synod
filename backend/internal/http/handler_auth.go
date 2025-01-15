@@ -23,13 +23,16 @@ func (s *Server) Auth(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")
 	}
 
-	c.SetCookie(&http.Cookie{
-		Name:     "token",
-		Value:    session.Token,
-		Expires:  session.ExpiresAt,
-		HttpOnly: true,
-		Secure:   true,
-	})
+	c.SetCookie(
+		&http.Cookie{
+			Name:     "sessionId",
+			Value:    session.SessionID,
+			Expires:  session.ExpiresAt,
+			SameSite: http.SameSiteStrictMode,
+			HttpOnly: true,
+			Secure:   true,
+		},
+	)
 
-	return nil
+	return c.NoContent(http.StatusOK)
 }

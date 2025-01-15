@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"os"
-    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (

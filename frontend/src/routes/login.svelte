@@ -6,7 +6,8 @@
         signInWithPopup,
         type UserCredential
     } from "firebase/auth";
-    import {auth} from "$lib/auth"
+    import {auth} from "$lib/auth";
+    import doAuth from "$lib/api";
     import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
     import {EnvelopeSolid} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
@@ -19,9 +20,10 @@
 
     let { currentUser = $bindable(null) }: Props = $props();
 
-    function registerNewUser(): void {
+    async function registerNewUser() {
         createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => { currentUser = userCredential;
+            .then((userCredential) => { 
+                currentUser = userCredential;
             })
             
             .catch((error) => {
@@ -30,7 +32,7 @@
             });
     }
 
-    function loginUser(): void {
+    async function loginUser() {
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
                 currentUser = userCredential;
@@ -41,12 +43,12 @@
             });
     }
 
-    function signInWithGoogle(): void {
+    async function signInWithGoogle() {
         const provider = new GoogleAuthProvider()
-        signInWithPopup(auth, provider)
-            .then((userCredential) => {
-                currentUser = userCredential;
-            });
+        const userCredential = await signInWithPopup(auth, provider)
+        const idToken = await userCredential.user.getIdToken()
+        await doAuth(idToken)
+        currentUser = userCredential
     }
 </script>
 

@@ -9,18 +9,21 @@ import (
 
 func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		cookie, err := c.Request().Cookie("token")
+		cookie, err := c.Request().Cookie("sessionId")
 		if err != nil || cookie.Expires.Before(time.Now()) {
 			return echo.NewHTTPError(401, "Unauthorized")
 		}
 
 		session, err := s.sessionService.GetSession(cookie.Value)
 		if err != nil {
-			c.SetCookie(&http.Cookie{
-				Name:    "token",
-				Value:   "",
-				Expires: time.UnixMilli(0),
-			})
+			c.SetCookie(
+				&http.Cookie{
+					Name:    "token",
+					Path:    "/",
+					Value:   "",
+					Expires: time.UnixMilli(0),
+				},
+			)
 			c.Response().WriteHeader(401)
 			return nil
 		}
