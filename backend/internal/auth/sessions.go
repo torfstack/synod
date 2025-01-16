@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"github.com/google/uuid"
+	"strings"
 	"time"
 )
 
@@ -31,7 +32,7 @@ type Session struct {
 	ExpiresAt time.Time
 }
 
-type sessionStore map[string]*Session
+type sessionStore map[string]Session
 
 type sessionService struct {
 	store sessionStore
@@ -45,27 +46,29 @@ func NewSessionService() SessionService {
 
 func (s *sessionService) CreateSession(user int32) (*Session, error) {
 	u := generateUUID()
-	session := &Session{
+	session := Session{
 		SessionID: u,
 		UserID:    user,
 		ExpiresAt: time.Now().Add(SessionDuration * time.Second),
 	}
 	s.store[u] = session
-	return session, nil
+	return &session, nil
 }
 
 func (s *sessionService) GetSession(token string) (*Session, error) {
-	if session, ok := s.store[token]; ok {
-		return session, nil
+	t := strings.ToLower(token)
+	if session, ok := s.store[t]; ok {
+		return &session, nil
 	}
 	return nil, ErrSessionNotFound
 }
 
 func (s *sessionService) DeleteSession(token string) error {
-	delete(s.store, token)
+	t := strings.ToLower(token)
+	delete(s.store, t)
 	return nil
 }
 
 func generateUUID() string {
-	return uuid.NewString()
+	return strings.ToLower(uuid.NewString())
 }

@@ -2,16 +2,19 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
+	"log/slog"
 	"main/internal/auth"
 	"main/internal/convert/fromdb"
 	"main/internal/convert/todb"
 	"main/internal/models"
+	"net/http"
 )
 
 func (s *Server) GetSecrets(c echo.Context) error {
-	session, ok := c.Get("session").(auth.Session)
+	session, ok := c.Get("sessionId").(*auth.Session)
 	if !ok {
-		return echo.NewHTTPError(401, "Unauthorized")
+		slog.Debug("No session found")
+		return c.NoContent(http.StatusUnauthorized)
 	}
 
 	conn, err := s.database.Connect(c.Request().Context())
@@ -24,13 +27,14 @@ func (s *Server) GetSecrets(c echo.Context) error {
 	}
 
 	secrets := fromdb.Secrets(dbSecrets)
-	return c.JSON(200, secrets)
+	return c.JSON(http.StatusOK, secrets)
 }
 
 func (s *Server) PostSecret(c echo.Context) error {
-	session, ok := c.Get("session").(auth.Session)
+	session, ok := c.Get("sessionId").(*auth.Session)
 	if !ok {
-		return echo.NewHTTPError(401, "Unauthorized")
+		slog.Debug("No session found")
+		return c.NoContent(http.StatusUnauthorized)
 	}
 
 	conn, err := s.database.Connect(c.Request().Context())
@@ -41,7 +45,7 @@ func (s *Server) PostSecret(c echo.Context) error {
 	var input models.Secret
 	err = c.Bind(&input)
 	if err != nil {
-		return err
+		return c.NoContent(http.StatusBadRequest)
 	}
 
 	err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, session.UserID))
@@ -49,5 +53,5 @@ func (s *Server) PostSecret(c echo.Context) error {
 		return err
 	}
 
-	return c.NoContent(201)
+	return c.NoContent(http.StatusCreated)
 }

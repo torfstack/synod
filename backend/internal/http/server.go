@@ -51,9 +51,8 @@ func (s *Server) Start() {
 		panic(err)
 	}
 
-	database := db.NewDatabase(s.cfg.DB)
-
-	s.firebaseAuth, err = auth.NewFireBaseAuth(context.Background(), database)
+	s.database = db.NewDatabase(s.cfg.DB)
+	s.firebaseAuth, err = auth.NewFireBaseAuth(context.Background(), s.database)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}

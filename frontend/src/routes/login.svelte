@@ -7,7 +7,7 @@
         type UserCredential
     } from "firebase/auth";
     import {auth} from "$lib/auth";
-    import doAuth from "$lib/api";
+    import api from "$lib/api";
     import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
     import {EnvelopeSolid} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
@@ -47,7 +47,7 @@
         const provider = new GoogleAuthProvider()
         const userCredential = await signInWithPopup(auth, provider)
         const idToken = await userCredential.user.getIdToken()
-        await doAuth(idToken)
+        await api.postAuth(idToken)
         currentUser = userCredential
     }
 </script>

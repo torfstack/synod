@@ -10,17 +10,17 @@ import (
 func (s *Server) Auth(c echo.Context) error {
 	auth := c.Request().Header.Get("Authorization")
 	if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return c.NoContent(http.StatusUnauthorized)
 	}
 
 	user, err := s.firebaseAuth.GetUser(c.Request().Context(), auth)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return c.NoContent(http.StatusUnauthorized)
 	}
 
 	session, err := s.sessionService.CreateSession(user.ID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")
+		return err
 	}
 
 	c.SetCookie(
