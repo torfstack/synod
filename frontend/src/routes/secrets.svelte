@@ -1,6 +1,6 @@
 <script lang="ts">
     import {auth} from '$lib/auth'
-    import backendSecretsUrl from '$lib/config';
+    import api from '$lib/api'
     import type {UserCredential} from 'firebase/auth';
     import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
@@ -28,43 +28,16 @@
     }))
 
     async function getSecretsFromServer() {
-        let user = currentUser as UserCredential
-        return user.user.getIdToken().then(async token => {
-            console.log(token)
-            return fetch(backendSecretsUrl, {
-                method: "GET",
-                headers: {
-                    "Authorization": "Bearer" + token
-                }
-            })
-                .then(resp => resp.json())
-                .then(body => {
-                    secrets = body as Secret[]
-                    console.log("got secrets", secrets)
-                })
-        });
+        api.getSecrets()
+          .then(resp => resp.json())
+          .then(body => {
+              secrets = body as Secret[]
+          })
     }
 
     async function uploadSecret(s: Secret) {
-        let user = currentUser as UserCredential
-        return user.user.getIdToken().then(async token => {
-            console.log(token)
-            await fetch(backendSecretsUrl, {
-                method: "POST",
-                mode: "cors",
-                cache: "no-cache",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer" + token
-                },
-                body: JSON.stringify({
-                    value: s.value,
-                    key: s.key,
-                    url: s.url
-                })
-            })
-            await getSecretsFromServer()
-        })
+        await api.postSecrets(s)
+        await getSecretsFromServer()
     }
 
     function logout() {

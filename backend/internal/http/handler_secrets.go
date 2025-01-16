@@ -2,57 +2,56 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
+	"log/slog"
 	"main/internal/auth"
 	"main/internal/convert/fromdb"
 	"main/internal/convert/todb"
-	"main/internal/db"
 	"main/internal/models"
+	"net/http"
 )
 
-func GetSecrets(db db.Database, auth auth.Auth) func(echo.Context) error {
-	return func(c echo.Context) error {
-		authHeader := c.Request().Header.Get("Authorization")
-		user, err := auth.GetUser(c.Request().Context(), authHeader)
-		if err != nil {
-			c.Error(err)
-			return err
-		}
-
-		conn, err := db.Connect(c.Request().Context())
-		if err != nil {
-			return err
-		}
-		dbSecrets, err := conn.Queries().SelectSecrets(c.Request().Context(), user.ID)
-		if err != nil {
-			return err
-		}
-
-		secrets := fromdb.Secrets(dbSecrets)
-		return c.JSON(200, secrets)
+func (s *Server) GetSecrets(c echo.Context) error {
+	session, ok := c.Get("sessionId").(*auth.Session)
+	if !ok {
+		slog.Debug("No session found")
+		return c.NoContent(http.StatusUnauthorized)
 	}
+
+	conn, err := s.database.Connect(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	dbSecrets, err := conn.Queries().SelectSecrets(c.Request().Context(), session.UserID)
+	if err != nil {
+		return err
+	}
+
+	secrets := fromdb.Secrets(dbSecrets)
+	return c.JSON(http.StatusOK, secrets)
 }
 
-func PostSecret(db db.Database, auth auth.Auth) func(echo.Context) error {
-	return func(c echo.Context) error {
-		authHeader := c.Request().Header.Get("Authorization")
-		user, err := auth.GetUser(c.Request().Context(), authHeader)
-		if err != nil {
-			return err
-		}
-
-		conn, err := db.Connect(c.Request().Context())
-		if err != nil {
-			return err
-		}
-
-		var input models.Secret
-		c.Bind(&input)
-
-		err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, user.ID))
-		if err != nil {
-			return err
-		}
-
-		return c.NoContent(201)
+func (s *Server) PostSecret(c echo.Context) error {
+	session, ok := c.Get("sessionId").(*auth.Session)
+	if !ok {
+		slog.Debug("No session found")
+		return c.NoContent(http.StatusUnauthorized)
 	}
+
+	conn, err := s.database.Connect(c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	var input models.Secret
+	err = c.Bind(&input)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, session.UserID))
+	if err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusCreated)
 }
