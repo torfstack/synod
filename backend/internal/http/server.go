@@ -75,7 +75,9 @@ func (s *Server) Start() {
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
 
-	e.POST("/auth", s.Auth)
+	auth := e.Group("/auth")
+	auth.POST("/auth", s.EstablishSession)
+	auth.GET("/auth", s.IsAuthorized)
 
 	e.Logger.Fatal(e.Start(":4000"))
 }
