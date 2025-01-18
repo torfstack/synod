@@ -1,10 +1,7 @@
 <script lang="ts">
     import {
-        createUserWithEmailAndPassword,
         GoogleAuthProvider,
-        signInWithEmailAndPassword,
         signInWithPopup,
-        type UserCredential
     } from "firebase/auth";
     import {auth} from "$lib/auth";
     import api from "$lib/api";
@@ -15,32 +12,15 @@
     let email = $state("");
     let password = $state("");
     interface Props {
-        currentUser?: UserCredential | null;
+        isAuthenticated: boolean;
     }
 
-    let { currentUser = $bindable(null) }: Props = $props();
+    let { isAuthenticated = $bindable(false) }: Props = $props();
 
     async function registerNewUser() {
-        createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => { 
-                currentUser = userCredential;
-            })
-            
-            .catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
-            });
     }
 
     async function loginUser() {
-        signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                currentUser = userCredential;
-            })
-            .catch((error) => {
-
-                // email and password did not match
-            });
     }
 
     async function signInWithGoogle() {
@@ -48,7 +28,7 @@
         const userCredential = await signInWithPopup(auth, provider)
         const idToken = await userCredential.user.getIdToken()
         await api.postAuth(idToken)
-        currentUser = userCredential
+        isAuthenticated = true
     }
 </script>
 

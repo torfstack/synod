@@ -3,11 +3,12 @@ package http
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
 
-func (s *Server) Auth(c echo.Context) error {
+func (s *Server) EstablishSession(c echo.Context) error {
 	auth := c.Request().Header.Get("Authorization")
 	if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
 		return c.NoContent(http.StatusUnauthorized)
@@ -31,6 +32,38 @@ func (s *Server) Auth(c echo.Context) error {
 			SameSite: http.SameSiteStrictMode,
 			HttpOnly: true,
 			Secure:   true,
+		},
+	)
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (s *Server) IsAuthorized(c echo.Context) error {
+	sessionID, err := c.Cookie("sessionId")
+	if err != nil {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+
+	_, err = s.sessionService.GetSession(sessionID.Value)
+	if err != nil {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (s *Server) EndSession(c echo.Context) error {
+	sessionID, err := c.Cookie("sessionId")
+	if err != nil {
+		return c.NoContent(http.StatusOK)
+	}
+	_ = s.sessionService.DeleteSession(sessionID.Value)
+
+	c.SetCookie(
+		&http.Cookie{
+			Name:    "sessionId",
+			Value:   "",
+			Expires: time.UnixMilli(0),
 		},
 	)
 

@@ -22,6 +22,7 @@ spec:
       containers:
         - name: kayvault-backend
           image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 4000
               hostPort: 4000
@@ -40,6 +41,7 @@ spec:
               value: {{ .Values.backend.postgres.host }}
         - name: kayvault-frontend
           image: {{ .Values.frontend.image }}:{{ .Values.frontend.tag }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
               hostPort: 3000

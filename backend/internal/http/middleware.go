@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/torfstack/kayvault/internal/auth"
 	"log/slog"
 	"net/http"
 	"time"
@@ -29,6 +30,19 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		c.Set("sessionId", session)
+		return next(c)
+	}
+}
+
+func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Set(
+			"sessionId", &auth.Session{
+				SessionID: "local-development",
+				UserID:    1,
+				ExpiresAt: time.Now().Add(time.Hour),
+			},
+		)
 		return next(c)
 	}
 }

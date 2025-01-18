@@ -1,6 +1,6 @@
-module main
+module github.com/torfstack/kayvault
 
-go 1.22.4
+go 1.23.5
 
 require (
 	firebase.google.com/go/v4 v4.14.1

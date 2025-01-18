@@ -3,33 +3,43 @@ version: '3'
 dotenv: ['versions']
 
 tasks:
-  backend-build:
-    dir: backend
-    cmds:
-      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-backend:$NEXT_BACKEND_VERSION .
   backend-test:
     dir: backend
     cmds:
       - cmd: go test ./...
   backend-release:
     dir: backend
+    requires:
+      vars: [IMAGE_TAG]
     cmds:
-      - task: backend-build
-      - cmd: docker push ghcr.io/torfstack/kayvault-backend:$NEXT_BACKEND_VERSION
-  frontend-build:
-    dir: frontend
-    cmds:
-      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-frontend:$NEXT_FRONTEND_VERSION .
+      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-backend:{{.IMAGE_TAG}} .
+      - cmd: docker push ghcr.io/torfstack/kayvault-backend:{{.IMAGE_TAG}}
   frontend-release:
     dir: frontend
+    requires:
+      vars: [IMAGE_TAG]
     cmds:
-      - task: frontend-build
-      - cmd: docker push ghcr.io/torfstack/kayvault-frontend:$NEXT_FRONTEND_VERSION
+      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-frontend:{{.IMAGE_TAG}} .
+      - cmd: docker push ghcr.io/torfstack/kayvault-frontend:{{.IMAGE_TAG}}
   deploy:
     cmds:
       - cmd: helm upgrade --install kayvault deployment
+  dev-deploy:
+    vars:
+      DEV_IMAGE_TAG: development
+    cmds:
+      - task: backend-release
+        vars:
+          IMAGE_TAG:
+            ref: .DEV_IMAGE_TAG
+      - task: frontend-release
+        vars:
+          IMAGE_TAG:
+            ref: .DEV_IMAGE_TAG
+      - cmd: helm upgrade --install kayvault deployment --set backend.tag="development" --set frontend.tag="development"
   release:
     cmds:
       - task: backend-release
       - task: frontend-release
       - task: deploy
+

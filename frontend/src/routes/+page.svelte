@@ -1,13 +1,15 @@
 <script lang="ts">
-    import type {UserCredential} from "firebase/auth";
     import Login from "./login.svelte"
     import Secrets from "./secrets.svelte";
 
-    let currentUser: UserCredential | null = $state(null);
+    let isAuthenticated = $state(false);
+
+    let { data } = $props()
+    isAuthenticated = data.isAuthenticated
 </script>
 
-{#if currentUser}
-    <Secrets bind:currentUser/>
+{#if isAuthenticated }
+    <Secrets bind:isAuthenticated/>
 {:else}
-    <Login bind:currentUser/>
+    <Login bind:isAuthenticated/>
 {/if}

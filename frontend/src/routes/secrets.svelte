@@ -1,7 +1,6 @@
 <script lang="ts">
     import {auth} from '$lib/auth'
     import api from '$lib/api'
-    import type {UserCredential} from 'firebase/auth';
     import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
     import type {Secret} from "$lib/secret";
@@ -10,10 +9,10 @@
     import SecretsList from "../components/SecretsList.svelte";
 
     interface Props {
-        currentUser: UserCredential | null;
+        isAuthenticated: boolean;
     }
+    let { isAuthenticated = $bindable(false) }: Props = $props();
 
-    let { currentUser = $bindable() }: Props = $props();
     let filterValue = $state(""), secrets: Secret[] = $state([]), openModal = $state(false);
 
     let shown = $derived(secrets.filter((s: Secret) => {
@@ -40,9 +39,10 @@
         await getSecretsFromServer()
     }
 
-    function logout() {
-        currentUser = null
-        auth.signOut()
+    async function logout() {
+        await api.deleteAuth()
+        await auth.signOut()
+        isAuthenticated = false
     }
 
     getSecretsFromServer()
