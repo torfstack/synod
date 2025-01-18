@@ -33,3 +33,4 @@ tasks:
       - task: backend-release
       - task: frontend-release
       - task: deploy
+

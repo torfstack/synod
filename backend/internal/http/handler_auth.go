@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -47,6 +48,24 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 	if err != nil {
 		return c.NoContent(http.StatusUnauthorized)
 	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (s *Server) EndSession(c echo.Context) error {
+	sessionID, err := c.Cookie("sessionId")
+	if err != nil {
+		return c.NoContent(http.StatusOK)
+	}
+	_ = s.sessionService.DeleteSession(sessionID.Value)
+
+	c.SetCookie(
+		&http.Cookie{
+			Name:    "sessionId",
+			Value:   "",
+			Expires: time.UnixMilli(0),
+		},
+	)
 
 	return c.NoContent(http.StatusOK)
 }

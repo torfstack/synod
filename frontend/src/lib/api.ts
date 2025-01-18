@@ -1,6 +1,18 @@
 import urls from '$lib/config';
 import type { Secret } from '$lib/secret';
 
+async function getAuth() {
+	return fetch(urls.backendAuthUrl, {
+		method: 'GET',
+		mode: 'cors',
+		cache: 'no-cache',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		credentials: 'include'
+	});
+}
+
 async function postAuth(token: string) {
 	return fetch(urls.backendAuthUrl, {
 		method: 'POST',
@@ -9,6 +21,18 @@ async function postAuth(token: string) {
 		headers: {
 			Authorization: `Bearer ${token}`
 		}
+	});
+}
+
+async function deleteAuth() {
+	return fetch(urls.backendAuthUrl, {
+		method: 'DELETE',
+		mode: 'cors',
+		cache: 'no-cache',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		credentials: 'include'
 	});
 }
 
@@ -42,6 +66,8 @@ async function postSecrets(secret: Secret) {
 }
 
 export default {
+	deleteAuth,
+	getAuth,
 	postAuth,
 	getSecrets,
 	postSecrets

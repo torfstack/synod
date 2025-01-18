@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"main/internal/convert/fromdb"
-	"main/internal/db"
-	"main/internal/models"
+	"github.com/torfstack/kayvault/internal/convert/fromdb"
+	"github.com/torfstack/kayvault/internal/db"
+	"github.com/torfstack/kayvault/internal/models"
 	"strings"
 
 	firebase "firebase.google.com/go/v4"

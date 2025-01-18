@@ -2,9 +2,11 @@ package http
 
 import (
 	"context"
-	"main/internal/auth"
-	"main/internal/config"
-	"main/internal/db"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/torfstack/kayvault/internal/auth"
+	"github.com/torfstack/kayvault/internal/config"
+	"github.com/torfstack/kayvault/internal/db"
+	"log/slog"
 	"os"
 
 	"github.com/labstack/echo/v4"
@@ -57,27 +59,38 @@ func (s *Server) Start() {
 		e.Logger.Fatal(err)
 	}
 
-	/*	e.Use(
-			middleware.CORSWithConfig(
-				middleware.CORSConfig{
-					AllowOrigins:     []string{"http://127.0.0.1:5173"},
-					AllowCredentials: true,
-				},
-			),
-		)
-	*/
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		println(err.Error())
 		_ = c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	secrets := e.Group("/secrets", s.SessionCheck)
+	var m echo.MiddlewareFunc
+	if localMode == "enabled" {
+		slog.Warn("Running in local mode")
+		e.Use(
+			middleware.CORSWithConfig(
+				middleware.CORSConfig{
+					AllowOrigins:     []string{"http://localhost:5173"},
+					AllowCredentials: true,
+				},
+			),
+		)
+		m = s.LocalDevelopmentSession
+	} else {
+		m = s.SessionCheck
+	}
+
+	secrets := e.Group("/secrets", m)
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
 
-	auth := e.Group("/auth")
-	auth.POST("/auth", s.EstablishSession)
-	auth.GET("/auth", s.IsAuthorized)
+	authorization := e.Group("/auth")
+	authorization.POST("", s.EstablishSession)
+	authorization.GET("", s.IsAuthorized)
+	authorization.DELETE("", s.EndSession)
 
 	e.Logger.Fatal(e.Start(":4000"))
 }
+
+// localMode build flag, set with -ldflags -X 'github.com/torfstack/kayvault/internal/http.localMode=enabled'
+var localMode string

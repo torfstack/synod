@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/torfstack/kayvault/internal/http"
 	"log/slog"
-	"main/internal/http"
 )
 
 func main() {

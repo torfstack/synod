@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"main/internal/models"
+	"github.com/torfstack/kayvault/internal/models"
 )
 
 type Auth interface {

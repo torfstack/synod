@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"main/internal/config"
-	sqlc "main/sql/gen"
+	"github.com/torfstack/kayvault/internal/config"
+	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 
 type postgres struct {

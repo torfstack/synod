@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	sqlc "main/sql/gen"
+	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 
 type Database interface {

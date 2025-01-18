@@ -2,11 +2,11 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/torfstack/kayvault/internal/auth"
+	"github.com/torfstack/kayvault/internal/convert/fromdb"
+	"github.com/torfstack/kayvault/internal/convert/todb"
+	"github.com/torfstack/kayvault/internal/models"
 	"log/slog"
-	"main/internal/auth"
-	"main/internal/convert/fromdb"
-	"main/internal/convert/todb"
-	"main/internal/models"
 	"net/http"
 )
 
