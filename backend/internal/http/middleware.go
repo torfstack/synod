@@ -20,6 +20,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 
 		session, err := s.sessionService.GetSession(cookie.Value)
 		if err != nil {
+			slog.Debug("session not found")
 			c.SetCookie(
 				&http.Cookie{
 					Name:     "sessionId",
