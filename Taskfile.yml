@@ -1,8 +1,10 @@
 version: '3'
 
 vars:
-  NEXT_VERSION: 
+  IMAGE_TAG: 
     sh: sh next_version
+  VERSION_TO_DEPLOY:
+    sh: git tag --sort=-creatordate | head -n 1
 
 tasks:
   backend-test:
@@ -25,9 +27,9 @@ tasks:
       - cmd: docker push ghcr.io/torfstack/kayvault-frontend:{{.IMAGE_TAG}}
   deploy:
     requires:
-      vars: [IMAGE_TAG]
+      vars: [VERSION_TO_DEPLOY]
     cmds:
-      - cmd: helm upgrade --install kayvault deployment --set backend.tag={{.IMAGE_TAG}} --set frontend.tag={{.IMAGE_TAG}}
+      - cmd: helm upgrade --install kayvault deployment --set backend.tag={{.VERSION_TO_DEPLOY}} --set frontend.tag={{.VERSION_TO_DEPLOY}}
   dev-deploy:
     vars:
       DEV_IMAGE_TAG: development
@@ -42,20 +44,5 @@ tasks:
             ref: .DEV_IMAGE_TAG
       - task: deploy
         vars:
-          IMAGE_TAG:
+          VERSION_TO_DEPLOY:
             ref: .DEV_IMAGE_TAG
-  release:
-    cmds:
-      - task: backend-release
-        vars:
-          IMAGE_TAG:
-            ref: .NEXT_VERSION
-      - task: frontend-release
-        vars:
-          IMAGE_TAG:
-            ref: .NEXT_VERSION
-      - task: deploy
-        vars:
-          IMAGE_TAG:
-            ref: .NEXT_VERSION
-
