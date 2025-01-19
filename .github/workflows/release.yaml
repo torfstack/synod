@@ -1,15 +1,13 @@
-name: build-frontend
-run-name: ${{ github.actor }} is building the kayvault frontend docker image
+name: release
+run-name: ${{ github.actor }} is releasing a new version
 
 on:
   push:
     branches:
       - 'main'
-    paths:
-      - frontend/**
 
 jobs:
-  release:
+  release-backend:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,6 +26,13 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: release backend
+        run: task backend-release
       - name: release frontend
         run: task frontend-release
+      - name: create git tag
+        run: |
+          next_version=$(sh next_version)
+          git tag $next_version
+          git push origin $next_version
 

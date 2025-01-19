@@ -1,10 +1,11 @@
 package http
 
 import (
-	"github.com/torfstack/kayvault/internal/auth"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/torfstack/kayvault/internal/auth"
 
 	"github.com/labstack/echo/v4"
 )
@@ -21,9 +22,12 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 		if err != nil {
 			c.SetCookie(
 				&http.Cookie{
-					Name:    "sessionId",
-					Value:   "",
-					Expires: time.UnixMilli(0),
+					Name:     "sessionId",
+					Value:    "",
+					Expires:  time.UnixMilli(0),
+					Secure:   true,
+					HttpOnly: true,
+					SameSite: http.SameSiteStrictMode,
 				},
 			)
 			return c.NoContent(http.StatusUnauthorized)

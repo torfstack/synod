@@ -61,9 +61,12 @@ func (s *Server) EndSession(c echo.Context) error {
 
 	c.SetCookie(
 		&http.Cookie{
-			Name:    "sessionId",
-			Value:   "",
-			Expires: time.UnixMilli(0),
+			Name:     "sessionId",
+			Value:    "",
+			Expires:  time.UnixMilli(0),
+			SameSite: http.SameSiteStrictMode,
+			HttpOnly: true,
+			Secure:   true,
 		},
 	)
 
