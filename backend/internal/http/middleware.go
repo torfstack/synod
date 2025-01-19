@@ -34,6 +34,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.NoContent(http.StatusUnauthorized)
 		}
 
+		slog.Debug("setting sessionId")
 		c.Set("sessionId", session)
 		return next(c)
 	}
