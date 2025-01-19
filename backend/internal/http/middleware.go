@@ -23,10 +23,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 			slog.Debug("session not found")
 			c.SetCookie(
 				&http.Cookie{
-					Name:     "sessionId",
-					Value:    "",
-					Expires:  time.UnixMilli(0),
-					Secure:   true,
+					Name:     "sessionId", Value:    "", Expires:  time.UnixMilli(0), Secure:   true,
 					HttpOnly: true,
 					SameSite: http.SameSiteStrictMode,
 				},
@@ -42,7 +39,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 
 func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		slog.Debug("Local development session with id 1")
+		slog.Debug("Local development session with sessionId local-development and id 1")
 		c.Set(
 			"sessionId", &auth.Session{
 				SessionID: "local-development",
