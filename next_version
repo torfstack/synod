@@ -1,0 +1,11 @@
+#! /bin/sh
+
+current_version=$(git describe --tags --abbrev=0)
+
+patch_version=$(echo $current_version | awk -F. '{print $3}')
+minor_version=$(echo $current_version | awk -F. '{print $2}')
+major_version=$(echo $current_version | awk -F. '{print $1}')
+
+patch_version=$((patch_version + 1))
+echo "$major_version.$minor_version.$patch_version"
+
