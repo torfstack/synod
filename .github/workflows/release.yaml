@@ -21,17 +21,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: setup golang
-        uses: actions/setup-go@v5
-        with:
-          go-version: '^1.23.4'
       - name: install task
         uses: arduino/setup-task@v2
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: test backend
-        run: task backend-test
       - name: release backend
         run: task backend-release
+      - name: release frontend
+        run: task frontend-release
+      - name: create git tag
+        run: |
+          next_version=$(sh next_version)
+          git tag $next_version
+          git push origin $next_version
 
