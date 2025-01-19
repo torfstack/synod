@@ -41,6 +41,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 
 func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		slog.Debug("Local development session with id 1")
 		c.Set(
 			"sessionId", &auth.Session{
 				SessionID: "local-development",

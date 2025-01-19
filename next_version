@@ -1,6 +1,6 @@
 #! /bin/sh
 
-current_version=$(git describe --tags --abbrev=0)
+current_version=$(git tag --sort=-creatordate | head -n 1)
 
 patch_version=$(echo $current_version | awk -F. '{print $3}')
 minor_version=$(echo $current_version | awk -F. '{print $2}')
