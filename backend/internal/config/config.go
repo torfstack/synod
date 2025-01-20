@@ -14,6 +14,11 @@ func (dbCfg DBConfig) ConnectionString() string {
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", dbCfg.Host, dbCfg.Port, dbCfg.User, dbCfg.Password, dbCfg.DBName)
 }
 
+type AuthConfig struct {
+	DiscoveryURL string
+}
+
 type Config struct {
-	DB DBConfig
+	DB   DBConfig
+	Auth AuthConfig
 }

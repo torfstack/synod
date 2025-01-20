@@ -84,10 +84,11 @@ func (s *Server) Start() {
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
 
-	authorization := e.Group("/auth")
-	authorization.POST("", s.EstablishSession)
-	authorization.GET("", s.IsAuthorized)
-	authorization.DELETE("", s.EndSession)
+	authorization := e.Group("")
+	authorization.GET("/api/auth", s.StartAuthentication)
+	authorization.GET("/api/callback", s.EstablishSession)
+	authorization.GET("/auth", s.IsAuthorized)
+	authorization.DELETE("/auth", s.EndSession)
 
 	e.Logger.Fatal(e.Start(":4000"))
 }
