@@ -11,5 +11,5 @@
 {#if isAuthenticated }
     <Secrets bind:isAuthenticated/>
 {:else}
-    <Login bind:isAuthenticated/>
+    <Login />
 {/if}

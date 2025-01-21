@@ -1,5 +1,4 @@
 <script lang="ts">
-    import {auth} from '$lib/auth'
     import api from '$lib/api'
     import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
@@ -41,7 +40,6 @@
 
     async function logout() {
         await api.deleteAuth()
-        await auth.signOut()
         isAuthenticated = false
     }
 

@@ -1,34 +1,15 @@
 <script lang="ts">
-    import {
-        GoogleAuthProvider,
-        signInWithPopup,
-    } from "firebase/auth";
-    import {auth} from "$lib/auth";
     import api from "$lib/api";
+    import cfg from "$lib/config";
     import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
     import {EnvelopeSolid} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
 
     let email = $state("");
     let password = $state("");
-    interface Props {
-        isAuthenticated: boolean;
-    }
 
-    let { isAuthenticated = $bindable(false) }: Props = $props();
-
-    async function registerNewUser() {
-    }
-
-    async function loginUser() {
-    }
-
-    async function signInWithGoogle() {
-        const provider = new GoogleAuthProvider()
-        const userCredential = await signInWithPopup(auth, provider)
-        const idToken = await userCredential.user.getIdToken()
-        await api.postAuth(idToken)
-        isAuthenticated = true
+    function signInWithProvider() {
+        window.open(cfg.backendAuthStartUrl, "_self");
     }
 </script>
 
@@ -42,19 +23,17 @@
             <div class="lg:w-1/2 2xl:w-1/4 p-6 rounded bg-gradient-to-r dark:from-sky-800 from-sky-500 dark:to-gray-900 to-gray-600">
                 <form>
                     <div class="mb-3">
-                        <Button color="light" on:click={signInWithGoogle}>
+                        <Button color="light" on:click={signInWithProvider}>
                             <Img src="https://img.icons8.com/color/16/000000/google-logo.png"/>Login with Google
                         </Button>
                     </div>
                     <div class="mb-3">
                         <Label class="space-y-2">
-                            <span>Email address</span>
-                            <Input bind:value={email} placeholder="kay@vault.com" size="md" type="email">
+                            <span>Email address</span> <Input bind:value={email} placeholder="kay@vault.com" size="md" type="email">
                                 {#snippet left()}
                                     <EnvelopeSolid name="envelope-solid" />
                                 {/snippet}
                             </Input>
-                            <Helper>We use Firebase Authentication to store user login information.</Helper>
                         </Label>
                     </div>
                     <div class="mb-3">
@@ -67,8 +46,8 @@
                         <Checkbox>Remember me</Checkbox>
                     </div>
                     <div class="grid lg:grid-cols-2 gap-4">
-                        <Button on:click={loginUser}>Login</Button>
-                        <Button color="light" on:click={registerNewUser}>Register</Button>
+                        <Button>Login</Button>
+                        <Button color="light">Register</Button>
                     </div>
                 </form>
             </div>

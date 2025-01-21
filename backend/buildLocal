@@ -1,0 +1,1 @@
+go build -o bin/kayvault-backend -ldflags "-X github.com/torfstack/kayvault/internal/http.localMode=enabled" cmd/main.go 

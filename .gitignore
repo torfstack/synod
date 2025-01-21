@@ -2,6 +2,7 @@
 HELP.md
 backend/kayvault.json
 backend/key.file
+backend/config.yaml
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

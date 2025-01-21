@@ -42,8 +42,6 @@
 	"type": "module",
 	"dependencies": {
 		"@floating-ui/dom": "^1.5.1",
-		"firebase": "^9.23.0",
-		"firebase-tools": "^12.4.2",
 		"flowbite": "^2.5.2",
 		"flowbite-svelte": "^0.47.4",
 		"flowbite-svelte-icons": "^2.0.2",
