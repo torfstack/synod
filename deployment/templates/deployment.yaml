@@ -16,9 +16,9 @@ spec:
         app: {{ .Values.appName }}
     spec:
       volumes:
-        - name: kayvault-json
+        - name: config-yaml
           secret:
-            secretName: kayvault-json
+            secretName: kayvault
       containers:
         - name: kayvault-backend
           image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
@@ -27,18 +27,10 @@ spec:
             - containerPort: 4000
               hostPort: 4000
           volumeMounts:
-            - mountPath: "/kayvault.json"
-              subPath: "kayvault.json"
-              name: kayvault-json
+            - mountPath: "/config.yaml"
+              subPath: "config.yaml"
+              name: config-yaml
               readOnly: true
-          env:
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: kayvault
-                  key: postgres-password
-            - name: POSTGRES_HOST
-              value: {{ .Values.backend.postgres.host }}
         - name: kayvault-frontend
           image: {{ .Values.frontend.image }}:{{ .Values.frontend.tag }}
           imagePullPolicy: Always

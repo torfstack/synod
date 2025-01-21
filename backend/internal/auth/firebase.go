@@ -2,62 +2,57 @@ package auth
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/torfstack/kayvault/internal/config"
 	"github.com/torfstack/kayvault/internal/convert/fromdb"
 	"github.com/torfstack/kayvault/internal/db"
 	"github.com/torfstack/kayvault/internal/models"
-	"strings"
-
-	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/auth"
-	"google.golang.org/api/option"
 )
 
-type fireBaseAuth struct {
+type oidcAuth struct {
 	database db.Database
-	auth     *auth.Client
+	cfg      config.Config
 }
 
-func NewFireBaseAuth(ctx context.Context, database db.Database) (Auth, error) {
-	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsFile("kayvault.json"))
-	if err != nil {
-		return nil, err
-	}
-	a, err := app.Auth(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &fireBaseAuth{
+func NewOidcAuth(ctx context.Context, database db.Database, cfg config.Config) (Auth, error) {
+	return &oidcAuth{
 		database: database,
-		auth:     a,
+		cfg:      cfg,
 	}, nil
 }
 
-func (f *fireBaseAuth) GetUser(ctx context.Context, token string) (*models.User, error) {
-	token = strings.TrimPrefix(token, "Bearer ")
-	res, err := f.auth.VerifyIDToken(ctx, token)
-	if err != nil {
-		return nil, err
-	}
+func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, error) {
+	res, err := jwt.Parse(idToken, func(token *jwt.Token) (interface{}, error) {
+		return nil, nil
+	})
 
-	conn, err := f.database.Connect(ctx)
+	conn, err := o.database.Connect(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close(ctx)
 
-	exists, err := conn.Queries().DoesUserExist(ctx, res.Subject)
+	claims, ok := res.Claims.(jwt.MapClaims)
+	if !ok {
+		fmt.Println("Error parsing claims as jwt.MapClaims")
+		return nil, err
+	}
+
+	subject := claims["sub"].(string)
+	exists, err := conn.Queries().DoesUserExist(ctx, subject)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		err = conn.Queries().InsertUser(ctx, res.Subject)
+		err = conn.Queries().InsertUser(ctx, subject)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	dbUser, err := conn.Queries().SelectUserByName(ctx, res.Subject)
+	dbUser, err := conn.Queries().SelectUserByName(ctx, subject)
 	if err != nil {
 		return nil, err
 	}

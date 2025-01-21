@@ -13,17 +13,6 @@ async function getAuth() {
 	});
 }
 
-async function postAuth(token: string) {
-	return fetch(urls.backendAuthUrl, {
-		method: 'POST',
-		mode: 'cors',
-		cache: 'no-cache',
-		headers: {
-			Authorization: `Bearer ${token}`
-		}
-	});
-}
-
 async function deleteAuth() {
 	return fetch(urls.backendAuthUrl, {
 		method: 'DELETE',
@@ -68,7 +57,6 @@ async function postSecrets(secret: Secret) {
 export default {
 	deleteAuth,
 	getAuth,
-	postAuth,
 	getSecrets,
 	postSecrets
 };

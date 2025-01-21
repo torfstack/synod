@@ -14,20 +14,20 @@ import (
 )
 
 func (s *Server) StartAuthentication(c echo.Context) error {
-	provider, err := oidc.NewProvider(
-		c.Request().Context(),
-		"https://accounts.google.com",
+	provider, err := oidc.NewProvider(c.Request().Context(),
+		s.cfg.Auth.Issuer,
 	)
 	if err != nil {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	clientId := "301903522799-iibaqptt020lktncq9vh1f1n152sa2q0.apps.googleusercontent.com"
-	e := provider.Endpoint()
+	clientId := s.cfg.Auth.ClientID
+	redirectUrl := s.cfg.Auth.RedirectURL
 	authUrl := fmt.Sprintf(
-		"%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=http://localhost:4000/api/callback",
-		e.AuthURL,
+		"%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=%s",
+		provider.Endpoint().AuthURL,
 		clientId,
+		redirectUrl,
 	)
 	return c.Redirect(http.StatusFound, authUrl)
 }
@@ -35,23 +35,23 @@ func (s *Server) StartAuthentication(c echo.Context) error {
 func (s *Server) EstablishSession(c echo.Context) error {
 	code := c.QueryParam("code")
 
-	clientId := "301903522799-iibaqptt020lktncq9vh1f1n152sa2q0.apps.googleusercontent.com"
-	clientSecret := "XXX"
+	clientId := s.cfg.Auth.ClientID
+	redirectUrl := s.cfg.Auth.RedirectURL
+	clientSecret := s.cfg.Auth.ClientSecret
 
 	provider, err := oidc.NewProvider(
 		c.Request().Context(),
-		"https://accounts.google.com",
+		s.cfg.Auth.Issuer,
 	)
 	if err != nil {
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	e := provider.Endpoint()
 	values := make(url.Values)
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
-	values.Add("redirect_uri", "http://localhost:4000/api/callback")
+	values.Add("redirect_uri", redirectUrl)
 	r := strings.NewReader(values.Encode())
-	req, err := http.NewRequest("POST", e.TokenURL, r)
+	req, err := http.NewRequest("POST", provider.Endpoint().TokenURL, r)
 	if err != nil {
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -66,11 +66,31 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	var oidcResponse OidcResponse
-	_ = json.Unmarshal(resBytes, &oidcResponse)
-	fmt.Println(string(resBytes))
+	err = json.Unmarshal(resBytes, &oidcResponse)
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
 
-	fmt.Printf("Access token: %s, ID token: %s\n", oidcResponse.AccessToken, oidcResponse.IdToken)
-	return c.Redirect(http.StatusFound, "http://localhost:5173")
+	user, err := s.oidcAuth.GetUser(c.Request().Context(), oidcResponse.IdToken)
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	session, err := s.sessionService.CreateSession(user.ID)
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     "sessionId",
+		Path:     "/",
+		Value:    session.SessionID,
+		Expires:  session.ExpiresAt,
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		Secure:   true,
+	})
+
+	return c.Redirect(http.StatusFound, s.cfg.Auth.BaseURL)
 }
 
 type OidcResponse struct {
@@ -102,6 +122,7 @@ func (s *Server) EndSession(c echo.Context) error {
 	c.SetCookie(
 		&http.Cookie{
 			Name:     "sessionId",
+			Path:     "/",
 			Value:    "",
 			Expires:  time.UnixMilli(0),
 			SameSite: http.SameSiteStrictMode,

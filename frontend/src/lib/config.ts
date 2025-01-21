@@ -8,8 +8,10 @@ const authPath = '/auth';
 const backendUrl = deployed;
 const backendSecretsUrl = backendUrl + secretPath;
 const backendAuthUrl = backendUrl + authPath;
+const backendAuthStartUrl = backendUrl + authPath + '/start';
 
 export default {
 	backendSecretsUrl,
-	backendAuthUrl
+	backendAuthUrl,
+    backendAuthStartUrl,
 };

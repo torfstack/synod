@@ -2,12 +2,12 @@ package http
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/torfstack/kayvault/internal/auth"
 	"github.com/torfstack/kayvault/internal/config"
 	"github.com/torfstack/kayvault/internal/db"
-	"log/slog"
-	"os"
 
 	"github.com/labstack/echo/v4"
 )
@@ -15,30 +15,11 @@ import (
 type Server struct {
 	database       db.Database
 	sessionService auth.SessionService
-	firebaseAuth   auth.Auth
+	oidcAuth       auth.Auth
 	cfg            config.Config
 }
 
-func NewServer() *Server {
-	postgresPw := os.Getenv("POSTGRES_PASSWORD")
-	if postgresPw == "" {
-		panic("POSTGRES_PASSWORD environment variable not set")
-	}
-	postgresHost := os.Getenv("POSTGRES_HOST")
-	if postgresHost == "" {
-		postgresHost = "localhost"
-	}
-
-	cfg := config.Config{
-		DB: config.DBConfig{
-			Host:     postgresHost,
-			Port:     5432,
-			User:     "postgres",
-			Password: postgresPw,
-			DBName:   "kayvault",
-		},
-	}
-
+func NewServer(cfg config.Config) *Server {
 	return &Server{
 		sessionService: auth.NewSessionService(),
 		cfg:            cfg,
@@ -54,7 +35,7 @@ func (s *Server) Start() {
 	}
 
 	s.database = db.NewDatabase(s.cfg.DB)
-	s.firebaseAuth, err = auth.NewFireBaseAuth(context.Background(), s.database)
+	s.oidcAuth, err = auth.NewOidcAuth(context.Background(), s.database, s.cfg)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
@@ -84,11 +65,11 @@ func (s *Server) Start() {
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
 
-	authorization := e.Group("")
-	authorization.GET("/api/auth", s.StartAuthentication)
-	authorization.GET("/api/callback", s.EstablishSession)
-	authorization.GET("/auth", s.IsAuthorized)
-	authorization.DELETE("/auth", s.EndSession)
+	authorization := e.Group("/auth")
+	authorization.GET("/start", s.StartAuthentication)
+	authorization.GET("/callback", s.EstablishSession)
+	authorization.GET("", s.IsAuthorized)
+	authorization.DELETE("", s.EndSession)
 
 	e.Logger.Fatal(e.Start(":4000"))
 }
