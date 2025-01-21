@@ -7,9 +7,6 @@
 
     let email = $state("");
     let password = $state("");
-    interface Props {
-        isAuthenticated: boolean;
-    }
 
     function signInWithProvider() {
         window.open(cfg.backendAuthStartUrl, "_self");
@@ -37,7 +34,6 @@
                                     <EnvelopeSolid name="envelope-solid" />
                                 {/snippet}
                             </Input>
-                            <Helper>We use Firebase Authentication to store user login information.</Helper>
                         </Label>
                     </div>
                     <div class="mb-3">
