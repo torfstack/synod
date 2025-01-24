@@ -1,19 +1,17 @@
 package http
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
-	"github.com/torfstack/kayvault/internal/auth"
 	"github.com/torfstack/kayvault/internal/convert/fromdb"
 	"github.com/torfstack/kayvault/internal/convert/todb"
 	"github.com/torfstack/kayvault/internal/models"
-	"log/slog"
-	"net/http"
 )
 
 func (s *Server) GetSecrets(c echo.Context) error {
-	session, ok := c.Get("sessionId").(*auth.Session)
+	session, ok := getSession(c)
 	if !ok {
-		slog.Debug("No session found")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
@@ -31,9 +29,8 @@ func (s *Server) GetSecrets(c echo.Context) error {
 }
 
 func (s *Server) PostSecret(c echo.Context) error {
-	session, ok := c.Get("sessionId").(*auth.Session)
+	session, ok := getSession(c)
 	if !ok {
-		slog.Debug("No session found")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 

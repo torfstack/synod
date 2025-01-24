@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/torfstack/kayvault/internal/auth"
 )
 
 const (
-	SessionCookieName = "sessionId"
+	SessionCookieName  = "sessionId"
+	SessionContextName = "session"
 )
 
 func newEmptySessionCookie() *http.Cookie {
@@ -38,12 +40,24 @@ func newSessionCookie(sessionID string, expiresAt time.Time) *http.Cookie {
 	}
 }
 
-func getSessionID(c echo.Context) (string, error) {
+func getSessionIDCookie(c echo.Context) (string, error) {
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
 		return "", err
 	}
 	return cookie.Value, nil
+}
+
+func setSession(c echo.Context, session *auth.Session) {
+	c.Set(SessionContextName, session)
+}
+
+func getSession(c echo.Context) (*auth.Session, bool) {
+	session := c.Get(SessionContextName)
+	if session == nil {
+		return nil, false
+	}
+	return session.(*auth.Session), true
 }
 
 func authUrl(authBaseURL, clientID, redirectURL string) string {
