@@ -69,7 +69,7 @@ type OidcResponse struct {
 }
 
 func (s *Server) IsAuthorized(c echo.Context) error {
-	sessionID, err := getSessionID(c)
+	sessionID, err := getSessionIDCookie(c)
 	if err != nil {
 		return c.NoContent(http.StatusUnauthorized)
 	}
@@ -83,7 +83,7 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 }
 
 func (s *Server) EndSession(c echo.Context) error {
-	sessionID, err := getSessionID(c)
+	sessionID, err := getSessionIDCookie(c)
 	if err != nil {
 		return c.NoContent(http.StatusOK)
 	}
