@@ -7,16 +7,14 @@
     export let uploadSecret: (n: Secret) => Promise<void>;
     export let openModal: boolean;
 
-    let inputKey = "", inputValue = "", inputUrl = "", inputTag = "", inputTags: string[] = []
+    export let inputKey = "", inputValue = "", inputUrl = "", inputTag = "", inputTags: string[] = []
     let inputKeyError = false, inputValueError = false;
 
     function handleSecret() {
         if (checkForError()) {
-            console.log("some error occured")
             return
         }
         const secret = constructSecret()
-        console.log("uploading secret", secret)
         uploadSecret(secret)
         reset()
         openModal = false

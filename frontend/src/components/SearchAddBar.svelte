@@ -3,22 +3,17 @@
     import { PlusOutline } from "flowbite-svelte-icons";
     interface Props {
         filterValue: string;
-        clickedAdd: boolean;
+        clickedAdd: () => void;
     }
 
-    let { filterValue = $bindable(), clickedAdd = $bindable() }: Props = $props();
-
-    function didClickAdd() {
-        clickedAdd = false
-        clickedAdd = true
-    }
+    let { filterValue = $bindable(), clickedAdd }: Props = $props();
 </script>
 
 <div class="flex justify-center">
     <div class="lg:w-1/2">
         <ButtonGroup class="flex">
             <InputAddon>
-                <button onclick={didClickAdd}>
+                <button onclick={clickedAdd}>
                     <PlusOutline data-bs-target="#exampleModal" data-bs-toggle="modal" name="plus-outline" />
                 </button>
             </InputAddon>

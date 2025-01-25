@@ -3,7 +3,7 @@
     import {Button} from 'flowbite-svelte';
     import KayHeader from "../components/KayHeader.svelte";
     import type {Secret} from "$lib/secret";
-    import AddSecretModal from "../components/AddSecretModal.svelte";
+    import AddSecretModal from "../components/SecretModal.svelte";
     import SearchAddBar from "../components/SearchAddBar.svelte";
     import SecretsList from "../components/SecretsList.svelte";
 
@@ -13,6 +13,7 @@
     let { isAuthenticated = $bindable(false) }: Props = $props();
 
     let filterValue = $state(""), secrets: Secret[] = $state([]), openModal = $state(false);
+    let selectedSecret = $state<Secret | null>(null)
 
     let shown = $derived(secrets.filter((s: Secret) => {
         let trimmed = filterValue.trim()
@@ -33,22 +34,37 @@
           })
     }
 
-    async function uploadSecret(s: Secret) {
-        await api.postSecrets(s)
-        await getSecretsFromServer()
-    }
-
     async function logout() {
         await api.deleteAuth()
         isAuthenticated = false
     }
+
+    let uploadSecret = $state(async (s: Secret) => {
+        await api.postSecrets(s)
+        await getSecretsFromServer()
+    })
+
+    let selectSecret = $state((s: Secret) => () => {
+        selectedSecret = s
+        openModal = true
+    })
+
+    let addNewSecret = $state(() => {
+        selectedSecret = null
+        openModal = true
+    })
 
     getSecretsFromServer()
 </script>
 
 <KayHeader text="Keeping " />
 <div class="p-3">
-    <AddSecretModal openModal={openModal} uploadSecret={uploadSecret}/>
+    <AddSecretModal bind:openModal={openModal} bind:uploadSecret={uploadSecret}
+        inputKey={selectedSecret?.key}
+        inputTags={selectedSecret?.tags}
+        inputUrl={selectedSecret?.url}
+        inputValue={selectedSecret?.value}
+    />
 
     <div class="justify-center flex">
         <Button on:click={logout}>Logout</Button>
@@ -56,11 +72,11 @@
 
     <br/>
 
-    <SearchAddBar bind:clickedAdd={openModal} bind:filterValue={filterValue}/>
+    <SearchAddBar bind:filterValue={filterValue} clickedAdd={addNewSecret}/>
 
     <br/>
 
     <div class="flex justify-center">
-        <SecretsList secrets={shown}/>
+        <SecretsList clickedSecret={selectSecret} secrets={shown}/>
     </div>
 </div>
