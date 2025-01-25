@@ -47,6 +47,7 @@ async function postSecrets(secret: Secret) {
 		},
 		credentials: 'include',
 		body: JSON.stringify({
+			id: secret.id,
 			value: secret.value,
 			key: secret.key,
 			url: secret.url

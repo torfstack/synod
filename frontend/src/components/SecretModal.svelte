@@ -1,29 +1,37 @@
 <script lang="ts">
-    import {Secret} from "$lib/secret"
+    import {Secret} from "$lib/secret";
     import {Badge, Button, Modal, P} from "flowbite-svelte";
     import {slide} from "svelte/transition";
     import TextInput from "./input/TextInput.svelte";
 
-    export let uploadSecret: (n: Secret) => Promise<void>;
-    export let openModal: boolean;
+    interface Props {
+        uploadSecret: (n: Secret) => Promise<void>;
+        openModal: boolean;
+        inputId?: number;
+        inputKey?: string;
+        inputValue?: string;
+        inputUrl?: string;
+        inputTags?: string[];
+    }
+    let { uploadSecret, openModal = $bindable(), inputId = 0, inputKey = "", inputValue = "", inputUrl = "", inputTags = [] }: Props = $props();
 
-    let inputKey = "", inputValue = "", inputUrl = "", inputTag = "", inputTags: string[] = []
-    let inputKeyError = false, inputValueError = false;
+    let title = $derived(inputId == 0 ? "New secret" : "Edit secret");
+    let inputKeyError = $state(false), inputValueError = $state(false);
+    let inputTag = $state("");
 
     function handleSecret() {
         if (checkForError()) {
-            console.log("some error occured")
-            return
+            return;
         }
-        const secret = constructSecret()
-        console.log("uploading secret", secret)
-        uploadSecret(secret)
-        reset()
-        openModal = false
+        const secret = constructSecret();
+        uploadSecret(secret);
+        reset();
+        openModal = false;
     }
 
     function constructSecret(): Secret {
         return new Secret(
+            inputId,
             inputKey,
             inputValue,
             inputUrl,
@@ -32,36 +40,36 @@
     }
 
     function handleKeyPress(event: KeyboardEvent) {
-        console.log(event.key)
+
         if (event.key == "Enter" && inputTag != "" && inputTags.indexOf(inputTag) == -1) {
-            inputTags.push(inputTag)
-            inputTag = ""
-            inputTags = inputTags
+            inputTags.push(inputTag);
+            inputTag = "";
+            inputTags = inputTags;
         }
     }
 
     function checkForError(): boolean {
-        inputKeyError = inputKey == ""
-        inputValueError = inputValue == ""
-        return inputKeyError || inputValueError
+        inputKeyError = inputKey == "";
+        inputValueError = inputValue == "";
+        return inputKeyError || inputValueError;
     }
 
     function reset() {
-        inputKey = ""
-        inputValue = ""
-        inputUrl = ""
-        inputTags = []
+        inputKey = "";
+        inputValue = "";
+        inputUrl = "";
+        inputTags = [];
     }
 
     function dismissTag(tag: string) {
-        const index = inputTags.indexOf(tag)
+        const index = inputTags.indexOf(tag);
         if (index > -1) {
-            inputTags.splice(index, 1)
+            inputTags.splice(index, 1);
         }
     }
 </script>
 
-<Modal bind:open={openModal} outsideclose title="New secret" transition={slide}>
+<Modal bind:open={openModal} outsideclose title={title} transition={slide}>
     <div class="mb-3">
         <TextInput bind:error={inputKeyError} bind:value={inputKey} errorText="Can not be empty"
                    label="Name"

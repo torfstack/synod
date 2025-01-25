@@ -13,5 +13,5 @@ const backendAuthStartUrl = backendUrl + authPath + '/start';
 export default {
 	backendSecretsUrl,
 	backendAuthUrl,
-    backendAuthStartUrl,
+	backendAuthStartUrl
 };

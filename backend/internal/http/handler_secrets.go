@@ -48,7 +48,11 @@ func (s *Server) PostSecret(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, session.UserID))
+	if input.ID != 0 {
+		err = conn.Queries().UpdateSecret(c.Request().Context(), todb.UpdateSecretParams(input, session.UserID))
+	} else {
+		err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, session.UserID))
+	}
 	if err != nil {
 		return err
 	}
