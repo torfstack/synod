@@ -15,19 +15,24 @@
     let filterValue = $state(""), secrets: Secret[] = $state([]), openModal = $state(false);
     let selectedSecret = $state<Secret | null>(null)
 
-    let shown = $derived(secrets.filter((s: Secret) => {
-        let trimmed = filterValue.trim()
-        const regex = /[A-Z]/
-        let hasOnlyLower = trimmed.match(regex) == null
-        if (hasOnlyLower) {
-            return s.value.toLowerCase().indexOf(trimmed) != -1
-        } else {
-            return s.value.indexOf(trimmed) != -1
-        }
-    }))
+    let shown = $derived(
+        secrets
+            .filter((s: Secret) => {
+                let trimmed = filterValue.trim()
+                const regex = /[A-Z]/
+                let hasOnlyLower = trimmed.match(regex) == null
+                if (hasOnlyLower) {
+                    return s.value.toLowerCase().indexOf(trimmed) != -1
+                } else {
+                    return s.value.indexOf(trimmed) != -1
+                }
+            }).sort((a: Secret, b: Secret) => {
+                return a.key.localeCompare(b.key)
+            })
+    )
 
     async function getSecretsFromServer() {
-        api.getSecrets()
+        await api.getSecrets()
           .then(resp => resp.json())
           .then(body => {
               secrets = body as Secret[]
@@ -45,6 +50,7 @@
     })
 
     let selectSecret = $state((s: Secret) => () => {
+        selectedSecret = null // how to do this properly? modal is not re-rendered without it
         selectedSecret = s
         openModal = true
     })
@@ -59,12 +65,22 @@
 
 <KayHeader text="Keeping " />
 <div class="p-3">
-    <AddSecretModal bind:openModal={openModal} bind:uploadSecret={uploadSecret}
-        inputKey={selectedSecret?.key}
-        inputTags={selectedSecret?.tags}
-        inputUrl={selectedSecret?.url}
-        inputValue={selectedSecret?.value}
-    />
+    {#if selectedSecret != null}
+        <AddSecretModal
+            bind:openModal={openModal}
+            inputId={selectedSecret.id}
+            inputKey={selectedSecret.key}
+            inputTags={selectedSecret.tags}
+            inputUrl={selectedSecret.url}
+            inputValue={selectedSecret.value}
+            uploadSecret={uploadSecret}
+        />
+    {:else}
+        <AddSecretModal
+          bind:openModal={openModal}
+          uploadSecret={uploadSecret}
+        />
+    {/if}
 
     <div class="justify-center flex">
         <Button on:click={logout}>Logout</Button>

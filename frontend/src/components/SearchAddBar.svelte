@@ -2,8 +2,8 @@
     import {ButtonGroup, Input, InputAddon} from "flowbite-svelte";
     import { PlusOutline } from "flowbite-svelte-icons";
     interface Props {
-        filterValue: string;
-        clickedAdd: () => void;
+        filterValue: string
+        clickedAdd: () => void
     }
 
     let { filterValue = $bindable(), clickedAdd }: Props = $props();

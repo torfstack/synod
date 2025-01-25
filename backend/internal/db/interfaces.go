@@ -17,6 +17,7 @@ type Connection interface {
 type Queries interface {
 	SelectSecrets(ctx context.Context, userId int32) ([]sqlc.Secret, error)
 	InsertSecret(ctx context.Context, arg sqlc.InsertSecretParams) error
+	UpdateSecret(ctx context.Context, arg sqlc.UpdateSecretParams) error
 
 	SelectUserByName(ctx context.Context, username string) (sqlc.User, error)
 	InsertUser(ctx context.Context, username string) error

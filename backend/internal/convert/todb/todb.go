@@ -14,11 +14,21 @@ func Secret(in models.Secret) sqlc.Secret {
 	}
 }
 
-func InsertSecretParams(in models.Secret, userId int32) sqlc.InsertSecretParams {
+func InsertSecretParams(in models.Secret, userID int32) sqlc.InsertSecretParams {
 	return sqlc.InsertSecretParams{
 		Value:  []byte(in.Value),
 		Key:    in.Key,
 		Url:    in.Url,
-		UserID: userId,
+		UserID: userID,
+	}
+}
+
+func UpdateSecretParams(in models.Secret, userID int32) sqlc.UpdateSecretParams {
+	return sqlc.UpdateSecretParams{
+		ID:     in.ID,
+		Value:  []byte(in.Value),
+		Key:    in.Key,
+		Url:    in.Url,
+		UserID: userID,
 	}
 }
