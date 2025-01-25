@@ -102,3 +102,27 @@ func (q *Queries) SelectUserByName(ctx context.Context, username string) (User, 
 	)
 	return i, err
 }
+
+const updateSecret = `-- name: UpdateSecret :exec
+UPDATE secrets SET value = $1, key = $2, url = $3
+WHERE user_id = $4 AND id = $5
+`
+
+type UpdateSecretParams struct {
+	Value  []byte
+	Key    string
+	Url    string
+	UserID int32
+	ID     int32
+}
+
+func (q *Queries) UpdateSecret(ctx context.Context, arg UpdateSecretParams) error {
+	_, err := q.db.Exec(ctx, updateSecret,
+		arg.Value,
+		arg.Key,
+		arg.Url,
+		arg.UserID,
+		arg.ID,
+	)
+	return err
+}

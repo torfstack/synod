@@ -4,21 +4,21 @@
     interface Props {
         value: string;
         label: string;
-        handleKeyPress?: ((event: KeyboardEvent) => void) | null;
-        error?: boolean | null;
-        errorText?: string | null;
-        required?: boolean | null;
-        placeholder?: string | null;
+        handleKeyPress?: ((event: KeyboardEvent) => void);
+        error?: boolean;
+        errorText?: string;
+        required?: boolean;
+        placeholder?: string;
     }
 
     let {
         value = $bindable(),
         label,
-        handleKeyPress = null,
-        error = $bindable(null),
-        errorText = null,
-        required = null,
-        placeholder = null
+        handleKeyPress,
+        error = $bindable(),
+        errorText,
+        required,
+        placeholder
     }: Props = $props();
 
     function clearError() {
@@ -27,11 +27,17 @@
 </script>
 
 <div>
-    <Label color={ error ? "red" : "gray" } class="block mb-2">{label}</Label>
-    <Input color={ error ? "red" : "base" } bind:value={value} type="text"
-           on:keypress={handleKeyPress}
-           on:focus={clearError}
-           placeholder={placeholder}></Input>
+    <Label class="block mb-2" color={ error ? "red" : "gray" }>{label}</Label>
+    {#if handleKeyPress === undefined}
+        <Input bind:value={value} color={ error ? "red" : "base" } on:focus={clearError}
+               placeholder={placeholder}
+               type="text"></Input>
+    {:else}
+        <Input bind:value={value} color={ error ? "red" : "base" } on:focus={clearError}
+               on:keypress={handleKeyPress}
+               placeholder={placeholder}
+               type="text"></Input>
+    {/if}
     {#if required}
         <Helper color={ error ? "red" : "gray" } class="mt-2">
             { error && errorText ? errorText : "*required" }

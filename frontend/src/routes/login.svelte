@@ -1,7 +1,6 @@
 <script lang="ts">
-    import api from "$lib/api";
     import cfg from "$lib/config";
-    import {Button, Checkbox, Helper, Img, Input, Label} from "flowbite-svelte";
+    import {Button, Checkbox, Img, Input, Label} from "flowbite-svelte";
     import {EnvelopeSolid} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
 
