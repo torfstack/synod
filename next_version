@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 current_version=$(git tag --sort=-creatordate | head -n 1)
 
