@@ -35,7 +35,7 @@ func (s *Server) Start() {
 	}
 
 	s.database = db.NewDatabase(s.cfg.DB)
-	s.oidcAuth, err = auth.NewOidcAuth(context.Background(), s.database, s.cfg)
+	s.oidcAuth, err = auth.NewOidcAuth(s.database, s.cfg)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
