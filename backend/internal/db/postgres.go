@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/torfstack/kayvault/internal/config"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 
@@ -27,9 +26,9 @@ type Transaction interface {
 }
 
 type database struct {
-	cfg  config.DBConfig
-	conn *pgx.Conn
-	tx   pgx.Tx
+	connStr string
+	conn    *pgx.Conn
+	tx      pgx.Tx
 }
 
 type transaction struct {
@@ -37,12 +36,12 @@ type transaction struct {
 	tx   pgx.Tx
 }
 
-func NewDatabase(cfg config.DBConfig) Database {
-	return &database{cfg: cfg}
+func NewDatabase(connStr string) Database {
+	return &database{connStr: connStr}
 }
 
 func (d *database) WithTx(ctx context.Context) (Database, Transaction) {
-	conn, err := pgx.Connect(ctx, d.cfg.ConnectionString())
+	conn, err := pgx.Connect(ctx, d.connStr)
 	if err != nil {
 		return nil, nil
 	}
@@ -50,7 +49,7 @@ func (d *database) WithTx(ctx context.Context) (Database, Transaction) {
 	if err != nil {
 		return nil, nil
 	}
-	return &database{cfg: d.cfg, conn: conn, tx: tx}, &transaction{conn: conn, tx: tx}
+	return &database{connStr: d.connStr, conn: conn, tx: tx}, &transaction{conn: conn, tx: tx}
 }
 
 func (d *database) CommitTransaction(ctx context.Context) error {
@@ -123,9 +122,11 @@ func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {
 		return sqlc.New(d.tx), nil
 	}
 	if d.conn == nil {
-		conn, err := pgx.Connect(ctx, d.cfg.ConnectionString())
+		conn, err := pgx.Connect(ctx, d.connStr)
+		if err != nil {
+			return nil, err
+		}
 		d.conn = conn
-		return nil, err
 	}
 	return sqlc.New(d.conn), nil
 }
@@ -133,6 +134,7 @@ func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {
 func endQuery(ctx context.Context, d *database) {
 	if d.conn != nil && d.tx == nil {
 		_ = (*d.conn).Close(ctx)
+		d.conn = nil
 	}
 }
 
