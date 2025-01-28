@@ -34,7 +34,7 @@ func (s *Server) Start() {
 		panic(err)
 	}
 
-	s.database = db.NewDatabase(s.cfg.DB)
+	s.database = db.NewDatabase(s.cfg.DB.ConnectionString())
 	s.oidcAuth, err = auth.NewOidcAuth(s.database, s.cfg)
 	if err != nil {
 		e.Logger.Fatal(err)

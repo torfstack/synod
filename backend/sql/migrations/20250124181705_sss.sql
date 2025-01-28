@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
-ALTER TABLE secret ADD COLUMN secret_charing INTEGER;
+ALTER TABLE secrets ADD COLUMN secret_sharing INTEGER;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-ALTER TABLE secret DROP COLUMN secret_charing;
+ALTER TABLE secrets DROP COLUMN secret_sharing;
 -- +goose StatementEnd

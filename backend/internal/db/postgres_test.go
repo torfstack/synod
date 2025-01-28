@@ -6,6 +6,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+	sqlc "github.com/torfstack/kayvault/sql/gen"
 	"log"
 	"testing"
 	"time"
@@ -41,6 +42,39 @@ func TestMain(m *testing.M) {
 		return
 	}
 	m.Run()
+}
+
+func TestDatabase_SecretHandling(t *testing.T) {
+	ctx := context.Background()
+	_ = pg.Restore(ctx)
+
+	connStr, _ := pg.ConnectionString(ctx)
+	d := NewDatabase(connStr)
+	{
+		secrets, err := d.SelectSecrets(ctx, 1)
+		assert.NoError(t, err)
+		assert.Len(t, secrets, 0)
+	}
+	{
+		_ = d.InsertUser(ctx, "tropfstein")
+		u, _ := d.SelectUserByName(ctx, "tropfstein")
+		id := u.ID
+
+		err := d.InsertSecret(
+			ctx, sqlc.InsertSecretParams{
+				Value:  []byte("secret"),
+				Key:    "key",
+				Url:    "url",
+				UserID: id,
+			},
+		)
+		assert.NoError(t, err)
+
+		secrets, err := d.SelectSecrets(ctx, id)
+		assert.NoError(t, err)
+		assert.Len(t, secrets, 1)
+		assert.Equal(t, "secret", string(secrets[0].Value))
+	}
 }
 
 func TestDatabase_UserHandling(t *testing.T) {
