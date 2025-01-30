@@ -3,8 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
-
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/torfstack/kayvault/internal/config"
 	"github.com/torfstack/kayvault/internal/convert/fromdb"
@@ -34,7 +32,6 @@ func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, e
 
 	claims, ok := res.Claims.(jwt.MapClaims)
 	if !ok {
-		fmt.Println("Error parsing claims as jwt.MapClaims")
 		return nil, errors.New("error parsing claims as jwt.MapClaims")
 	}
 

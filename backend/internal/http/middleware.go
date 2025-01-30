@@ -1,7 +1,7 @@
 package http
 
 import (
-	"log/slog"
+	"github.com/torfstack/kayvault/internal/logging"
 	"net/http"
 	"time"
 
@@ -12,30 +12,35 @@ import (
 
 func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
 		cookie, err := getSessionIDCookie(c)
 		if err != nil {
-			slog.Debug("No sessionId cookie found")
+			logging.Debugf(ctx, "No sessionId cookie found")
 			return c.NoContent(http.StatusUnauthorized)
 		}
 
 		session, err := s.sessionService.GetSession(cookie)
 		if err != nil {
+			logging.Debugf(ctx, "Could not get session: %v", err)
 			c.SetCookie(newEmptySessionCookie())
 			return c.NoContent(http.StatusUnauthorized)
 		}
 
 		setSession(c, session)
+		logging.WithLogAttributeUserId(c.Request().Context(), int(session.UserID))
 		return next(c)
 	}
 }
 
 func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		setSession(c, &auth.Session{
-			SessionID: "local-development",
-			UserID:    1,
-			ExpiresAt: time.Now().Add(time.Hour),
-		})
+		setSession(
+			c, &auth.Session{
+				SessionID: "local-development",
+				UserID:    1,
+				ExpiresAt: time.Now().Add(time.Hour),
+			},
+		)
 		return next(c)
 	}
 }

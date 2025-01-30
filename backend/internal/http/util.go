@@ -61,7 +61,12 @@ func getSession(c echo.Context) (*auth.Session, bool) {
 }
 
 func authUrl(authBaseURL, clientID, redirectURL string) string {
-	return fmt.Sprintf("%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=%s&response_type=code", authBaseURL, clientID, redirectURL)
+	return fmt.Sprintf(
+		"%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=%s",
+		authBaseURL,
+		clientID,
+		redirectURL,
+	)
 }
 
 func doTokenRequest(tokenBaseURL, clientID, clientSecret, authCode, redirectURL string) (*http.Response, error) {

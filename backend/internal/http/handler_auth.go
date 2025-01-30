@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"github.com/torfstack/kayvault/internal/logging"
 	"io"
 	"net/http"
 
@@ -10,8 +11,10 @@ import (
 )
 
 func (s *Server) StartAuthentication(c echo.Context) error {
+	ctx := c.Request().Context()
 	provider, err := oidc.NewProvider(c.Request().Context(), s.cfg.Auth.Issuer)
 	if err != nil {
+		logging.Errorf(ctx, "could not create oidc provider from discovery url: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
@@ -22,6 +25,7 @@ func (s *Server) StartAuthentication(c echo.Context) error {
 }
 
 func (s *Server) EstablishSession(c echo.Context) error {
+	ctx := c.Request().Context()
 	code := c.QueryParam("code")
 
 	clientId := s.cfg.Auth.ClientID
@@ -33,29 +37,35 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		s.cfg.Auth.Issuer,
 	)
 	if err != nil {
+		logging.Errorf(ctx, "could not create oidc provider from discovery url: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	res, err := doTokenRequest(provider.Endpoint().TokenURL, clientId, clientSecret, code, redirectUrl)
 	if err != nil {
+		logging.Errorf(ctx, "could not perform token request: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
+		logging.Errorf(ctx, "could not read token response from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	var oidcResponse OidcResponse
 	err = json.Unmarshal(resBytes, &oidcResponse)
 	if err != nil {
+		logging.Errorf(ctx, "could not unmarshal token response from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	user, err := s.oidcAuth.GetUser(c.Request().Context(), oidcResponse.IdToken)
 	if err != nil {
+		logging.Errorf(ctx, "could not get user based on id token from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	session, err := s.sessionService.CreateSession(user.ID)
 	if err != nil {
+		logging.Errorf(ctx, "could not create session: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
@@ -69,13 +79,16 @@ type OidcResponse struct {
 }
 
 func (s *Server) IsAuthorized(c echo.Context) error {
+	ctx := c.Request().Context()
 	sessionID, err := getSessionIDCookie(c)
 	if err != nil {
+		logging.Debugf(ctx, "no sessionId cookie found")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
 	_, err = s.sessionService.GetSession(sessionID)
 	if err != nil {
+		logging.Debugf(ctx, "could not get session: %v", err)
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
@@ -83,8 +96,10 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 }
 
 func (s *Server) EndSession(c echo.Context) error {
+	ctx := c.Request().Context()
 	sessionID, err := getSessionIDCookie(c)
 	if err != nil {
+		logging.Debugf(ctx, "no sessionId cookie found")
 		return c.NoContent(http.StatusOK)
 	}
 	_ = s.sessionService.DeleteSession(sessionID)
