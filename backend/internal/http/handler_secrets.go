@@ -18,7 +18,7 @@ func (s *Server) GetSecrets(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	dbSecrets, err := s.database.SelectSecrets(c.Request().Context(), session.UserID)
+	dbSecrets, err := s.database.SelectSecrets(ctx, session.UserID)
 	if err != nil {
 		logging.Errorf(ctx, "could not retrieve secrets from DB: %v", err)
 		return err
@@ -45,10 +45,10 @@ func (s *Server) PostSecret(c echo.Context) error {
 
 	if input.ID != 0 {
 		logging.Debugf(ctx, "updating secret with id %d", input.ID)
-		err = s.database.UpdateSecret(c.Request().Context(), todb.UpdateSecretParams(input, session.UserID))
+		err = s.database.UpdateSecret(ctx, todb.UpdateSecretParams(input, session.UserID))
 	} else {
 		logging.Debugf(ctx, "inserting new secret")
-		err = s.database.InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, session.UserID))
+		err = s.database.InsertSecret(ctx, todb.InsertSecretParams(input, session.UserID))
 	}
 	if err != nil {
 		logging.Errorf(ctx, "could not insert/update secret: %v", err)

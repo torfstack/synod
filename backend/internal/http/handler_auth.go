@@ -12,7 +12,7 @@ import (
 
 func (s *Server) StartAuthentication(c echo.Context) error {
 	ctx := c.Request().Context()
-	provider, err := oidc.NewProvider(c.Request().Context(), s.cfg.Auth.Issuer)
+	provider, err := oidc.NewProvider(ctx, s.cfg.Auth.Issuer)
 	if err != nil {
 		logging.Errorf(ctx, "could not create oidc provider from discovery url: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -32,10 +32,7 @@ func (s *Server) EstablishSession(c echo.Context) error {
 	redirectUrl := s.cfg.Auth.RedirectURL
 	clientSecret := s.cfg.Auth.ClientSecret
 
-	provider, err := oidc.NewProvider(
-		c.Request().Context(),
-		s.cfg.Auth.Issuer,
-	)
+	provider, err := oidc.NewProvider(ctx, s.cfg.Auth.Issuer)
 	if err != nil {
 		logging.Errorf(ctx, "could not create oidc provider from discovery url: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -58,7 +55,7 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	user, err := s.oidcAuth.GetUser(c.Request().Context(), oidcResponse.IdToken)
+	user, err := s.oidcAuth.GetUser(ctx, oidcResponse.IdToken)
 	if err != nil {
 		logging.Errorf(ctx, "could not get user based on id token from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)

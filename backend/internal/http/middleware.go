@@ -27,7 +27,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		setSession(c, session)
-		logging.WithLogAttributeUserId(c.Request().Context(), int(session.UserID))
+		logging.WithLogAttributeUserId(ctx, int(session.UserID))
 		return next(c)
 	}
 }
