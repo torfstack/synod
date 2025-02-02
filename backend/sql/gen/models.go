@@ -9,13 +9,14 @@ import (
 )
 
 type Secret struct {
-	ID        int32
-	Value     []byte
-	Key       string
-	Url       string
-	UserID    int32
-	CreatedAt pgtype.Timestamp
-	UpdatedAt pgtype.Timestamp
+	ID            int32
+	Value         []byte
+	Key           string
+	Url           string
+	UserID        int32
+	SecretSharing pgtype.Int4
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
 }
 
 type User struct {

@@ -2,8 +2,7 @@ package auth
 
 import (
 	"context"
-	"fmt"
-
+	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/torfstack/kayvault/internal/config"
 	"github.com/torfstack/kayvault/internal/convert/fromdb"
@@ -16,7 +15,7 @@ type oidcAuth struct {
 	cfg      config.Config
 }
 
-func NewOidcAuth(ctx context.Context, database db.Database, cfg config.Config) (Auth, error) {
+func NewOidcAuth(database db.Database, cfg config.Config) (Auth, error) {
 	return &oidcAuth{
 		database: database,
 		cfg:      cfg,
@@ -25,38 +24,36 @@ func NewOidcAuth(ctx context.Context, database db.Database, cfg config.Config) (
 
 func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, error) {
 	// TODO: Implement proper JWT validation
-	res, _ := jwt.Parse(idToken, func(token *jwt.Token) (interface{}, error) {
-		return nil, nil
-	})
-
-	conn, err := o.database.Connect(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close(ctx)
+	res, _ := jwt.Parse(
+		idToken, func(token *jwt.Token) (interface{}, error) {
+			return nil, nil
+		},
+	)
 
 	claims, ok := res.Claims.(jwt.MapClaims)
 	if !ok {
-		fmt.Println("Error parsing claims as jwt.MapClaims")
-		return nil, err
+		return nil, errors.New("error parsing claims as jwt.MapClaims")
 	}
 
 	subject := claims["sub"].(string)
-	exists, err := conn.Queries().DoesUserExist(ctx, subject)
+
+	d, t := o.database.WithTx(ctx)
+	defer t.Rollback(ctx)
+	exists, err := d.DoesUserExist(ctx, subject)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		err = conn.Queries().InsertUser(ctx, subject)
+		err = d.InsertUser(ctx, subject)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	dbUser, err := conn.Queries().SelectUserByName(ctx, subject)
+	dbUser, err := d.SelectUserByName(ctx, subject)
 	if err != nil {
 		return nil, err
 	}
+	t.Commit(ctx)
 
 	user := fromdb.User(dbUser)
 	return &user, nil

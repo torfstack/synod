@@ -2,12 +2,11 @@ package http
 
 import (
 	"context"
-	"log/slog"
-
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/torfstack/kayvault/internal/auth"
 	"github.com/torfstack/kayvault/internal/config"
 	"github.com/torfstack/kayvault/internal/db"
+	"github.com/torfstack/kayvault/internal/logging"
 
 	"github.com/labstack/echo/v4"
 )
@@ -31,13 +30,15 @@ func (s *Server) Start() {
 
 	err := db.Migrate(context.Background(), s.cfg.DB.ConnectionString())
 	if err != nil {
-		panic(err)
+		logging.Fatalf(context.Background(), "could not migrate database: %v", err)
+		return
 	}
 
-	s.database = db.NewDatabase(s.cfg.DB)
-	s.oidcAuth, err = auth.NewOidcAuth(context.Background(), s.database, s.cfg)
+	s.database = db.NewDatabase(s.cfg.DB.ConnectionString())
+	s.oidcAuth, err = auth.NewOidcAuth(s.database, s.cfg)
 	if err != nil {
-		e.Logger.Fatal(err)
+		logging.Fatalf(context.Background(), "could not create oidc auth: %v", err)
+		return
 	}
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
@@ -47,7 +48,7 @@ func (s *Server) Start() {
 
 	var m echo.MiddlewareFunc
 	if localMode == "enabled" {
-		slog.Warn("Running in local mode")
+		logging.Warnf(context.Background(), "Running in local mode")
 		e.Use(
 			middleware.CORSWithConfig(
 				middleware.CORSConfig{

@@ -15,6 +15,7 @@ CREATE TABLE secrets
     user_id INTEGER NOT NULL
         REFERENCES users (id)
         ON DELETE CASCADE,
+    secret_sharing INTEGER,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

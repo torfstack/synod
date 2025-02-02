@@ -1,28 +1,26 @@
 package http
 
 import (
+	"github.com/torfstack/kayvault/internal/logging"
+	"net/http"
+
 	"github.com/labstack/echo/v4"
-	"github.com/torfstack/kayvault/internal/auth"
 	"github.com/torfstack/kayvault/internal/convert/fromdb"
 	"github.com/torfstack/kayvault/internal/convert/todb"
 	"github.com/torfstack/kayvault/internal/models"
-	"log/slog"
-	"net/http"
 )
 
 func (s *Server) GetSecrets(c echo.Context) error {
-	session, ok := c.Get("sessionId").(*auth.Session)
+	ctx := c.Request().Context()
+	session, ok := getSession(c)
 	if !ok {
-		slog.Debug("No session found")
+		logging.Errorf(ctx, "no session found in GetSecrets")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	conn, err := s.database.Connect(c.Request().Context())
+	dbSecrets, err := s.database.SelectSecrets(ctx, session.UserID)
 	if err != nil {
-		return err
-	}
-	dbSecrets, err := conn.Queries().SelectSecrets(c.Request().Context(), session.UserID)
-	if err != nil {
+		logging.Errorf(ctx, "could not retrieve secrets from DB: %v", err)
 		return err
 	}
 
@@ -31,29 +29,29 @@ func (s *Server) GetSecrets(c echo.Context) error {
 }
 
 func (s *Server) PostSecret(c echo.Context) error {
-	session, ok := c.Get("sessionId").(*auth.Session)
+	ctx := c.Request().Context()
+	session, ok := getSession(c)
 	if !ok {
-		slog.Debug("No session found")
+		logging.Errorf(ctx, "no session found in GetSecrets")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	conn, err := s.database.Connect(c.Request().Context())
-	if err != nil {
-		return err
-	}
-
 	var input models.Secret
-	err = c.Bind(&input)
+	err := c.Bind(&input)
 	if err != nil {
+		logging.Errorf(ctx, "input could not be parsed to models.Secret: %v", err)
 		return c.NoContent(http.StatusBadRequest)
 	}
 
 	if input.ID != 0 {
-		err = conn.Queries().UpdateSecret(c.Request().Context(), todb.UpdateSecretParams(input, session.UserID))
+		logging.Debugf(ctx, "updating secret with id %d", input.ID)
+		err = s.database.UpdateSecret(ctx, todb.UpdateSecretParams(input, session.UserID))
 	} else {
-		err = conn.Queries().InsertSecret(c.Request().Context(), todb.InsertSecretParams(input, session.UserID))
+		logging.Debugf(ctx, "inserting new secret")
+		err = s.database.InsertSecret(ctx, todb.InsertSecretParams(input, session.UserID))
 	}
 	if err != nil {
+		logging.Errorf(ctx, "could not insert/update secret: %v", err)
 		return err
 	}
 

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"log/slog"
+	"github.com/torfstack/kayvault/internal/logging"
 	"net/http"
 	"time"
 
@@ -12,36 +12,30 @@ import (
 
 func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		cookie, err := c.Request().Cookie("sessionId")
+		ctx := c.Request().Context()
+		cookie, err := getSessionIDCookie(c)
 		if err != nil {
-			slog.Debug("No cookie found")
+			logging.Debugf(ctx, "No sessionId cookie found")
 			return c.NoContent(http.StatusUnauthorized)
 		}
 
-		session, err := s.sessionService.GetSession(cookie.Value)
+		session, err := s.sessionService.GetSession(cookie)
 		if err != nil {
-			slog.Debug("session not found")
-			c.SetCookie(
-				&http.Cookie{
-					Name:     "sessionId", Value:    "", Expires:  time.UnixMilli(0), Secure:   true,
-					HttpOnly: true,
-					SameSite: http.SameSiteStrictMode,
-				},
-			)
+			logging.Debugf(ctx, "Could not get session: %v", err)
+			c.SetCookie(newEmptySessionCookie())
 			return c.NoContent(http.StatusUnauthorized)
 		}
 
-		slog.Debug("setting sessionId")
-		c.Set("sessionId", session)
+		setSession(c, session)
+		logging.WithLogAttributeUserId(ctx, int(session.UserID))
 		return next(c)
 	}
 }
 
 func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		slog.Debug("Local development session with sessionId local-development and id 1")
-		c.Set(
-			"sessionId", &auth.Session{
+		setSession(
+			c, &auth.Session{
 				SessionID: "local-development",
 				UserID:    1,
 				ExpiresAt: time.Now().Add(time.Hour),

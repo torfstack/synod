@@ -53,7 +53,7 @@ func (q *Queries) InsertUser(ctx context.Context, username string) error {
 }
 
 const selectSecrets = `-- name: SelectSecrets :many
-SELECT id, value, key, url, user_id, created_at, updated_at FROM secrets
+SELECT id, value, key, url, user_id, secret_sharing, created_at, updated_at FROM secrets
 WHERE user_id = $1
 `
 
@@ -72,6 +72,7 @@ func (q *Queries) SelectSecrets(ctx context.Context, userID int32) ([]Secret, er
 			&i.Key,
 			&i.Url,
 			&i.UserID,
+			&i.SecretSharing,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
