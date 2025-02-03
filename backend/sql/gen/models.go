@@ -13,6 +13,7 @@ type Secret struct {
 	Value         []byte
 	Key           string
 	Url           string
+	Tags          string
 	UserID        int32
 	SecretSharing pgtype.Int4
 	CreatedAt     pgtype.Timestamp

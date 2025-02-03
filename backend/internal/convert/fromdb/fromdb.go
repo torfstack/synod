@@ -3,6 +3,7 @@ package fromdb
 import (
 	"github.com/torfstack/kayvault/internal/models"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
+	"strings"
 )
 
 func Secret(in sqlc.Secret) models.Secret {
@@ -11,6 +12,7 @@ func Secret(in sqlc.Secret) models.Secret {
 		Value: string(in.Value),
 		Key:   in.Key,
 		Url:   in.Url,
+		Tags:  tagsSlice(in.Tags),
 	}
 }
 
@@ -27,4 +29,11 @@ func User(in sqlc.User) models.User {
 		ID:       in.ID,
 		Username: in.Username,
 	}
+}
+
+func tagsSlice(tags string) []string {
+	if tags == "" {
+		return []string{}
+	}
+	return strings.Split(tags, ",")
 }

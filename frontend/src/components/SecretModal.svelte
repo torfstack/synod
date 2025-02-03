@@ -17,7 +17,16 @@
 
     let title = $derived(inputId == 0 ? "New secret" : "Edit secret");
     let inputKeyError = $state(false), inputValueError = $state(false);
-    let inputTag = $state("");
+    let textInputTag = $state("");
+    let tags = $state(inputTags)
+
+    $effect(() => {
+        openModal;
+        inputKeyError = false;
+        inputValueError = false;
+        textInputTag = "";
+        tags = inputTags;
+    });
 
     function handleSecret() {
         if (checkForError()) {
@@ -40,11 +49,11 @@
     }
 
     function handleKeyPress(event: KeyboardEvent) {
-
-        if (event.key == "Enter" && inputTag != "" && inputTags.indexOf(inputTag) == -1) {
-            inputTags.push(inputTag);
-            inputTag = "";
-            inputTags = inputTags;
+        if (event.key == "Enter" && textInputTag != "" && inputTags.indexOf(textInputTag) == -1) {
+            tags.push(textInputTag.toLowerCase());
+            textInputTag = "";
+            tags.sort()
+            tags = tags;
         }
     }
 
@@ -84,10 +93,10 @@
         <TextInput bind:value={inputUrl} label="URL"/>
     </div>
     <div class="mb-3">
-        <TextInput bind:value={inputTag} handleKeyPress={handleKeyPress} label="Tags"
+        <TextInput bind:value={textInputTag} handleKeyPress={handleKeyPress} label="Tags"
                    placeholder="Type something and press 'Enter' to add a tag"/>
         <P class="p-4 h-8">
-            {#each inputTags as tag}
+            {#each tags as tag}
                 <Badge class="mr-2 mb-2" transition={slide} dismissable on:dismiss={() => dismissTag(tag)}>
                     #{tag}
                 </Badge>
