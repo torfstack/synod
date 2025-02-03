@@ -12,6 +12,7 @@ CREATE TABLE secrets
     value BYTEA NOT NULL,
     key TEXT NOT NULL,
     url TEXT NOT NULL,
+    tags TEXT NOT NULL,
     user_id INTEGER NOT NULL
         REFERENCES users (id)
         ON DELETE CASCADE,

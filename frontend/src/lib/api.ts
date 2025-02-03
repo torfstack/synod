@@ -37,7 +37,7 @@ async function getSecrets() {
 	});
 }
 
-async function postSecrets(secret: Secret) {
+async function postSecret(secret: Secret) {
 	return fetch(urls.backendSecretsUrl, {
 		method: 'POST',
 		mode: 'cors',
@@ -50,7 +50,8 @@ async function postSecrets(secret: Secret) {
 			id: secret.id,
 			value: secret.value,
 			key: secret.key,
-			url: secret.url
+			url: secret.url,
+			tags: secret.tags.toSorted()
 		})
 	});
 }
@@ -59,5 +60,5 @@ export default {
 	deleteAuth,
 	getAuth,
 	getSecrets,
-	postSecrets
+	postSecrets: postSecret
 };

@@ -21,14 +21,15 @@ func (q *Queries) DoesUserExist(ctx context.Context, username string) (bool, err
 }
 
 const insertSecret = `-- name: InsertSecret :exec
-INSERT INTO secrets (value, key, url, user_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO secrets (value, key, url, tags, user_id)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type InsertSecretParams struct {
 	Value  []byte
 	Key    string
 	Url    string
+	Tags   string
 	UserID int32
 }
 
@@ -37,6 +38,7 @@ func (q *Queries) InsertSecret(ctx context.Context, arg InsertSecretParams) erro
 		arg.Value,
 		arg.Key,
 		arg.Url,
+		arg.Tags,
 		arg.UserID,
 	)
 	return err
@@ -53,7 +55,7 @@ func (q *Queries) InsertUser(ctx context.Context, username string) error {
 }
 
 const selectSecrets = `-- name: SelectSecrets :many
-SELECT id, value, key, url, user_id, secret_sharing, created_at, updated_at FROM secrets
+SELECT id, value, key, url, tags, user_id, secret_sharing, created_at, updated_at FROM secrets
 WHERE user_id = $1
 `
 
@@ -71,6 +73,7 @@ func (q *Queries) SelectSecrets(ctx context.Context, userID int32) ([]Secret, er
 			&i.Value,
 			&i.Key,
 			&i.Url,
+			&i.Tags,
 			&i.UserID,
 			&i.SecretSharing,
 			&i.CreatedAt,
@@ -104,14 +107,15 @@ func (q *Queries) SelectUserByName(ctx context.Context, username string) (User, 
 }
 
 const updateSecret = `-- name: UpdateSecret :exec
-UPDATE secrets SET value = $1, key = $2, url = $3
-WHERE user_id = $4 AND id = $5
+UPDATE secrets SET value = $1, key = $2, url = $3, tags = $4
+WHERE user_id = $5 AND id = $6
 `
 
 type UpdateSecretParams struct {
 	Value  []byte
 	Key    string
 	Url    string
+	Tags   string
 	UserID int32
 	ID     int32
 }
@@ -121,6 +125,7 @@ func (q *Queries) UpdateSecret(ctx context.Context, arg UpdateSecretParams) erro
 		arg.Value,
 		arg.Key,
 		arg.Url,
+		arg.Tags,
 		arg.UserID,
 		arg.ID,
 	)
