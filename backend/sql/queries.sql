@@ -12,11 +12,11 @@ WHERE user_id = $5 AND id = $6;
 
 -- name: SelectUserByName :one
 SELECT * FROM users
-WHERE username = $1;
+WHERE subject = $1;
 
 -- name: DoesUserExist :one
-SELECT EXISTS(SELECT 1 FROM users WHERE username = $1);
+SELECT EXISTS(SELECT 1 FROM users WHERE subject = $1);
 
 -- name: InsertUser :exec
-INSERT INTO users (username)
-VALUES ($1);
+INSERT INTO users (subject, email, full_name)
+VALUES ($1, $2, $3);

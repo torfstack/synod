@@ -56,8 +56,8 @@ func TestDatabase_SecretHandling(t *testing.T) {
 		assert.Len(t, secrets, 0)
 	}
 	{
-		_ = d.InsertUser(ctx, "tropfstein")
-		u, _ := d.SelectUserByName(ctx, "tropfstein")
+		_ = d.InsertUser(ctx, TestUserParams)
+		u, _ := d.SelectUserByName(ctx, TestUserParams.Subject)
 		id := u.ID
 
 		err := d.InsertSecret(
@@ -84,22 +84,22 @@ func TestDatabase_UserHandling(t *testing.T) {
 	connStr, _ := pg.ConnectionString(ctx)
 	d := NewDatabase(connStr)
 
-	b, err := d.DoesUserExist(ctx, "tropfstein")
+	b, err := d.DoesUserExist(ctx, TestUserParams.Subject)
 	assert.NoError(t, err)
 	assert.False(t, b)
 
-	err = d.InsertUser(ctx, "tropfstein")
+	err = d.InsertUser(ctx, TestUserParams)
 	assert.NoError(t, err)
 
-	b, err = d.DoesUserExist(ctx, "tropfstein")
+	b, err = d.DoesUserExist(ctx, TestUserParams.Subject)
 	assert.NoError(t, err)
 	assert.True(t, b)
 
-	u, err := d.SelectUserByName(ctx, "tropfstein")
+	u, err := d.SelectUserByName(ctx, TestUserParams.Subject)
 	assert.NoError(t, err)
-	assert.Equal(t, "tropfstein", u.Username)
+	assert.Equal(t, TestUserParams.Subject, u.Subject)
 
-	err = d.InsertUser(ctx, "tropfstein")
+	err = d.InsertUser(ctx, TestUserParams)
 	assert.Error(t, err)
 }
 
@@ -112,16 +112,16 @@ func TestDatabase_UserTransactionRollback(t *testing.T) {
 
 	d, tx := dd.WithTx(ctx)
 	{
-		err := d.InsertUser(ctx, "tropfstein")
+		err := d.InsertUser(ctx, TestUserParams)
 		assert.NoError(t, err)
 
-		b, err := d.DoesUserExist(ctx, "tropfstein")
+		b, err := d.DoesUserExist(ctx, TestUserParams.Subject)
 		assert.NoError(t, err)
 		assert.True(t, b)
 	}
 	tx.Rollback(ctx)
 
-	b, err := dd.DoesUserExist(ctx, "tropfstein")
+	b, err := dd.DoesUserExist(ctx, TestUserParams.Subject)
 	assert.NoError(t, err)
 	assert.False(t, b)
 }
@@ -135,16 +135,16 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 
 	d, tx := dd.WithTx(ctx)
 	{
-		err := d.InsertUser(ctx, "tropfstein")
+		err := d.InsertUser(ctx, TestUserParams)
 		assert.NoError(t, err)
 
-		b, err := d.DoesUserExist(ctx, "tropfstein")
+		b, err := d.DoesUserExist(ctx, TestUserParams.Subject)
 		assert.NoError(t, err)
 		assert.True(t, b)
 	}
 	tx.Commit(ctx)
 
-	b, err := dd.DoesUserExist(ctx, "tropfstein")
+	b, err := dd.DoesUserExist(ctx, TestUserParams.Subject)
 	assert.NoError(t, err)
 	assert.True(t, b)
 }
@@ -169,3 +169,11 @@ func setupTestContainer() (*postgres.PostgresContainer, error) {
 	}
 	return postgresContainer, nil
 }
+
+var (
+	TestUserParams = sqlc.InsertUserParams{
+		Subject:  "123-456-789-0",
+		Email:    "tropfstein@gmail.com",
+		FullName: "T.R. Opfstein",
+	}
+)

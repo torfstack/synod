@@ -22,7 +22,9 @@ type Secret struct {
 
 type User struct {
 	ID        int32
-	Username  string
+	Subject   string
+	Email     string
+	FullName  string
 	CreatedAt pgtype.Timestamp
 	UpdatedAt pgtype.Timestamp
 }

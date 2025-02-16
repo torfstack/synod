@@ -8,6 +8,7 @@ import (
 	"github.com/torfstack/kayvault/internal/convert/fromdb"
 	"github.com/torfstack/kayvault/internal/db"
 	"github.com/torfstack/kayvault/internal/models"
+	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 
 type oidcAuth struct {
@@ -35,21 +36,24 @@ func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, e
 		return nil, errors.New("error parsing claims as jwt.MapClaims")
 	}
 
-	subject := claims["sub"].(string)
+	userParams, err := insertUserParamsFromClaims(claims)
+	if err != nil {
+		return nil, err
+	}
 
 	d, t := o.database.WithTx(ctx)
 	defer t.Rollback(ctx)
-	exists, err := d.DoesUserExist(ctx, subject)
+	exists, err := d.DoesUserExist(ctx, userParams.Subject)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		err = d.InsertUser(ctx, subject)
+		err = d.InsertUser(ctx, userParams)
 		if err != nil {
 			return nil, err
 		}
 	}
-	dbUser, err := d.SelectUserByName(ctx, subject)
+	dbUser, err := d.SelectUserByName(ctx, userParams.Subject)
 	if err != nil {
 		return nil, err
 	}
@@ -57,4 +61,24 @@ func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, e
 
 	user := fromdb.User(dbUser)
 	return &user, nil
+}
+
+func insertUserParamsFromClaims(claims jwt.MapClaims) (sqlc.InsertUserParams, error) {
+	subject, ok := claims["sub"]
+	if !ok {
+		return sqlc.InsertUserParams{}, errors.New("error parsing subject as string")
+	}
+	email, ok := claims["email"]
+	if !ok {
+		email = ""
+	}
+	fullName, ok := claims["name"]
+	if !ok {
+		fullName = ""
+	}
+	return sqlc.InsertUserParams{
+		Subject:  subject.(string),
+		Email:    email.(string),
+		FullName: fullName.(string),
+	}, nil
 }

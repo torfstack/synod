@@ -11,7 +11,7 @@ type Database interface {
 	WithTx(ctx context.Context) (Database, Transaction)
 
 	DoesUserExist(ctx context.Context, username string) (bool, error)
-	InsertUser(ctx context.Context, username string) error
+	InsertUser(ctx context.Context, params sqlc.InsertUserParams) error
 	SelectUserByName(ctx context.Context, username string) (sqlc.User, error)
 	InsertSecret(ctx context.Context, params sqlc.InsertSecretParams) error
 	UpdateSecret(ctx context.Context, params sqlc.UpdateSecretParams) error
@@ -72,13 +72,13 @@ func (d *database) DoesUserExist(ctx context.Context, username string) (bool, er
 	return q.DoesUserExist(ctx, username)
 }
 
-func (d *database) InsertUser(ctx context.Context, username string) error {
+func (d *database) InsertUser(ctx context.Context, params sqlc.InsertUserParams) error {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
 		return err
 	}
-	return q.InsertUser(ctx, username)
+	return q.InsertUser(ctx, params)
 }
 
 func (d *database) SelectUserByName(ctx context.Context, username string) (sqlc.User, error) {

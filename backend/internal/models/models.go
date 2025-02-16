@@ -10,5 +10,7 @@ type Secret struct {
 
 type User struct {
 	ID       int32  `json:"id,omitempty"`
-	Username string `json:"username"`
+	Subject  string `json:"subject"`
+	Email    string `json:"email"`
+	FullName string `json:"fullName"`
 }

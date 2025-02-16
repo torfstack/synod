@@ -10,11 +10,11 @@ import (
 )
 
 const doesUserExist = `-- name: DoesUserExist :one
-SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)
+SELECT EXISTS(SELECT 1 FROM users WHERE subject = $1)
 `
 
-func (q *Queries) DoesUserExist(ctx context.Context, username string) (bool, error) {
-	row := q.db.QueryRow(ctx, doesUserExist, username)
+func (q *Queries) DoesUserExist(ctx context.Context, subject string) (bool, error) {
+	row := q.db.QueryRow(ctx, doesUserExist, subject)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -45,12 +45,18 @@ func (q *Queries) InsertSecret(ctx context.Context, arg InsertSecretParams) erro
 }
 
 const insertUser = `-- name: InsertUser :exec
-INSERT INTO users (username)
-VALUES ($1)
+INSERT INTO users (subject, email, full_name)
+VALUES ($1, $2, $3)
 `
 
-func (q *Queries) InsertUser(ctx context.Context, username string) error {
-	_, err := q.db.Exec(ctx, insertUser, username)
+type InsertUserParams struct {
+	Subject  string
+	Email    string
+	FullName string
+}
+
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
+	_, err := q.db.Exec(ctx, insertUser, arg.Subject, arg.Email, arg.FullName)
 	return err
 }
 
@@ -90,16 +96,18 @@ func (q *Queries) SelectSecrets(ctx context.Context, userID int32) ([]Secret, er
 }
 
 const selectUserByName = `-- name: SelectUserByName :one
-SELECT id, username, created_at, updated_at FROM users
-WHERE username = $1
+SELECT id, subject, email, full_name, created_at, updated_at FROM users
+WHERE subject = $1
 `
 
-func (q *Queries) SelectUserByName(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRow(ctx, selectUserByName, username)
+func (q *Queries) SelectUserByName(ctx context.Context, subject string) (User, error) {
+	row := q.db.QueryRow(ctx, selectUserByName, subject)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.Subject,
+		&i.Email,
+		&i.FullName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

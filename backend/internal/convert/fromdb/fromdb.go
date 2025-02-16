@@ -27,7 +27,9 @@ func Secrets(in []sqlc.Secret) []models.Secret {
 func User(in sqlc.User) models.User {
 	return models.User{
 		ID:       in.ID,
-		Username: in.Username,
+		Subject:  in.Subject,
+		Email:    in.Email,
+		FullName: in.FullName,
 	}
 }
 

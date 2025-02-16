@@ -1,7 +1,9 @@
 CREATE TABLE users
 (
     id SERIAL PRIMARY KEY,
-    username TEXT NOT NULL UNIQUE,
+    subject TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL DEFAULT '',
+    full_name TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
