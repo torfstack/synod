@@ -1,13 +1,13 @@
 package http
 
 import (
-	"github.com/torfstack/kayvault/internal/logging"
+	"github.com/torfstack/kayvault/backend/logging"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/torfstack/kayvault/internal/convert/fromdb"
-	"github.com/torfstack/kayvault/internal/convert/todb"
-	"github.com/torfstack/kayvault/internal/models"
+	"github.com/torfstack/kayvault/backend/convert/fromdb"
+	"github.com/torfstack/kayvault/backend/convert/todb"
+	"github.com/torfstack/kayvault/backend/models"
 )
 
 func (s *Server) GetSecrets(c echo.Context) error {

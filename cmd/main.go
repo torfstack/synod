@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/torfstack/kayvault/internal/config"
-	"github.com/torfstack/kayvault/internal/http"
+	"github.com/torfstack/kayvault/backend/config"
+	"github.com/torfstack/kayvault/backend/http"
 )
 
 func main() {

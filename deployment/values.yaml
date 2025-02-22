@@ -1,12 +1,7 @@
-backend:
-  image: ghcr.io/torfstack/kayvault-backend
-  tag: <set-by-taskfile>
-  postgres:
-    host: "postgresql.default.svc.cluster.local"
-
-frontend:
-  image: ghcr.io/torfstack/kayvault-frontend
-  tag: <set-by-taskfile>
+image: ghcr.io/torfstack/kayvault
+tag: <set-by-taskfile>
+postgres:
+  host: "postgresql.default.svc.cluster.local"
 
 appName: kayvault
 namespace: default

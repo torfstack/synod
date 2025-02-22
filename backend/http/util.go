@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/torfstack/kayvault/internal/auth"
+	"github.com/torfstack/kayvault/backend/auth"
 )
 
 const (

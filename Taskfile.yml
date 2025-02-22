@@ -7,38 +7,25 @@ vars:
     sh: git tag --sort=-creatordate | head -n 1
 
 tasks:
-  backend-test:
-    dir: backend
+  test:
     cmds:
       - cmd: go test ./...
-  backend-release:
-    dir: backend
+  release:
     requires:
       vars: [IMAGE_TAG]
     cmds:
-      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-backend:{{.IMAGE_TAG}} .
-      - cmd: docker push ghcr.io/torfstack/kayvault-backend:{{.IMAGE_TAG}}
-  frontend-release:
-    dir: frontend
-    requires:
-      vars: [IMAGE_TAG]
-    cmds:
-      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault-frontend:{{.IMAGE_TAG}} .
-      - cmd: docker push ghcr.io/torfstack/kayvault-frontend:{{.IMAGE_TAG}}
+      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}} .
+      - cmd: docker push ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}}
   deploy:
     requires:
       vars: [VERSION_TO_DEPLOY]
     cmds:
-      - cmd: helm upgrade --install kayvault deployment --set backend.tag={{.VERSION_TO_DEPLOY}} --set frontend.tag={{.VERSION_TO_DEPLOY}}
+      - cmd: helm upgrade --install kayvault deployment --set tag={{.VERSION_TO_DEPLOY}}
   dev-deploy:
     vars:
       DEV_IMAGE_TAG: development
     cmds:
-      - task: backend-release
-        vars:
-          IMAGE_TAG:
-            ref: .DEV_IMAGE_TAG
-      - task: frontend-release
+      - task: release
         vars:
           IMAGE_TAG:
             ref: .DEV_IMAGE_TAG

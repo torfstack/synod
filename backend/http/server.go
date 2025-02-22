@@ -3,10 +3,10 @@ package http
 import (
 	"context"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/torfstack/kayvault/internal/auth"
-	"github.com/torfstack/kayvault/internal/config"
-	"github.com/torfstack/kayvault/internal/db"
-	"github.com/torfstack/kayvault/internal/logging"
+	"github.com/torfstack/kayvault/backend/auth"
+	"github.com/torfstack/kayvault/backend/config"
+	"github.com/torfstack/kayvault/backend/db"
+	"github.com/torfstack/kayvault/backend/logging"
 
 	"github.com/labstack/echo/v4"
 )
@@ -52,7 +52,7 @@ func (s *Server) Start() {
 		e.Use(
 			middleware.CORSWithConfig(
 				middleware.CORSConfig{
-					AllowOrigins:     []string{"http://localhost:5173"},
+					AllowOrigins:     []string{s.cfg.Auth.BaseURL},
 					AllowCredentials: true,
 				},
 			),
@@ -72,8 +72,11 @@ func (s *Server) Start() {
 	authorization.GET("", s.IsAuthorized)
 	authorization.DELETE("", s.EndSession)
 
+	e.Static("/", "static")
+	e.File("/", "static/index.html")
+
 	e.Logger.Fatal(e.Start(":4000"))
 }
 
-// localMode build flag, set with -ldflags -X 'github.com/torfstack/kayvault/internal/http.localMode=enabled'
+// localMode build flag, set with -ldflags "-X github.com/torfstack/kayvault/internal/http.localMode=enabled"
 var localMode string

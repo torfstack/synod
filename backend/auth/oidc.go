@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/torfstack/kayvault/internal/config"
-	"github.com/torfstack/kayvault/internal/convert/fromdb"
-	"github.com/torfstack/kayvault/internal/db"
-	"github.com/torfstack/kayvault/internal/models"
+	"github.com/torfstack/kayvault/backend/config"
+	"github.com/torfstack/kayvault/backend/convert/fromdb"
+	"github.com/torfstack/kayvault/backend/db"
+	"github.com/torfstack/kayvault/backend/models"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 

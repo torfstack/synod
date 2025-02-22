@@ -1,11 +1,11 @@
 package http
 
 import (
-	"github.com/torfstack/kayvault/internal/logging"
+	"github.com/torfstack/kayvault/backend/logging"
 	"net/http"
 	"time"
 
-	"github.com/torfstack/kayvault/internal/auth"
+	"github.com/torfstack/kayvault/backend/auth"
 
 	"github.com/labstack/echo/v4"
 )

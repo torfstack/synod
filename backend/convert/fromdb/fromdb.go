@@ -1,7 +1,7 @@
 package fromdb
 
 import (
-	"github.com/torfstack/kayvault/internal/models"
+	"github.com/torfstack/kayvault/backend/models"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
 	"strings"
 )

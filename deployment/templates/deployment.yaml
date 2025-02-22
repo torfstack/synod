@@ -20,8 +20,8 @@ spec:
           secret:
             secretName: kayvault
       containers:
-        - name: kayvault-backend
-          image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
+        - name: kayvault
+          image: {{ .Values.image }}:{{ .Values.tag }}
           imagePullPolicy: Always
           ports:
             - containerPort: 4000
@@ -31,12 +31,6 @@ spec:
               subPath: "config.yaml"
               name: config-yaml
               readOnly: true
-        - name: kayvault-frontend
-          image: {{ .Values.frontend.image }}:{{ .Values.frontend.tag }}
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 3000
-              hostPort: 3000
       imagePullSecrets:
         - name: regcred
   strategy:
