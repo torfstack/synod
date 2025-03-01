@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/torfstack/kayvault/backend/config"
 	"github.com/torfstack/kayvault/backend/domain"

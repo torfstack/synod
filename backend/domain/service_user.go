@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"errors"
+
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/torfstack/kayvault/backend/convert/fromdb"
 	"github.com/torfstack/kayvault/backend/convert/todb"

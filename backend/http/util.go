@@ -2,11 +2,12 @@ package http
 
 import (
 	"fmt"
-	"github.com/torfstack/kayvault/backend/domain"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/torfstack/kayvault/backend/domain"
 
 	"github.com/labstack/echo/v4"
 )

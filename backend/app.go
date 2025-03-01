@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+
 	"github.com/torfstack/kayvault/backend/config"
 	"github.com/torfstack/kayvault/backend/db"
 	"github.com/torfstack/kayvault/backend/domain"

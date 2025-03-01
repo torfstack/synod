@@ -2,9 +2,10 @@ package http
 
 import (
 	"encoding/json"
-	"github.com/torfstack/kayvault/backend/logging"
 	"io"
 	"net/http"
+
+	"github.com/torfstack/kayvault/backend/logging"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/labstack/echo/v4"

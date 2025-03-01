@@ -1,9 +1,10 @@
 package fromdb
 
 import (
+	"strings"
+
 	"github.com/torfstack/kayvault/backend/models"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
-	"strings"
 )
 
 func Secret(in sqlc.Secret) models.Secret {

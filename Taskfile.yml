@@ -9,7 +9,7 @@ vars:
 tasks:
   test:
     cmds:
-      - cmd: go test ./...
+      - cmd: go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
   start-local:
     cmds:
       - cmd: npm run --prefix frontend build

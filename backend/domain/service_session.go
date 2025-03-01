@@ -2,9 +2,10 @@ package domain
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var _ SessionService = &service{}

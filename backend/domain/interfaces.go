@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+
 	"github.com/torfstack/kayvault/backend/db"
 	"github.com/torfstack/kayvault/backend/models"
 )

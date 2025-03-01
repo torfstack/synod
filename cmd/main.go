@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/torfstack/kayvault/backend"
 	"log/slog"
+
+	"github.com/torfstack/kayvault/backend"
 )
 
 func main() {

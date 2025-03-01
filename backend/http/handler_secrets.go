@@ -1,8 +1,9 @@
 package http
 
 import (
-	"github.com/torfstack/kayvault/backend/logging"
 	"net/http"
+
+	"github.com/torfstack/kayvault/backend/logging"
 
 	"github.com/labstack/echo/v4"
 	"github.com/torfstack/kayvault/backend/models"
