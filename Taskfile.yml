@@ -10,6 +10,12 @@ tasks:
   test:
     cmds:
       - cmd: go test ./...
+  start-local:
+    cmds:
+      - cmd: npm run --prefix frontend build
+      - cmd: mv frontend/build/ static/
+      - cmd: go build -o bin/kayvault cmd/main.go
+      - cmd: ./bin/kayvault
   release:
     requires:
       vars: [IMAGE_TAG]
