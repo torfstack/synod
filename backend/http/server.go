@@ -2,44 +2,29 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/torfstack/kayvault/backend/auth"
 	"github.com/torfstack/kayvault/backend/config"
-	"github.com/torfstack/kayvault/backend/db"
+	"github.com/torfstack/kayvault/backend/domain"
 	"github.com/torfstack/kayvault/backend/logging"
 
 	"github.com/labstack/echo/v4"
 )
 
 type Server struct {
-	database       db.Database
-	sessionService auth.SessionService
-	oidcAuth       auth.Auth
-	cfg            config.Config
+	cfg           config.Config
+	domainService domain.Service
 }
 
-func NewServer(cfg config.Config) *Server {
+func NewServer(cfg config.Config, domainService domain.Service) *Server {
 	return &Server{
-		sessionService: auth.NewSessionService(),
-		cfg:            cfg,
+		cfg:           cfg,
+		domainService: domainService,
 	}
 }
 
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	e := echo.New()
-
-	err := db.Migrate(context.Background(), s.cfg.DB.ConnectionString())
-	if err != nil {
-		logging.Fatalf(context.Background(), "could not migrate database: %v", err)
-		return
-	}
-
-	s.database = db.NewDatabase(s.cfg.DB.ConnectionString())
-	s.oidcAuth, err = auth.NewOidcAuth(s.database, s.cfg)
-	if err != nil {
-		logging.Fatalf(context.Background(), "could not create oidc auth: %v", err)
-		return
-	}
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		println(err.Error())
@@ -52,7 +37,7 @@ func (s *Server) Start() {
 		e.Use(
 			middleware.CORSWithConfig(
 				middleware.CORSConfig{
-					AllowOrigins:     []string{s.cfg.Auth.BaseURL},
+					AllowOrigins:     []string{s.cfg.Server.BaseURL},
 					AllowCredentials: true,
 				},
 			),
@@ -72,10 +57,13 @@ func (s *Server) Start() {
 	authorization.GET("", s.IsAuthorized)
 	authorization.DELETE("", s.EndSession)
 
+	users := e.Group("/users")
+	users.GET("/lookup", s.LookUpUser)
+
 	e.Static("/", "static")
 	e.File("/", "static/index.html")
 
-	e.Logger.Fatal(e.Start(":4000"))
+	return e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
 }
 
 // localMode build flag, set with -ldflags "-X github.com/torfstack/kayvault/internal/http.localMode=enabled"

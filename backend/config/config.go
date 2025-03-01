@@ -15,7 +15,14 @@ type DBConfig struct {
 }
 
 func (dbCfg DBConfig) ConnectionString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", dbCfg.Host, dbCfg.Port, dbCfg.User, dbCfg.Password, dbCfg.DBName)
+	return fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		dbCfg.Host,
+		dbCfg.Port,
+		dbCfg.User,
+		dbCfg.Password,
+		dbCfg.DBName,
+	)
 }
 
 type AuthConfig struct {
@@ -23,16 +30,21 @@ type AuthConfig struct {
 	ClientID     string `yaml:"clientId" validate:"required"`
 	ClientSecret string `yaml:"clientSecret" validate:"required"`
 	RedirectURL  string `yaml:"redirectUrl" validate:"required"`
-	BaseURL      string `yaml:"baseUrl" validate:"required"`
+}
+
+type ServerConfig struct {
+	Port    int    `yaml:"port" validate:"required"`
+	BaseURL string `yaml:"baseUrl" validate:"required"`
 }
 
 type Config struct {
-	DB   DBConfig   `yaml:"db" validate:"required"`
-	Auth AuthConfig `yaml:"auth" validate:"required"`
+	DB     DBConfig     `yaml:"db" validate:"required"`
+	Auth   AuthConfig   `yaml:"auth" validate:"required"`
+	Server ServerConfig `yaml:"server" validate:"required"`
 }
 
 func ParseFile(path string) (*Config, error) {
-	viper.AddConfigPath(".")
+	viper.SetConfigFile(path)
 
 	var cfg Config
 	if err := viper.ReadInConfig(); err != nil {

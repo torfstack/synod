@@ -55,19 +55,19 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	user, err := s.oidcAuth.GetUser(ctx, oidcResponse.IdToken)
+	user, err := s.domainService.GetUserFromToken(ctx, oidcResponse.IdToken)
 	if err != nil {
 		logging.Errorf(ctx, "could not get user based on id token from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	session, err := s.sessionService.CreateSession(user.ID)
+	session, err := s.domainService.CreateSession(user.ID)
 	if err != nil {
 		logging.Errorf(ctx, "could not create session: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	c.SetCookie(newSessionCookie(session.SessionID, session.ExpiresAt))
-	return c.Redirect(http.StatusFound, s.cfg.Auth.BaseURL)
+	return c.Redirect(http.StatusFound, s.cfg.Server.BaseURL)
 }
 
 type OidcResponse struct {
@@ -83,7 +83,7 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	_, err = s.sessionService.GetSession(sessionID)
+	_, err = s.domainService.GetSession(sessionID)
 	if err != nil {
 		logging.Debugf(ctx, "could not get session: %v", err)
 		return c.NoContent(http.StatusUnauthorized)
@@ -99,7 +99,7 @@ func (s *Server) EndSession(c echo.Context) error {
 		logging.Debugf(ctx, "no sessionId cookie found")
 		return c.NoContent(http.StatusOK)
 	}
-	_ = s.sessionService.DeleteSession(sessionID)
+	_ = s.domainService.DeleteSession(sessionID)
 
 	c.SetCookie(newEmptySessionCookie())
 	return c.NoContent(http.StatusOK)

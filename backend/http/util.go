@@ -2,13 +2,13 @@ package http
 
 import (
 	"fmt"
+	"github.com/torfstack/kayvault/backend/domain"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/torfstack/kayvault/backend/auth"
 )
 
 const (
@@ -48,16 +48,16 @@ func getSessionIDCookie(c echo.Context) (string, error) {
 	return cookie.Value, nil
 }
 
-func setSession(c echo.Context, session *auth.Session) {
+func setSession(c echo.Context, session *domain.Session) {
 	c.Set(SessionContextName, session)
 }
 
-func getSession(c echo.Context) (*auth.Session, bool) {
+func getSession(c echo.Context) (*domain.Session, bool) {
 	session := c.Get(SessionContextName)
 	if session == nil {
 		return nil, false
 	}
-	return session.(*auth.Session), true
+	return session.(*domain.Session), true
 }
 
 func authUrl(authBaseURL, clientID, redirectURL string) string {

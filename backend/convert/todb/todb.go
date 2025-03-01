@@ -36,6 +36,14 @@ func UpdateSecretParams(in models.Secret, userID int32) sqlc.UpdateSecretParams 
 	}
 }
 
+func InsertUserParams(in models.User) sqlc.InsertUserParams {
+	return sqlc.InsertUserParams{
+		Subject:  in.Subject,
+		Email:    in.Email,
+		FullName: in.FullName,
+	}
+}
+
 func tagsString(tags []string) string {
 	t := ""
 	for _, tag := range tags {

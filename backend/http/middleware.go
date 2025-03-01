@@ -1,11 +1,10 @@
 package http
 
 import (
+	"github.com/torfstack/kayvault/backend/domain"
 	"github.com/torfstack/kayvault/backend/logging"
 	"net/http"
 	"time"
-
-	"github.com/torfstack/kayvault/backend/auth"
 
 	"github.com/labstack/echo/v4"
 )
@@ -19,7 +18,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.NoContent(http.StatusUnauthorized)
 		}
 
-		session, err := s.sessionService.GetSession(cookie)
+		session, err := s.domainService.GetSession(cookie)
 		if err != nil {
 			logging.Debugf(ctx, "Could not get session: %v", err)
 			c.SetCookie(newEmptySessionCookie())
@@ -35,7 +34,7 @@ func (s *Server) SessionCheck(next echo.HandlerFunc) echo.HandlerFunc {
 func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		setSession(
-			c, &auth.Session{
+			c, &domain.Session{
 				SessionID: "local-development",
 				UserID:    1,
 				ExpiresAt: time.Now().Add(time.Hour),

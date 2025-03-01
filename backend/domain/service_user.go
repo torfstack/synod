@@ -1,29 +1,26 @@
-package auth
+package domain
 
 import (
 	"context"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/torfstack/kayvault/backend/config"
 	"github.com/torfstack/kayvault/backend/convert/fromdb"
-	"github.com/torfstack/kayvault/backend/db"
+	"github.com/torfstack/kayvault/backend/convert/todb"
 	"github.com/torfstack/kayvault/backend/models"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 
-type oidcAuth struct {
-	database db.Database
-	cfg      config.Config
+var _ UserService = &service{}
+
+func (s *service) DoesUserExist(ctx context.Context, username string) (bool, error) {
+	return s.database.DoesUserExist(ctx, username)
 }
 
-func NewOidcAuth(database db.Database, cfg config.Config) (Auth, error) {
-	return &oidcAuth{
-		database: database,
-		cfg:      cfg,
-	}, nil
+func (s *service) InsertUser(ctx context.Context, user models.User) error {
+	return s.database.InsertUser(ctx, todb.InsertUserParams(user))
 }
 
-func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, error) {
+func (s *service) GetUserFromToken(ctx context.Context, idToken string) (*models.User, error) {
 	// TODO: Implement proper JWT validation
 	res, _ := jwt.Parse(
 		idToken, func(token *jwt.Token) (interface{}, error) {
@@ -41,7 +38,7 @@ func (o *oidcAuth) GetUser(ctx context.Context, idToken string) (*models.User, e
 		return nil, err
 	}
 
-	d, t := o.database.WithTx(ctx)
+	d, t := s.database.WithTx(ctx)
 	defer t.Rollback(ctx)
 	exists, err := d.DoesUserExist(ctx, userParams.Subject)
 	if err != nil {
