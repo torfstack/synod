@@ -29,10 +29,8 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: release backend
-        run: task backend-release
-      - name: release frontend
-        run: task frontend-release
+      - name: release new version
+        run: task release
       - name: create git tag
         run: |
           next_version=$(sh next_version)
