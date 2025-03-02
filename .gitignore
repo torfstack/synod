@@ -1,13 +1,8 @@
 ## Backend
 HELP.md
-backend/kayvault.json
-backend/key.file
-backend/config.yaml
+config.yaml
 .gradle
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 ### STS ###
 .apt_generated
@@ -40,12 +35,6 @@ out/
 ### VS Code ###
 .vscode/
 
-### FIREBASE ###
-backend/kayvault.json
-
-### OKTETO LOGIN TOKEN ###
-dockersecret
-
 ## FRONTEND
 .DS_Store
 frontend/node_modules
@@ -59,6 +48,4 @@ frontend/vite.config.js.timestamp-*
 frontend/vite.config.ts.timestamp-*
 **/.firebase
 **/.firebaserc
-frontend/build
-
-**/kayvault.json
+static
