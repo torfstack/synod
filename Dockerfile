@@ -19,12 +19,12 @@ COPY go.mod go.sum ./
 COPY backend backend
 COPY cmd cmd
 COPY sql sql
-COPY --from=frontend-builder /opt/kayvault-frontend/build static
 
 RUN CGO_ENABLED=0 go build -o bin/kayvault cmd/main.go
 
 FROM alpine:3.21.2 AS runner
 
+COPY --from=frontend-builder /opt/kayvault-frontend/build static
 COPY --from=builder /opt/kayvault/bin/kayvault kayvault
 COPY sql/migrations sql/migrations
 

@@ -48,17 +48,18 @@ func (s *Server) Start() error {
 		m = s.SessionCheck
 	}
 
-	secrets := e.Group("/secrets", m)
+	api := e.Group("/api")
+	secrets := api.Group("/secrets", m)
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
 
-	authorization := e.Group("/auth")
+	authorization := api.Group("/auth")
 	authorization.GET("/start", s.StartAuthentication)
 	authorization.GET("/callback", s.EstablishSession)
 	authorization.GET("", s.IsAuthorized)
 	authorization.DELETE("", s.EndSession)
 
-	users := e.Group("/users")
+	users := api.Group("/users")
 	users.GET("/lookup", s.LookUpUser)
 
 	e.Static("/", "static")
