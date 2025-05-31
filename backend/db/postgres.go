@@ -4,26 +4,11 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/torfstack/kayvault/backend/convert/fromdb"
+	"github.com/torfstack/kayvault/backend/convert/todb"
+	"github.com/torfstack/kayvault/backend/models"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
-
-type Database interface {
-	WithTx(ctx context.Context) (Database, Transaction)
-
-	DoesUserExist(ctx context.Context, username string) (bool, error)
-	InsertUser(ctx context.Context, params sqlc.InsertUserParams) error
-	SelectUserByName(ctx context.Context, username string) (sqlc.User, error)
-	InsertSecret(ctx context.Context, params sqlc.InsertSecretParams) error
-	UpdateSecret(ctx context.Context, params sqlc.UpdateSecretParams) error
-	SelectSecrets(ctx context.Context, userID int32) ([]sqlc.Secret, error)
-}
-
-type Transaction interface {
-	Commit(ctx context.Context)
-
-	// Rollback is a no-op if the transaction has already been committed
-	Rollback(ctx context.Context)
-}
 
 type database struct {
 	connStr string
@@ -31,10 +16,7 @@ type database struct {
 	tx      pgx.Tx
 }
 
-type transaction struct {
-	conn *pgx.Conn
-	tx   pgx.Tx
-}
+var _ Database = (*database)(nil)
 
 func NewDatabase(connStr string) Database {
 	return &database{connStr: connStr}
@@ -72,22 +54,49 @@ func (d *database) DoesUserExist(ctx context.Context, username string) (bool, er
 	return q.DoesUserExist(ctx, username)
 }
 
-func (d *database) InsertUser(ctx context.Context, params sqlc.InsertUserParams) error {
+func (d *database) InsertUser(ctx context.Context, user models.User) error {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
 		return err
 	}
+	params := todb.InsertUserParams(user)
 	return q.InsertUser(ctx, params)
 }
 
-func (d *database) SelectUserByName(ctx context.Context, username string) (sqlc.User, error) {
+func (d *database) SelectUserByName(ctx context.Context, username string) (models.User, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return sqlc.User{}, err
+		return models.User{}, err
 	}
-	return q.SelectUserByName(ctx, username)
+	dbUser, err := q.SelectUserByName(ctx, username)
+	return fromdb.User(dbUser), err
+}
+
+func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return err
+	}
+	if secret.ID == nil {
+		params := todb.InsertSecretParams(secret, userID)
+		return q.InsertSecret(ctx, params)
+	} else {
+		params := todb.UpdateSecretParams(secret, userID)
+		return q.UpdateSecret(ctx, params)
+	}
+}
+
+func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return []models.Secret{}, err
+	}
+	dbSecrets, err := q.SelectSecrets(ctx, userID)
+	return fromdb.Secrets(dbSecrets), err
 }
 
 func (d *database) InsertSecret(ctx context.Context, params sqlc.InsertSecretParams) error {
@@ -106,15 +115,6 @@ func (d *database) UpdateSecret(ctx context.Context, params sqlc.UpdateSecretPar
 		return err
 	}
 	return q.UpdateSecret(ctx, params)
-}
-
-func (d *database) SelectSecrets(ctx context.Context, userID int32) ([]sqlc.Secret, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
-	if err != nil {
-		return []sqlc.Secret{}, err
-	}
-	return q.SelectSecrets(ctx, userID)
 }
 
 func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {
@@ -136,14 +136,4 @@ func endQuery(ctx context.Context, d *database) {
 		_ = (*d.conn).Close(ctx)
 		d.conn = nil
 	}
-}
-
-func (t *transaction) Commit(ctx context.Context) {
-	_ = t.tx.Commit(ctx)
-	_ = t.tx.Conn().Close(ctx)
-}
-
-func (t *transaction) Rollback(ctx context.Context) {
-	_ = t.tx.Rollback(ctx)
-	_ = t.tx.Conn().Close(ctx)
 }

@@ -20,21 +20,21 @@ var (
 
 type Session struct {
 	SessionID string
-	UserID    int32
+	UserID    int64
 	ExpiresAt time.Time
 }
 
 type sessionStore map[string]Session
 
-func (s *service) CreateSession(user int32) (*Session, error) {
+func (s *service) CreateSession(userID int64) (Session, error) {
 	u := generateUUID()
 	session := Session{
 		SessionID: u,
-		UserID:    user,
+		UserID:    userID,
 		ExpiresAt: time.Now().Add(SessionDuration * time.Second),
 	}
 	s.sessions[u] = session
-	return &session, nil
+	return session, nil
 }
 
 func (s *service) GetSession(token string) (*Session, error) {

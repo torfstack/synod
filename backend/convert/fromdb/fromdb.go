@@ -9,7 +9,7 @@ import (
 
 func Secret(in sqlc.Secret) models.Secret {
 	return models.Secret{
-		ID:    in.ID,
+		ID:    &in.ID,
 		Value: string(in.Value),
 		Key:   in.Key,
 		Url:   in.Url,
@@ -17,7 +17,7 @@ func Secret(in sqlc.Secret) models.Secret {
 	}
 }
 
-func Secrets(in []sqlc.Secret) []models.Secret {
+func Secrets(in []sqlc.Secret) models.Secrets {
 	out := make([]models.Secret, len(in))
 	for i, s := range in {
 		out[i] = Secret(s)
@@ -27,7 +27,7 @@ func Secrets(in []sqlc.Secret) []models.Secret {
 
 func User(in sqlc.User) models.User {
 	return models.User{
-		ID:       in.ID,
+		ID:       &in.ID,
 		Subject:  in.Subject,
 		Email:    in.Email,
 		FullName: in.FullName,

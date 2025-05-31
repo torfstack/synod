@@ -11,9 +11,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/torfstack/kayvault/backend/models"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	sqlc "github.com/torfstack/kayvault/sql/gen"
 )
 
 const (
@@ -69,22 +69,21 @@ func TestDatabase_SecretHandling(t *testing.T) {
 		assert.Len(t, secrets, 0)
 	}
 	{
-		assert.NoError(t, d.InsertUser(ctx, TestUserParams))
-		u, err := d.SelectUserByName(ctx, TestUserParams.Subject)
+		assert.NoError(t, d.InsertUser(ctx, TestUser))
+		u, err := d.SelectUserByName(ctx, TestUser.Subject)
 		assert.NoError(t, err)
 		id := u.ID
 
-		err = d.InsertSecret(
-			ctx, sqlc.InsertSecretParams{
-				Value:  []byte("secret"),
-				Key:    "key",
-				Url:    "url",
-				UserID: id,
-			},
+		err = d.UpsertSecret(
+			ctx, models.Secret{
+				Value: "secret",
+				Key:   "key",
+				Url:   "url",
+			}, *u.ID,
 		)
 		assert.NoError(t, err)
 
-		secrets, err := d.SelectSecrets(ctx, id)
+		secrets, err := d.SelectSecrets(ctx, *id)
 		assert.NoError(t, err)
 		assert.Len(t, secrets, 1)
 		assert.Equal(t, "secret", string(secrets[0].Value))
@@ -99,22 +98,22 @@ func TestDatabase_UserHandling(t *testing.T) {
 	assert.NoError(t, err)
 	d := NewDatabase(connStr)
 
-	b, err := d.DoesUserExist(ctx, TestUserParams.Subject)
+	b, err := d.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
 	assert.False(t, b)
 
-	err = d.InsertUser(ctx, TestUserParams)
+	err = d.InsertUser(ctx, TestUser)
 	assert.NoError(t, err)
 
-	b, err = d.DoesUserExist(ctx, TestUserParams.Subject)
+	b, err = d.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
 	assert.True(t, b)
 
-	u, err := d.SelectUserByName(ctx, TestUserParams.Subject)
+	u, err := d.SelectUserByName(ctx, TestUser.Subject)
 	assert.NoError(t, err)
-	assert.Equal(t, TestUserParams.Subject, u.Subject)
+	assert.Equal(t, TestUser.Subject, u.Subject)
 
-	err = d.InsertUser(ctx, TestUserParams)
+	err = d.InsertUser(ctx, TestUser)
 	assert.Error(t, err)
 }
 
@@ -128,16 +127,16 @@ func TestDatabase_UserTransactionRollback(t *testing.T) {
 
 	d, tx := dd.WithTx(ctx)
 	{
-		err := d.InsertUser(ctx, TestUserParams)
+		err := d.InsertUser(ctx, TestUser)
 		assert.NoError(t, err)
 
-		b, err := d.DoesUserExist(ctx, TestUserParams.Subject)
+		b, err := d.DoesUserExist(ctx, TestUser.Subject)
 		assert.NoError(t, err)
 		assert.True(t, b)
 	}
 	tx.Rollback(ctx)
 
-	b, err := dd.DoesUserExist(ctx, TestUserParams.Subject)
+	b, err := dd.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
 	assert.False(t, b)
 }
@@ -152,16 +151,16 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 
 	d, tx := dd.WithTx(ctx)
 	{
-		err := d.InsertUser(ctx, TestUserParams)
+		err := d.InsertUser(ctx, TestUser)
 		assert.NoError(t, err)
 
-		b, err := d.DoesUserExist(ctx, TestUserParams.Subject)
+		b, err := d.DoesUserExist(ctx, TestUser.Subject)
 		assert.NoError(t, err)
 		assert.True(t, b)
 	}
 	tx.Commit(ctx)
 
-	b, err := dd.DoesUserExist(ctx, TestUserParams.Subject)
+	b, err := dd.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
 	assert.True(t, b)
 }
@@ -189,7 +188,7 @@ func setupTestContainer() (*postgres.PostgresContainer, error) {
 }
 
 var (
-	TestUserParams = sqlc.InsertUserParams{
+	TestUser = models.User{
 		Subject:  "123-456-789-0",
 		Email:    "tropfstein@gmail.com",
 		FullName: "T.R. Opfstein",

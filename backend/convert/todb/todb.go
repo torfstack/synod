@@ -7,7 +7,7 @@ import (
 
 func Secret(in models.Secret) sqlc.Secret {
 	return sqlc.Secret{
-		ID:    in.ID,
+		ID:    *in.ID,
 		Value: []byte(in.Value),
 		Key:   in.Key,
 		Url:   in.Url,
@@ -15,7 +15,7 @@ func Secret(in models.Secret) sqlc.Secret {
 	}
 }
 
-func InsertSecretParams(in models.Secret, userID int32) sqlc.InsertSecretParams {
+func InsertSecretParams(in models.Secret, userID int64) sqlc.InsertSecretParams {
 	return sqlc.InsertSecretParams{
 		Value:  []byte(in.Value),
 		Key:    in.Key,
@@ -25,9 +25,9 @@ func InsertSecretParams(in models.Secret, userID int32) sqlc.InsertSecretParams 
 	}
 }
 
-func UpdateSecretParams(in models.Secret, userID int32) sqlc.UpdateSecretParams {
+func UpdateSecretParams(in models.Secret, userID int64) sqlc.UpdateSecretParams {
 	return sqlc.UpdateSecretParams{
-		ID:     in.ID,
+		ID:     *in.ID,
 		Value:  []byte(in.Value),
 		Key:    in.Key,
 		Url:    in.Url,
@@ -45,6 +45,9 @@ func InsertUserParams(in models.User) sqlc.InsertUserParams {
 }
 
 func tagsString(tags []string) string {
+	if len(tags) == 0 {
+		return ""
+	}
 	t := ""
 	for _, tag := range tags {
 		t += tag + ","
