@@ -2,16 +2,15 @@ package db
 
 import (
 	"context"
+	"log"
+	"os"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"log"
-	"os"
-	"testing"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	sqlc "github.com/torfstack/kayvault/sql/gen"
