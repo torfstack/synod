@@ -2,7 +2,9 @@ package domain
 
 import (
 	"context"
+	"errors"
 
+	"github.com/torfstack/kayvault/backend/logging"
 	"github.com/torfstack/kayvault/backend/models"
 )
 
@@ -13,5 +15,10 @@ func (s *service) GetSecrets(ctx context.Context, userId int64) ([]models.Secret
 }
 
 func (s *service) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error {
-	return s.database.UpsertSecret(ctx, secret, userID)
+	err := s.database.UpsertSecret(ctx, secret, userID)
+	if err != nil {
+		logging.Errorf(ctx, "could not upsert secret: %v", err)
+		return errors.New("could not upsert secret")
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/torfstack/kayvault/backend"
@@ -8,5 +9,5 @@ import (
 
 func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
-	_ = backend.NewApplication().Run()
+	fmt.Println(backend.NewApplication().Run())
 }

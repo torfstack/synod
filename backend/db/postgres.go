@@ -80,7 +80,7 @@ func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userI
 	if err != nil {
 		return err
 	}
-	if secret.ID == nil {
+	if secret.ID == nil || *secret.ID == 0 {
 		params := todb.InsertSecretParams(secret, userID)
 		return q.InsertSecret(ctx, params)
 	} else {
