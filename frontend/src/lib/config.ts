@@ -5,7 +5,7 @@ const deployed = 'https://kayvault.torfstack.com';
 const secretPath = '/api/secrets';
 const authPath = '/api/auth';
 
-const backendUrl = localhost;
+const backendUrl = deployed;
 const backendSecretsUrl = backendUrl + secretPath;
 const backendAuthUrl = backendUrl + authPath;
 const backendAuthStartUrl = backendUrl + authPath + '/start';
