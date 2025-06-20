@@ -1,5 +1,5 @@
 <script lang="ts">
-    import cfg from "$lib/config";
+    import {config} from "$lib/config";
     import {Button, Checkbox, Img, Input, Label} from "flowbite-svelte";
     import {EnvelopeSolid} from "flowbite-svelte-icons";
     import KayHeader from "../components/KayHeader.svelte";
@@ -8,7 +8,7 @@
     let password = $state("");
 
     function signInWithProvider() {
-        window.open(cfg.backendAuthStartUrl, "_self");
+        window.open(config.backendAuthStartUrl, "_self");
     }
 </script>
 
