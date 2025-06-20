@@ -7,20 +7,22 @@ vars:
     sh: git tag --sort=-creatordate | head -n 1
 
 tasks:
+  ## Local
+  start-local:
+    cmds:
+      - cmd: docker compose up --build --detach
+  stop-local:
+    cmds:
+      - cmd: docker compose down
+  ## CI/CD
   test:
     cmds:
       - cmd: set -euo pipefail && go test -json -v ./... 2>&1 | gotestfmt
-  start-local:
-    cmds:
-      - cmd: npm run --prefix frontend build
-      - cmd: mv frontend/build/ static/
-      - cmd: go build -o bin/kayvault cmd/main.go
-      - cmd: ./bin/kayvault
   release:
     requires:
       vars: [IMAGE_TAG]
     cmds:
-      - cmd: docker buildx build -t ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}} .
+      - cmd: docker buildx build --target runner -t ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}} .
       - cmd: docker push ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}}
   deploy:
     requires:

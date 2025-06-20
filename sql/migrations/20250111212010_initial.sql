@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE users
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -10,11 +10,11 @@ CREATE TABLE users
 
 CREATE TABLE secrets
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     value BYTEA NOT NULL,
     key TEXT NOT NULL,
     url TEXT NOT NULL,
-    user_id INTEGER NOT NULL
+    user_id BIGINT NOT NULL
         REFERENCES users (id)
         ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
