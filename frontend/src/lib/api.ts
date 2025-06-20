@@ -1,8 +1,8 @@
-import urls from '$lib/config';
+import { config } from '$lib/config';
 import type { Secret } from '$lib/secret';
 
 async function getAuth() {
-	return fetch(urls.backendAuthUrl, {
+	return fetch(config.backendAuthUrl, {
 		method: 'GET',
 		mode: 'cors',
 		cache: 'no-cache',
@@ -14,7 +14,7 @@ async function getAuth() {
 }
 
 async function deleteAuth() {
-	return fetch(urls.backendAuthUrl, {
+	return fetch(config.backendAuthUrl, {
 		method: 'DELETE',
 		mode: 'cors',
 		cache: 'no-cache',
@@ -26,7 +26,7 @@ async function deleteAuth() {
 }
 
 async function getSecrets() {
-	return fetch(urls.backendSecretsUrl, {
+	return fetch(config.backendSecretsUrl, {
 		method: 'GET',
 		mode: 'cors',
 		cache: 'no-cache',
@@ -38,7 +38,7 @@ async function getSecrets() {
 }
 
 async function postSecret(secret: Secret) {
-	return fetch(urls.backendSecretsUrl, {
+	return fetch(config.backendSecretsUrl, {
 		method: 'POST',
 		mode: 'cors',
 		cache: 'no-cache',
