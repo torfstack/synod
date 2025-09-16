@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 go build -o bin/kayvault cmd/main.go
 
 FROM alpine:edge AS runner
 
-COPY --from=frontend-builder /opt/kayvault-frontend/build static
+COPY --from=frontend-builder /opt/kayvault-frontend/dist static
 COPY --from=builder /opt/kayvault/bin/kayvault kayvault
 COPY sql/migrations sql/migrations
 
