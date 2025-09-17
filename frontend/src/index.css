@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-    themes: emerald --default, forest --prefersdark;
+    themes: corporate --default, business --prefersdark;
 }
 
 html {

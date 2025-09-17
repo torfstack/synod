@@ -1,11 +1,11 @@
 import {useEffect, useState} from "react";
 
 export const ThemeSwitcher = () => {
-    const themes = ["emerald", "forest"]
+    const themes = ["corporate", "business"]
     const [theme, setTheme] = useState(currentTheme())
 
     function currentTheme(): string {
-        return document.documentElement.getAttribute("data-theme") ?? "emerald"
+        return document.documentElement.getAttribute("data-theme") ?? "corporate"
     }
 
     useEffect(() => {
@@ -42,7 +42,7 @@ export const ThemeSwitcher = () => {
             </svg>
             <input
                 type="checkbox"
-                checked={theme == "forest"}
+                checked={theme == "business"}
                 className="toggle theme-controller"
                 onChange={toggleTheme}
             />

@@ -62,6 +62,7 @@ export const SecretModal = (props: SecretModalProps) => {
                        onChange={(e) => setUrl(e.target.value)}
                        className="input input-bordered w-full max-w-xs"/>
                 <input type="text" placeholder="Tags" value={tag}
+                       disabled={tags.length >= 3}
                        onChange={(e) => setTag(e.target.value)}
                        onKeyDown={(e) => {
                            if (e.key == "Enter") {
