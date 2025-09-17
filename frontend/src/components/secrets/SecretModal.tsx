@@ -49,6 +49,10 @@ export const SecretModal = (props: SecretModalProps) => {
         return name.length > 0 && secret.length > 0 && url.length > 0
     }
 
+    function removeTag(tag: string): () => void {
+        return () => setTags(prevState => prevState.filter(t => t !== tag));
+    }
+
     return <dialog id="add_secret_modal" className="modal">
         <div className="modal-box">
             <h3 className="font-bold text-lg pb-4">Add Secret</h3>
@@ -87,7 +91,7 @@ export const SecretModal = (props: SecretModalProps) => {
                 </label>
                 <div className="flex flex-row gap-2">
                     {tags.map((tag) => (
-                        <span className="badge">{tag}</span>
+                        <span className="badge btn" onClick={removeTag(tag)}>{tag}</span>
                     ))}
                 </div>
             </div>
