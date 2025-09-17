@@ -27,6 +27,7 @@ export const SecretModal = (props: SecretModalProps) => {
         setName(props.existingSecret?.key ?? "")
         setSecret(props.existingSecret?.value ?? "")
         setUrl(props.existingSecret?.url ?? "")
+        setTags(props.existingSecret?.tags ?? [])
     }, [props.existingSecret]);
 
     async function onSubmit() {
@@ -52,25 +53,38 @@ export const SecretModal = (props: SecretModalProps) => {
         <div className="modal-box">
             <h3 className="font-bold text-lg pb-4">Add Secret</h3>
             <div className="flex flex-col gap-2">
-                <input type="text" placeholder="Name" value={name}
-                       onChange={(e) => setName(e.target.value)}
-                       className="input input-bordered w-full max-w-xs"/>
-                <input type="text" placeholder="Secret" value={secret}
-                       onChange={(e) => setSecret(e.target.value)}
-                       className="input input-bordered w-full max-w-xs"/>
-                <input type="text" placeholder="URL" value={url}
-                       onChange={(e) => setUrl(e.target.value)}
-                       className="input input-bordered w-full max-w-xs"/>
-                <input type="text" placeholder="Tags" value={tag}
-                       disabled={tags.length >= 3}
-                       onChange={(e) => setTag(e.target.value)}
-                       onKeyDown={(e) => {
-                           if (e.key == "Enter") {
-                               setTags([...tags, tag])
-                               setTag("")
-                           }
-                       }}
-                       className="input input-bordered w-full max-w-xs"/>
+                <label className="floating-label">
+                    <span>Name</span>
+                    <input type="text" placeholder="Name" value={name}
+                           onChange={(e) => setName(e.target.value)}
+                           className="input input-bordered w-full max-w-xs"/>
+                </label>
+
+                <label className="floating-label">
+                    <span>Secret</span>
+                    <input type="text" placeholder="Secret" value={secret}
+                           onChange={(e) => setSecret(e.target.value)}
+                           className="input input-bordered w-full max-w-xs"/>
+                </label>
+                <label className="floating-label">
+                    <span>URL</span>
+                    <input type="text" placeholder="URL" value={url}
+                           onChange={(e) => setUrl(e.target.value)}
+                           className="input input-bordered w-full max-w-xs"/>
+                </label>
+                <label className="floating-label">
+                    <span>Add Tag</span>
+                    <input type="text" placeholder="Tags" value={tag}
+                           disabled={tags.length >= 3}
+                           onChange={(e) => setTag(e.target.value)}
+                           onKeyDown={(e) => {
+                               if (e.key == "Enter") {
+                                   setTags([...tags, tag])
+                                   setTag("")
+                               }
+                           }}
+                           className="input input-bordered w-full max-w-xs"/>
+                </label>
                 <div className="flex flex-row gap-2">
                     {tags.map((tag) => (
                         <span className="badge">{tag}</span>
