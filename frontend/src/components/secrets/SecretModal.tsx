@@ -1,15 +1,6 @@
 import type {Secret} from "../../util/secret.ts";
 import {useEffect, useState} from "react";
-
-export function showModal() {
-    let dialog: any = document.getElementById('add_secret_modal')
-    dialog.showModal()
-}
-
-export function closeModal() {
-    let dialog: any = document.getElementById('add_secret_modal')
-    dialog.close()
-}
+import {closeModal} from "../../util/modal.ts";
 
 type SecretModalProps = {
     handleSecret: (s: Secret) => Promise<void>
@@ -91,14 +82,12 @@ export const SecretModal = (props: SecretModalProps) => {
                 </label>
                 <div className="flex flex-row gap-2">
                     {tags.map((tag) => (
-                        <span className="badge btn" onClick={removeTag(tag)}>{tag}</span>
+                        <span className="badge badge-accent btn" onClick={removeTag(tag)}>{tag}</span>
                     ))}
                 </div>
             </div>
             <div className="modal-action">
-                <form method="dialog">
-                    <button className="btn btn-primary" onClick={onSubmit}>Submit</button>
-                </form>
+                <button className="btn btn-primary" onClick={onSubmit}>Submit</button>
             </div>
         </div>
         <form method="dialog" className="modal-backdrop">

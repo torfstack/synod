@@ -2,7 +2,8 @@ import {SecretsList} from "../components/secrets/SecretsList.tsx";
 import type {Secret} from "../util/secret.ts";
 import {useEffect, useState} from "react";
 import {getSecrets, postSecret} from "../util/api.ts";
-import {SecretModal, showModal} from "../components/secrets/SecretModal.tsx";
+import {SecretModal} from "../components/secrets/SecretModal.tsx";
+import {showModal} from "../util/modal.ts";
 
 export const SecretsScreen = () => {
     const [secrets, setSecrets] = useState<Secret[]>([]);
