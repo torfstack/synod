@@ -37,7 +37,14 @@ export const SecretModal = (props: SecretModalProps) => {
     }
 
     function checkInput(): boolean {
-        return name.length > 0 && secret.length > 0 && url.length > 0
+        let valid = true
+        if (name.length == 0) {
+            valid = false
+        }
+        if (secret.length == 0) {
+            valid = false
+        }
+        return valid
     }
 
     function removeTag(tag: string): () => void {
@@ -46,49 +53,57 @@ export const SecretModal = (props: SecretModalProps) => {
 
     return <dialog id="add_secret_modal" className="modal">
         <div className="modal-box">
-            <h3 className="font-bold text-lg pb-4">Add Secret</h3>
-            <div className="flex flex-col gap-2">
-                <label className="floating-label">
-                    <span>Name</span>
-                    <input type="text" placeholder="Name" value={name}
-                           onChange={(e) => setName(e.target.value)}
-                           className="input input-bordered w-full max-w-xs"/>
-                </label>
+            <form>
 
-                <label className="floating-label">
-                    <span>Secret</span>
-                    <input type="text" placeholder="Secret" value={secret}
-                           onChange={(e) => setSecret(e.target.value)}
-                           className="input input-bordered w-full max-w-xs"/>
-                </label>
-                <label className="floating-label">
-                    <span>URL</span>
-                    <input type="text" placeholder="URL" value={url}
-                           onChange={(e) => setUrl(e.target.value)}
-                           className="input input-bordered w-full max-w-xs"/>
-                </label>
-                <label className="floating-label">
-                    <span>Add Tag</span>
-                    <input type="text" placeholder="Tags" value={tag}
-                           disabled={tags.length >= 3}
-                           onChange={(e) => setTag(e.target.value)}
-                           onKeyDown={(e) => {
-                               if (e.key == "Enter") {
-                                   setTags([...tags, tag])
-                                   setTag("")
-                               }
-                           }}
-                           className="input input-bordered w-full max-w-xs"/>
-                </label>
-                <div className="flex flex-row gap-2">
-                    {tags.map((tag) => (
-                        <span className="badge badge-accent btn" onClick={removeTag(tag)}>{tag}</span>
-                    ))}
-                </div>
-            </div>
-            <div className="modal-action">
-                <button className="btn btn-primary" onClick={onSubmit}>Submit</button>
-            </div>
+                <fieldset className="fieldset">
+                    <legend className="fieldset-legend">Add Secret</legend>
+                    <div className="flex flex-col gap-4">
+                        <label className="input">
+                            Name
+                            <input type="text" placeholder="MyNewSecret" value={name}
+                                   onChange={(e) => setName(e.target.value)}
+                                   className="grow validator" minLength={1} required title="Can not be empty"/>
+                            <p id="name-input-error" className="validator-hint">Can not be empty</p>
+                        </label>
+                        <label className="input">
+                            Secret
+                            <input type="password" placeholder="*****" value={secret}
+                                   onChange={(e) => setSecret(e.target.value)}
+                                   className="grow validator" minLength={1} required title="Can not be empty"/>
+                            <p id="secret-input-error" className="validator-hint">Can not be empty</p>
+                        </label>
+                        <label className="input">
+                            URL
+                            <input type="text" placeholder="https://example.com" value={url}
+                                   onChange={(e) => setUrl(e.target.value)}
+                                   className="grow"/>
+                            <span className="badge badge-neutral badge-xs">Optional</span>
+                        </label>
+                        <label className="input">
+                            Add Tag
+                            <input type="text" placeholder="example" value={tag}
+                                   onChange={(e) => setTag(e.target.value)}
+                                   onKeyDown={(e) => {
+                                       if (e.code == "Space") {
+                                           setTags([...tags, tag])
+                                           setTag("")
+                                       }
+                                   }}
+                                   disabled={tags.length >= 3} className="grow"/>
+                            <span className="badge badge-neutral badge-xs">&lt;4</span>
+                            <kbd className="kbd kbd-sm">␣</kbd>
+                        </label>
+                        <div className="flex flex-row gap-2">
+                            {tags.map((tag) => (
+                                <span className="badge badge-neutral btn" onClick={removeTag(tag)}>{tag}</span>
+                            ))}
+                        </div>
+                        <div className="modal-action">
+                            <button className="btn btn-primary" onClick={onSubmit}>Submit</button>
+                        </div>
+                    </div>
+                </fieldset>
+            </form>
         </div>
         <form method="dialog" className="modal-backdrop">
             <button>close</button>
