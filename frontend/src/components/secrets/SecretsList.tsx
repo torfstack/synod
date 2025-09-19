@@ -16,13 +16,12 @@ export const SecretsList = (props: SecretListProps) => {
 
         {props.secrets.map((secret) => (
             <li className="list-row w-full" key={secret.id}>
-                <button className="btn btn-ghost min-w-full justify-start" onClick={() => props.clickedSecret(secret)}>
-                    <div className="lg:text-xl flex flex-row">
-                        <p className="font-semibold">{secret.key}</p>
-                        &nbsp;
-                        <p className="font-normal italic">[{secret.url}]</p>
-                        &nbsp;
-                        <div className="flex flex-row gap-2 items-center">
+                <button className="btn btn-ghost w-full flex flex-col min-h-fit lg:text-lg p-1"
+                        onClick={() => props.clickedSecret(secret)}>
+                    <div className="flex flex-col max-w-full items-start">
+                        <p className="text-semibold truncate max-w-full">{secret.key}</p>
+                        <p className="font-normal italic truncate max-w-full">[{secret.url}]</p>
+                        <div className="flex flex-row gap-2 max-w-full items-center truncate pt-1.5">
                             {secret.tags.map((tag) => (
                                 <span className="badge badge-neutral badge-xs">{tag}</span>
                             ))}

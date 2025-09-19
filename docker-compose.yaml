@@ -7,9 +7,9 @@ services:
       dockerfile: Dockerfile
       target: runner-debug
     volumes:
-       - type: bind
-         source: ./config.yaml
-         target: /config.yaml
+      - type: bind
+        source: ./config.yaml
+        target: /config.yaml
     ports:
       - "4000:4000"
       - "4200:4200"
@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: kayvaultpass
       POSTGRES_DB: kayvaultdb
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: [ "CMD-SHELL", "pg_isready" ]
       interval: 2s
       timeout: 5s
       retries: 5
