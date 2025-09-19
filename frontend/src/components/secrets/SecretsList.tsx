@@ -17,7 +17,7 @@ export const SecretsList = (props: SecretListProps) => {
         {props.secrets.map((secret) => (
             <li className="list-row w-full" key={secret.id}>
                 <button className="btn btn-ghost min-w-full justify-start" onClick={() => props.clickedSecret(secret)}>
-                    <div className="text-xl flex flex-row">
+                    <div className="lg:text-xl flex flex-row">
                         <p className="font-semibold">{secret.key}</p>
                         &nbsp;
                         <p className="font-normal italic">[{secret.url}]</p>

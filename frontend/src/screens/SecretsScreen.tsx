@@ -8,16 +8,13 @@ import {showModal} from "../util/modal.ts";
 export const SecretsScreen = () => {
     const [secrets, setSecrets] = useState<Secret[]>([]);
     const [selectedSecret, setSelectedSecret] = useState<Secret | undefined>(undefined);
-    const [filteredSecrets, setFilteredSecrets] = useState<Secret[]>([])
     const [filterValue, setFilterValue] = useState("");
 
     useEffect(() => {
         retrieveSecrets()
     }, [])
 
-    useEffect(() => {
-        setFilteredSecrets(filterSecrets(secrets, filterValue))
-    }, [filterValue]);
+    const filteredSecrets = filterSecrets(secrets, filterValue)
 
     function filterSecrets(secrets: Secret[], filterValue: string): Secret[] {
         return secrets.filter(secret => {
@@ -31,7 +28,6 @@ export const SecretsScreen = () => {
         getSecrets().then(resp => resp.json()).then(
             (json) => {
                 setSecrets(json)
-                setFilteredSecrets(json)
             }
         )
     }
