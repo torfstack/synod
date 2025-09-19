@@ -21,6 +21,12 @@ export const SecretsList = (props: SecretListProps) => {
                         <p className="font-semibold">{secret.key}</p>
                         &nbsp;
                         <p className="font-normal italic">[{secret.url}]</p>
+                        &nbsp;
+                        <div className="flex flex-row gap-2 items-center">
+                            {secret.tags.map((tag) => (
+                                <span className="badge badge-neutral badge-xs">{tag}</span>
+                            ))}
+                        </div>
                     </div>
                 </button>
             </li>
