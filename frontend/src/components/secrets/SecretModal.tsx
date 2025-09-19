@@ -84,7 +84,7 @@ export const SecretModal = (props: SecretModalProps) => {
                             <input type="text" placeholder="example" value={tag}
                                    onChange={(e) => setTag(e.target.value)}
                                    onKeyDown={(e) => {
-                                       if (e.code == "Space") {
+                                       if (e.code == "Space" || e.key == " ") {
                                            setTags([...tags, tag])
                                            setTag("")
                                        }
@@ -93,9 +93,12 @@ export const SecretModal = (props: SecretModalProps) => {
                             <span className="badge badge-neutral badge-xs">&lt;4</span>
                             <kbd className="kbd kbd-sm">␣</kbd>
                         </label>
-                        <div className="flex flex-row gap-2">
+                        <div className="flex flex-col gap-2">
                             {tags.map((tag) => (
-                                <span className="badge badge-neutral btn" onClick={removeTag(tag)}>{tag}</span>
+                                <span className="badge badge-neutral btn"
+                                      onClick={removeTag(tag)}>
+                                    <p className="truncate max-w-56">{tag}</p>
+                                </span>
                             ))}
                         </div>
                         <div className="modal-action">
