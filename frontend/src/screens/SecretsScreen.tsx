@@ -21,7 +21,7 @@ export const SecretsScreen = () => {
             return secret.key?.toLowerCase().includes(filterValue.toLowerCase()) ||
                 secret.url?.toLowerCase().includes(filterValue.toLowerCase()) ||
                 secret.tags?.some(tag => tag.toLowerCase().includes(filterValue.toLowerCase()))
-        })
+        }).toSorted((s1, s2) => s1.id! - s2.id!);
     }
 
     function retrieveSecrets() {
