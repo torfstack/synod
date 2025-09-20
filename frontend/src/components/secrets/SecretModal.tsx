@@ -39,14 +39,7 @@ export const SecretModal = (props: SecretModalProps) => {
     }
 
     function checkInput(): boolean {
-        let valid = true
-        if (name.length == 0) {
-            valid = false
-        }
-        if (secret.length == 0) {
-            valid = false
-        }
-        return valid
+        return name.length > 0 && secret.length > 0
     }
 
     function removeTag(tag: string): () => void {
@@ -64,32 +57,32 @@ export const SecretModal = (props: SecretModalProps) => {
                 <fieldset className="fieldset">
                     <legend className="fieldset-legend">Add Secret</legend>
                     <div className="flex flex-col gap-4">
-                        <label className="input">
+                        <label className="input w-full">
                             Name
                             <input type="text" placeholder="MyNewSecret" value={name}
                                    onChange={(e) => setName(e.target.value)}
-                                   className="grow validator" minLength={1} required title="Can not be empty"/>
-                            <p id="name-input-error" className="validator-hint">Can not be empty</p>
+                                   className="grow validator" minLength={1} required
+                                   title="Can not be empty"/>
                         </label>
-                        <label className="input">
+                        <label className="input w-full">
                             Secret
                             <input id="input-password" type={passwordVisible ? "text" : "password"} placeholder="*****"
                                    value={secret}
                                    onChange={(e) => setSecret(e.target.value)}
-                                   className="grow validator" minLength={1} required title="Can not be empty"/>
-                            <p id="secret-input-error" className="validator-hint">Can not be empty</p>
+                                   className="grow validator" minLength={1} required
+                                   title="Can not be empty"/>
                             <button type="button" onClick={togglePassword} className="btn btn-ghost btn-xs">
                                 {passwordVisible ? <Eye/> : <EyeSlash/>}
                             </button>
                         </label>
-                        <label className="input">
+                        <label className="input w-full">
                             URL
                             <input type="text" placeholder="https://example.com" value={url}
                                    onChange={(e) => setUrl(e.target.value)}
                                    className="grow"/>
                             <span className="badge badge-neutral badge-xs">Optional</span>
                         </label>
-                        <label className="input">
+                        <label className="input w-full">
                             Add Tag
                             <input type="text" placeholder="example" value={tag}
                                    onChange={(e) => setTag(e.target.value)}
