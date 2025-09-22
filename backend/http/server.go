@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/torfstack/kayvault/backend/config"
-	"github.com/torfstack/kayvault/backend/domain"
-	"github.com/torfstack/kayvault/backend/logging"
+	"github.com/torfstack/synod/backend/config"
+	"github.com/torfstack/synod/backend/domain"
+	"github.com/torfstack/synod/backend/logging"
 
 	"github.com/labstack/echo/v4"
 )
@@ -68,5 +68,5 @@ func (s *Server) Start() error {
 	return e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
 }
 
-// localMode build flag, set with -ldflags "-X github.com/torfstack/kayvault/internal/http.localMode=enabled"
+// localMode build flag, set with -ldflags "-X github.com/torfstack/synod/internal/http.localMode=enabled"
 var localMode string

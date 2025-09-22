@@ -1,4 +1,4 @@
-module github.com/torfstack/kayvault
+module github.com/torfstack/synod
 
 go 1.24.4
 

@@ -11,14 +11,14 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/torfstack/kayvault/backend/models"
+	"github.com/torfstack/synod/backend/models"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 const (
-	dbName     = "kayvault_test"
-	dbUser     = "kayvault"
+	dbName     = "synod_test"
+	dbUser     = "synod"
 	dbPassword = "password"
 )
 

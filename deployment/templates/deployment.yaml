@@ -18,9 +18,9 @@ spec:
       volumes:
         - name: config-yaml
           secret:
-            secretName: kayvault
+            secretName: synod
       containers:
-        - name: kayvault
+        - name: synod
           image: {{ .Values.image }}:{{ .Values.tag }}
           imagePullPolicy: Always
           ports:

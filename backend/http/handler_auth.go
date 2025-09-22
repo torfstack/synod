@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/torfstack/kayvault/backend/logging"
+	"github.com/torfstack/synod/backend/logging"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/labstack/echo/v4"

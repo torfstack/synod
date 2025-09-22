@@ -1,10 +1,10 @@
-## KayVault
+## synod
 
 Secret manager
 
 ### Try it
 
-https://kayvault.torfstack.com
+https://synod.torfstack.com
 
 <p float="left">
     <img src="/dark.png" width="200" />

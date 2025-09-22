@@ -2,4 +2,4 @@
 
 npm run --prefix frontend build
 mv frontend/build static
-go build -o bin/kayvault -ldflags "-X github.com/torfstack/kayvault/backend/http.localMode=enabled" cmd/main.go
+go build -o bin/synod -ldflags "-X github.com/torfstack/synod/backend/http.localMode=enabled" cmd/main.go

@@ -1,8 +1,8 @@
 package todb
 
 import (
-	"github.com/torfstack/kayvault/backend/models"
-	sqlc "github.com/torfstack/kayvault/sql/gen"
+	"github.com/torfstack/synod/backend/models"
+	sqlc "github.com/torfstack/synod/sql/gen"
 )
 
 func Secret(in models.Secret) sqlc.Secret {
