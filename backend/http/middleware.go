@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/torfstack/kayvault/backend/domain"
-	"github.com/torfstack/kayvault/backend/logging"
+	"github.com/torfstack/synod/backend/domain"
+	"github.com/torfstack/synod/backend/logging"
 
 	"github.com/labstack/echo/v4"
 )

@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/torfstack/kayvault/backend/config"
-	"github.com/torfstack/kayvault/backend/db"
-	"github.com/torfstack/kayvault/backend/domain"
-	"github.com/torfstack/kayvault/backend/http"
+	"github.com/torfstack/synod/backend/config"
+	"github.com/torfstack/synod/backend/db"
+	"github.com/torfstack/synod/backend/domain"
+	"github.com/torfstack/synod/backend/http"
 )
 
 type Application struct {

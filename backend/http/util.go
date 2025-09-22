@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/torfstack/kayvault/backend/domain"
+	"github.com/torfstack/synod/backend/domain"
 
 	"github.com/labstack/echo/v4"
 )

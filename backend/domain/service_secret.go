@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/torfstack/kayvault/backend/logging"
-	"github.com/torfstack/kayvault/backend/models"
+	"github.com/torfstack/synod/backend/logging"
+	"github.com/torfstack/synod/backend/models"
 )
 
 var _ SecretService = &service{}

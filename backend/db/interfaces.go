@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/torfstack/kayvault/backend/models"
+	"github.com/torfstack/synod/backend/models"
 )
 
 type Database interface {

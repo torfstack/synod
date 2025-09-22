@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/torfstack/kayvault/backend"
+	"github.com/torfstack/synod/backend"
 )
 
 func main() {

@@ -3,10 +3,10 @@ package http
 import (
 	"net/http"
 
-	"github.com/torfstack/kayvault/backend/logging"
+	"github.com/torfstack/synod/backend/logging"
 
 	"github.com/labstack/echo/v4"
-	"github.com/torfstack/kayvault/backend/models"
+	"github.com/torfstack/synod/backend/models"
 )
 
 func (s *Server) GetSecrets(c echo.Context) error {

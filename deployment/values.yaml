@@ -1,7 +1,7 @@
-image: ghcr.io/torfstack/kayvault
+image: ghcr.io/torfstack/synod
 tag: <set-by-taskfile>
 postgres:
   host: "postgresql.default.svc.cluster.local"
 
-appName: kayvault
+appName: synod
 namespace: default

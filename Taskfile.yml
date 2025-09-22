@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  IMAGE_TAG: 
+  IMAGE_TAG:
     sh: sh next_version
   VERSION_TO_DEPLOY:
     sh: git tag --sort=-creatordate | head -n 1
@@ -20,15 +20,15 @@ tasks:
       - cmd: set -euo pipefail && go test -json -v ./... 2>&1 | gotestfmt
   release:
     requires:
-      vars: [IMAGE_TAG]
+      vars: [ IMAGE_TAG ]
     cmds:
-      - cmd: docker buildx build --target runner -t ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}} .
-      - cmd: docker push ghcr.io/torfstack/kayvault:{{.IMAGE_TAG}}
+      - cmd: docker buildx build --target runner -t ghcr.io/torfstack/synod:{{.IMAGE_TAG}} .
+      - cmd: docker push ghcr.io/torfstack/synod:{{.IMAGE_TAG}}
   deploy:
     requires:
-      vars: [VERSION_TO_DEPLOY]
+      vars: [ VERSION_TO_DEPLOY ]
     cmds:
-      - cmd: helm upgrade --install kayvault deployment --set tag={{.VERSION_TO_DEPLOY}}
+      - cmd: helm upgrade --install synod deployment --set tag={{.VERSION_TO_DEPLOY}}
   dev-deploy:
     vars:
       DEV_IMAGE_TAG: development

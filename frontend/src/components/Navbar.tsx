@@ -13,7 +13,7 @@ export const Navbar = (props: NavbarProps) => {
                 <div className="flex-1">
                     <a className="btn btn-ghost text-l" href={"/"}>
                         <span className="badge">
-                            KayVault
+                            Synod
                         </span>
                     </a>
                 </div>

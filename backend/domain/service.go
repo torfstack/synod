@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/torfstack/kayvault/backend/db"
+import "github.com/torfstack/synod/backend/db"
 
 type service struct {
 	database db.Database

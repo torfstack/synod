@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/torfstack/kayvault/backend/models"
+	"github.com/torfstack/synod/backend/models"
 )
 
 var _ UserService = &service{}

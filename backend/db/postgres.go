@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/torfstack/kayvault/backend/convert/fromdb"
-	"github.com/torfstack/kayvault/backend/convert/todb"
-	"github.com/torfstack/kayvault/backend/models"
-	sqlc "github.com/torfstack/kayvault/sql/gen"
+	"github.com/torfstack/synod/backend/convert/fromdb"
+	"github.com/torfstack/synod/backend/convert/todb"
+	"github.com/torfstack/synod/backend/models"
+	sqlc "github.com/torfstack/synod/sql/gen"
 )
 
 type database struct {
