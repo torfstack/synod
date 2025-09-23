@@ -12,9 +12,7 @@ export const Navbar = (props: NavbarProps) => {
             <div className="navbar bg-base-100 shadow-sm">
                 <div className="flex-1">
                     <a className="btn btn-ghost text-l" href={"/"}>
-                        <span className="badge">
-                            Synod
-                        </span>
+                        <img className="w-8 h-8" src="/favicon.svg"/>
                     </a>
                 </div>
 
