@@ -5,12 +5,10 @@ import (
 	"log"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/torfstack/synod/backend/models"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -28,7 +26,7 @@ var (
 
 func TestMain(m *testing.M) {
 	var err error
-	pg, err = setupTestContainer()
+	pg, err = setupTestContainer(context.Background())
 	if err != nil {
 		log.Printf("failed to setup test container")
 		return
@@ -57,7 +55,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestDatabase_SecretHandling(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.NoError(t, pg.Restore(ctx))
 
 	connStr, err := pg.ConnectionString(ctx)
@@ -91,7 +89,7 @@ func TestDatabase_SecretHandling(t *testing.T) {
 }
 
 func TestDatabase_UserHandling(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.NoError(t, pg.Restore(ctx))
 
 	connStr, err := pg.ConnectionString(ctx)
@@ -117,8 +115,35 @@ func TestDatabase_UserHandling(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestDatabase_KeyHandling(t *testing.T) {
+	ctx := t.Context()
+	assert.NoError(t, pg.Restore(ctx))
+
+	connStr, err := pg.ConnectionString(ctx)
+	assert.NoError(t, err)
+	d := NewDatabase(connStr)
+
+	assert.Error(t, d.InsertKeys(ctx, models.UserKeyPair{}))
+
+	assert.NoError(t, d.InsertUser(ctx, TestUser))
+	u, err := d.SelectUserByName(ctx, TestUser.Subject)
+	assert.NoError(t, err)
+
+	assert.NoError(t, d.InsertKeys(ctx, models.UserKeyPair{
+		UserID: *u.ID,
+		KeyPair: models.KeyPair{
+			Public:  []byte{0x01, 0x02},
+			Private: []byte{0x02, 0x03},
+		},
+	}))
+
+	p, err := d.SelectPublicKey(ctx, *u.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, []byte{0x01, 0x02}, p)
+}
+
 func TestDatabase_UserTransactionRollback(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.NoError(t, pg.Restore(ctx))
 
 	connStr, err := pg.ConnectionString(ctx)
@@ -142,7 +167,7 @@ func TestDatabase_UserTransactionRollback(t *testing.T) {
 }
 
 func TestDatabase_UserTransactionCommit(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.NoError(t, pg.Restore(ctx))
 
 	connStr, err := pg.ConnectionString(ctx)
@@ -165,20 +190,15 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 	assert.True(t, b)
 }
 
-func setupTestContainer() (*postgres.PostgresContainer, error) {
-	ctx := context.Background()
+func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 	postgresContainer, err := postgres.Run(
 		ctx,
-		"postgres:16-alpine",
+		"postgres:17-alpine",
 		postgres.WithDatabase(dbName),
 		postgres.WithUsername(dbUser),
 		postgres.WithPassword(dbPassword),
 		postgres.WithSQLDriver("pgx"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(5*time.Second),
-		),
+		postgres.BasicWaitStrategies(),
 	)
 	if err != nil {
 		log.Printf("failed to start container: %s", err)

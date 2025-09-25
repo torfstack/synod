@@ -44,6 +44,14 @@ func InsertUserParams(in models.User) sqlc.InsertUserParams {
 	}
 }
 
+func InsertKeysParams(in models.UserKeyPair) sqlc.InsertKeysParams {
+	return sqlc.InsertKeysParams{
+		UserID:  in.UserID,
+		Public:  []byte(in.Public),
+		Private: in.Private,
+	}
+}
+
 func tagsString(tags []string) string {
 	if len(tags) == 0 {
 		return ""

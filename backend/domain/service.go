@@ -1,6 +1,8 @@
 package domain
 
-import "github.com/torfstack/synod/backend/db"
+import (
+	"github.com/torfstack/synod/backend/db"
+)
 
 type service struct {
 	database db.Database

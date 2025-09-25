@@ -13,7 +13,7 @@ import (
 type database struct {
 	connStr string
 	conn    *pgx.Conn
-	tx      pgx.Tx
+	tx      *transaction
 }
 
 var _ Database = (*database)(nil)
@@ -23,15 +23,27 @@ func NewDatabase(connStr string) Database {
 }
 
 func (d *database) WithTx(ctx context.Context) (Database, Transaction) {
-	conn, err := pgx.Connect(ctx, d.connStr)
-	if err != nil {
-		return nil, nil
+	if d.tx != nil {
+		return d, d.tx
 	}
+
+	var conn *pgx.Conn
+	if d.conn != nil {
+		conn = d.conn
+	} else {
+		var err error
+		conn, err = pgx.Connect(ctx, d.connStr)
+		if err != nil {
+			return nil, nil
+		}
+	}
+
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, nil
 	}
-	return &database{connStr: d.connStr, conn: conn, tx: tx}, &transaction{conn: conn, tx: tx}
+	trans := &transaction{conn: conn, tx: tx}
+	return &database{connStr: d.connStr, conn: conn, tx: trans}, trans
 }
 
 func (d *database) CommitTransaction(ctx context.Context) error {
@@ -39,10 +51,11 @@ func (d *database) CommitTransaction(ctx context.Context) error {
 		return nil
 	}
 	defer func(context.Context) {
-		_ = (d.tx).Rollback(ctx)
+		d.tx.Rollback(ctx)
 		_ = (*d.conn).Close(ctx)
 	}(ctx)
-	return (d.tx).Commit(ctx)
+	d.tx.Commit(ctx)
+	return nil
 }
 
 func (d *database) DoesUserExist(ctx context.Context, username string) (bool, error) {
@@ -99,27 +112,28 @@ func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.Se
 	return fromdb.Secrets(dbSecrets), err
 }
 
-func (d *database) InsertSecret(ctx context.Context, params sqlc.InsertSecretParams) error {
+func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) error {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
 		return err
 	}
-	return q.InsertSecret(ctx, params)
+	params := todb.InsertKeysParams(pair)
+	return q.InsertKeys(ctx, params)
 }
 
-func (d *database) UpdateSecret(ctx context.Context, params sqlc.UpdateSecretParams) error {
+func (d *database) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
-	return q.UpdateSecret(ctx, params)
+	return q.SelectPublicKeyForUser(ctx, userID)
 }
 
 func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {
 	if d.tx != nil {
-		return sqlc.New(d.tx), nil
+		return sqlc.New(d.tx.SqlTx()), nil
 	}
 	if d.conn == nil {
 		conn, err := pgx.Connect(ctx, d.connStr)

@@ -1,6 +1,6 @@
 module github.com/torfstack/synod
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/coreos/go-oidc/v3 v3.14.1

@@ -1,6 +1,9 @@
 package models
 
-import "errors"
+import (
+	"crypto/ed25519"
+	"errors"
+)
 
 type Secret struct {
 	ID    *int64   `json:"id,omitempty"`
@@ -32,4 +35,15 @@ func NewExistingUser(user User) (ExistingUser, error) {
 		User: user,
 		ID:   *user.ID,
 	}, nil
+}
+
+type UserKeyPair struct {
+	ID     *int64
+	UserID int64
+	KeyPair
+}
+
+type KeyPair struct {
+	Public  ed25519.PublicKey
+	Private ed25519.PrivateKey
 }

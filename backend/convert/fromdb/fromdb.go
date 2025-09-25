@@ -34,6 +34,17 @@ func User(in sqlc.User) models.User {
 	}
 }
 
+func KeyPair(in sqlc.Key) models.UserKeyPair {
+	return models.UserKeyPair{
+		ID:     &in.ID,
+		UserID: in.UserID,
+		KeyPair: models.KeyPair{
+			Public:  in.Public,
+			Private: in.Private,
+		},
+	}
+}
+
 func tagsSlice(tags string) []string {
 	if tags == "" {
 		return []string{}

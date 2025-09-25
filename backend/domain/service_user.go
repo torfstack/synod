@@ -15,6 +15,7 @@ func (s *service) DoesUserExist(ctx context.Context, username string) (bool, err
 }
 
 func (s *service) InsertUser(ctx context.Context, user models.User) error {
+
 	return s.database.InsertUser(ctx, user)
 }
 

@@ -28,3 +28,7 @@ type SessionService interface {
 	GetSession(token string) (*Session, error)
 	DeleteSession(token string) error
 }
+
+type CryptoService interface {
+	GenerateKeyPair() (models.KeyPair, error)
+}

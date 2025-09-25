@@ -14,6 +14,8 @@ type Database interface {
 	SelectUserByName(ctx context.Context, username string) (models.User, error)
 	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error
 	SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error)
+	InsertKeys(ctx context.Context, pair models.UserKeyPair) error
+	SelectPublicKey(ctx context.Context, userID int64) ([]byte, error)
 }
 
 type Transaction interface {
