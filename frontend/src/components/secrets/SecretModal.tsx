@@ -43,7 +43,8 @@ export const SecretModal = (props: SecretModalProps) => {
     }
 
     function removeTag(tag: string): () => void {
-        return () => setTags(prevState => prevState.filter(t => t !== tag));
+        const tagFilter = (t: string) => t !== tag;
+        return () => setTags(prevState => prevState.filter(tagFilter));
     }
 
     function togglePassword() {
@@ -98,10 +99,9 @@ export const SecretModal = (props: SecretModalProps) => {
                         </label>
                         <div className="flex flex-col gap-2">
                             {tags.map((tag) => (
-                                <span className="badge badge-neutral btn"
-                                      onClick={removeTag(tag)}>
+                                <button key={tag} className="badge badge-neutral btn" onClick={removeTag(tag)}>
                                     <p className="truncate max-w-56">{tag}</p>
-                                </span>
+                                </button>
                             ))}
                         </div>
                         <div className="modal-action">
