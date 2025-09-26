@@ -25,12 +25,14 @@ func Secrets(in []sqlc.Secret) models.Secrets {
 	return out
 }
 
-func User(in sqlc.User) models.User {
-	return models.User{
-		ID:       &in.ID,
-		Subject:  in.Subject,
-		Email:    in.Email,
-		FullName: in.FullName,
+func User(in sqlc.User) models.ExistingUser {
+	return models.ExistingUser{
+		ID: in.ID,
+		User: models.User{
+			Subject:  in.Subject,
+			Email:    in.Email,
+			FullName: in.FullName,
+		},
 	}
 }
 

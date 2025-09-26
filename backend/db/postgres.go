@@ -22,9 +22,9 @@ func NewDatabase(connStr string) Database {
 	return &database{connStr: connStr}
 }
 
-func (d *database) WithTx(ctx context.Context) (Database, Transaction) {
+func (d *database) WithTx(ctx context.Context, withTx func(Database) error) error {
 	if d.tx != nil {
-		return d, d.tx
+		return withTx(d)
 	}
 
 	var conn *pgx.Conn
@@ -34,16 +34,21 @@ func (d *database) WithTx(ctx context.Context) (Database, Transaction) {
 		var err error
 		conn, err = pgx.Connect(ctx, d.connStr)
 		if err != nil {
-			return nil, nil
+			return err
 		}
 	}
 
 	tx, err := conn.Begin(ctx)
 	if err != nil {
-		return nil, nil
+		return err
 	}
 	trans := &transaction{conn: conn, tx: tx}
-	return &database{connStr: d.connStr, conn: conn, tx: trans}, trans
+	defer tx.Rollback(ctx)
+	err = withTx(&database{connStr: d.connStr, conn: conn, tx: trans})
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (d *database) CommitTransaction(ctx context.Context) error {
@@ -67,39 +72,42 @@ func (d *database) DoesUserExist(ctx context.Context, username string) (bool, er
 	return q.DoesUserExist(ctx, username)
 }
 
-func (d *database) InsertUser(ctx context.Context, user models.User) error {
+func (d *database) InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.ExistingUser{}, err
 	}
 	params := todb.InsertUserParams(user)
-	return q.InsertUser(ctx, params)
+	dbUser, err := q.InsertUser(ctx, params)
+	return fromdb.User(dbUser), err
 }
 
-func (d *database) SelectUserByName(ctx context.Context, username string) (models.User, error) {
+func (d *database) SelectUserByName(ctx context.Context, username string) (models.ExistingUser, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return models.User{}, err
+		return models.ExistingUser{}, err
 	}
 	dbUser, err := q.SelectUserByName(ctx, username)
 	return fromdb.User(dbUser), err
 }
 
-func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error {
+func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) (models.Secret, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.Secret{}, err
 	}
+	var dbSecret sqlc.Secret
 	if secret.ID == nil || *secret.ID == 0 {
 		params := todb.InsertSecretParams(secret, userID)
-		return q.InsertSecret(ctx, params)
+		dbSecret, err = q.InsertSecret(ctx, params)
 	} else {
 		params := todb.UpdateSecretParams(secret, userID)
-		return q.UpdateSecret(ctx, params)
+		dbSecret, err = q.UpdateSecret(ctx, params)
 	}
+	return fromdb.Secret(dbSecret), err
 }
 
 func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error) {
@@ -112,14 +120,15 @@ func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.Se
 	return fromdb.Secrets(dbSecrets), err
 }
 
-func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) error {
+func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.UserKeyPair{}, err
 	}
 	params := todb.InsertKeysParams(pair)
-	return q.InsertKeys(ctx, params)
+	dbKeys, err := q.InsertKeys(ctx, params)
+	return fromdb.KeyPair(dbKeys), err
 }
 
 func (d *database) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {

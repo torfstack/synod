@@ -14,13 +14,13 @@ type Service interface {
 
 type UserService interface {
 	DoesUserExist(ctx context.Context, username string) (bool, error)
-	InsertUser(ctx context.Context, user models.User) error
+	InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error)
 	GetUserFromToken(ctx context.Context, token string) (models.ExistingUser, error)
 }
 
 type SecretService interface {
 	GetSecrets(ctx context.Context, userID int64) ([]models.Secret, error)
-	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error
+	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) (models.Secret, error)
 }
 
 type SessionService interface {

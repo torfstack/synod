@@ -7,14 +7,14 @@ import (
 )
 
 type Database interface {
-	WithTx(ctx context.Context) (Database, Transaction)
+	WithTx(ctx context.Context, withTx func(Database) error) error
 
 	DoesUserExist(ctx context.Context, username string) (bool, error)
-	InsertUser(ctx context.Context, params models.User) error
-	SelectUserByName(ctx context.Context, username string) (models.User, error)
-	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error
+	InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error)
+	SelectUserByName(ctx context.Context, username string) (models.ExistingUser, error)
+	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) (models.Secret, error)
 	SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error)
-	InsertKeys(ctx context.Context, pair models.UserKeyPair) error
+	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
 	SelectPublicKey(ctx context.Context, userID int64) ([]byte, error)
 }
 

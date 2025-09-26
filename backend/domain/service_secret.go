@@ -14,11 +14,11 @@ func (s *service) GetSecrets(ctx context.Context, userId int64) ([]models.Secret
 	return s.database.SelectSecrets(ctx, userId)
 }
 
-func (s *service) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error {
-	err := s.database.UpsertSecret(ctx, secret, userID)
+func (s *service) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) (models.Secret, error) {
+	upsertSecret, err := s.database.UpsertSecret(ctx, secret, userID)
 	if err != nil {
 		logging.Errorf(ctx, "could not upsert secret: %v", err)
-		return errors.New("could not upsert secret")
+		return models.Secret{}, errors.New("could not upsert secret")
 	}
-	return nil
+	return upsertSecret, nil
 }

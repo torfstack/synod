@@ -2,11 +2,13 @@ package db
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/torfstack/synod/backend/models"
@@ -67,21 +69,22 @@ func TestDatabase_SecretHandling(t *testing.T) {
 		assert.Len(t, secrets, 0)
 	}
 	{
-		assert.NoError(t, d.InsertUser(ctx, TestUser))
+		createdUser, err := d.InsertUser(ctx, TestUser)
+		assert.NoError(t, err)
 		u, err := d.SelectUserByName(ctx, TestUser.Subject)
 		assert.NoError(t, err)
 		id := u.ID
 
-		err = d.UpsertSecret(
+		_, err = d.UpsertSecret(
 			ctx, models.Secret{
 				Value: "secret",
 				Key:   "key",
 				Url:   "url",
-			}, *u.ID,
+			}, createdUser.ID,
 		)
 		assert.NoError(t, err)
 
-		secrets, err := d.SelectSecrets(ctx, *id)
+		secrets, err := d.SelectSecrets(ctx, id)
 		assert.NoError(t, err)
 		assert.Len(t, secrets, 1)
 		assert.Equal(t, "secret", string(secrets[0].Value))
@@ -100,8 +103,10 @@ func TestDatabase_UserHandling(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, b)
 
-	err = d.InsertUser(ctx, TestUser)
+	createdUser, err := d.InsertUser(ctx, TestUser)
 	assert.NoError(t, err)
+	assert.Equal(t, TestUser.Subject, createdUser.Subject)
+	assert.NotNil(t, createdUser.ID)
 
 	b, err = d.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
@@ -111,7 +116,7 @@ func TestDatabase_UserHandling(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, TestUser.Subject, u.Subject)
 
-	err = d.InsertUser(ctx, TestUser)
+	_, err = d.InsertUser(ctx, TestUser)
 	assert.Error(t, err)
 }
 
@@ -123,21 +128,24 @@ func TestDatabase_KeyHandling(t *testing.T) {
 	assert.NoError(t, err)
 	d := NewDatabase(connStr)
 
-	assert.Error(t, d.InsertKeys(ctx, models.UserKeyPair{}))
+	_, err = d.InsertKeys(ctx, models.UserKeyPair{})
+	assert.Error(t, err)
 
-	assert.NoError(t, d.InsertUser(ctx, TestUser))
-	u, err := d.SelectUserByName(ctx, TestUser.Subject)
+	createdUser, err := d.InsertUser(ctx, TestUser)
 	assert.NoError(t, err)
 
-	assert.NoError(t, d.InsertKeys(ctx, models.UserKeyPair{
-		UserID: *u.ID,
+	createdKeys, err := d.InsertKeys(ctx, models.UserKeyPair{
+		UserID: createdUser.ID,
 		KeyPair: models.KeyPair{
 			Public:  []byte{0x01, 0x02},
 			Private: []byte{0x02, 0x03},
 		},
-	}))
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, createdUser.ID, createdKeys.UserID)
+	assert.NotNil(t, createdKeys.ID)
 
-	p, err := d.SelectPublicKey(ctx, *u.ID)
+	p, err := d.SelectPublicKey(ctx, createdUser.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte{0x01, 0x02}, p)
 }
@@ -150,16 +158,16 @@ func TestDatabase_UserTransactionRollback(t *testing.T) {
 	assert.NoError(t, err)
 	dd := NewDatabase(connStr)
 
-	d, tx := dd.WithTx(ctx)
-	{
-		err := d.InsertUser(ctx, TestUser)
+	err = dd.WithTx(ctx, func(d Database) error {
+		_, err = d.InsertUser(ctx, TestUser)
 		assert.NoError(t, err)
 
 		b, err := d.DoesUserExist(ctx, TestUser.Subject)
 		assert.NoError(t, err)
 		assert.True(t, b)
-	}
-	tx.Rollback(ctx)
+		return errors.New("trigger rollback")
+	})
+	require.Error(t, err)
 
 	b, err := dd.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
@@ -174,16 +182,16 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 	assert.NoError(t, err)
 	dd := NewDatabase(connStr)
 
-	d, tx := dd.WithTx(ctx)
-	{
-		err := d.InsertUser(ctx, TestUser)
+	err = dd.WithTx(ctx, func(d Database) error {
+		_, err = d.InsertUser(ctx, TestUser)
 		assert.NoError(t, err)
 
 		b, err := d.DoesUserExist(ctx, TestUser.Subject)
 		assert.NoError(t, err)
 		assert.True(t, b)
-	}
-	tx.Commit(ctx)
+		return nil
+	})
+	require.NoError(t, err)
 
 	b, err := dd.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)

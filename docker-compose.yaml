@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner
+      target: runner-debug
     volumes:
       - type: bind
         source: ./config.yaml

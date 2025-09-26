@@ -20,9 +20,10 @@ func (q *Queries) DoesUserExist(ctx context.Context, subject string) (bool, erro
 	return exists, err
 }
 
-const insertKeys = `-- name: InsertKeys :exec
+const insertKeys = `-- name: InsertKeys :one
 INSERT INTO keys (user_id, type, public, private)
 VALUES ($1, $2, $3, $4)
+RETURNING id, user_id, type, public, private
 `
 
 type InsertKeysParams struct {
@@ -32,19 +33,28 @@ type InsertKeysParams struct {
 	Private []byte
 }
 
-func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) error {
-	_, err := q.db.Exec(ctx, insertKeys,
+func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) (Key, error) {
+	row := q.db.QueryRow(ctx, insertKeys,
 		arg.UserID,
 		arg.Type,
 		arg.Public,
 		arg.Private,
 	)
-	return err
+	var i Key
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.Public,
+		&i.Private,
+	)
+	return i, err
 }
 
-const insertSecret = `-- name: InsertSecret :exec
+const insertSecret = `-- name: InsertSecret :one
 INSERT INTO secrets (value, key, url, tags, user_id)
 VALUES ($1, $2, $3, $4, $5)
+RETURNING id, value, key, url, tags, user_id, secret_sharing, created_at, updated_at
 `
 
 type InsertSecretParams struct {
@@ -55,20 +65,33 @@ type InsertSecretParams struct {
 	UserID int64
 }
 
-func (q *Queries) InsertSecret(ctx context.Context, arg InsertSecretParams) error {
-	_, err := q.db.Exec(ctx, insertSecret,
+func (q *Queries) InsertSecret(ctx context.Context, arg InsertSecretParams) (Secret, error) {
+	row := q.db.QueryRow(ctx, insertSecret,
 		arg.Value,
 		arg.Key,
 		arg.Url,
 		arg.Tags,
 		arg.UserID,
 	)
-	return err
+	var i Secret
+	err := row.Scan(
+		&i.ID,
+		&i.Value,
+		&i.Key,
+		&i.Url,
+		&i.Tags,
+		&i.UserID,
+		&i.SecretSharing,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-const insertUser = `-- name: InsertUser :exec
+const insertUser = `-- name: InsertUser :one
 INSERT INTO users (subject, email, full_name)
 VALUES ($1, $2, $3)
+RETURNING id, subject, email, full_name, created_at, updated_at
 `
 
 type InsertUserParams struct {
@@ -77,9 +100,18 @@ type InsertUserParams struct {
 	FullName string
 }
 
-func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
-	_, err := q.db.Exec(ctx, insertUser, arg.Subject, arg.Email, arg.FullName)
-	return err
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, insertUser, arg.Subject, arg.Email, arg.FullName)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Subject,
+		&i.Email,
+		&i.FullName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const selectPublicKeyForUser = `-- name: SelectPublicKeyForUser :one
@@ -151,7 +183,7 @@ func (q *Queries) SelectUserByName(ctx context.Context, subject string) (User, e
 	return i, err
 }
 
-const updateSecret = `-- name: UpdateSecret :exec
+const updateSecret = `-- name: UpdateSecret :one
 UPDATE secrets
 SET value = $1,
     key   = $2,
@@ -159,6 +191,7 @@ SET value = $1,
     tags  = $4
 WHERE user_id = $5
   AND id = $6
+RETURNING id, value, key, url, tags, user_id, secret_sharing, created_at, updated_at
 `
 
 type UpdateSecretParams struct {
@@ -170,8 +203,8 @@ type UpdateSecretParams struct {
 	ID     int64
 }
 
-func (q *Queries) UpdateSecret(ctx context.Context, arg UpdateSecretParams) error {
-	_, err := q.db.Exec(ctx, updateSecret,
+func (q *Queries) UpdateSecret(ctx context.Context, arg UpdateSecretParams) (Secret, error) {
+	row := q.db.QueryRow(ctx, updateSecret,
 		arg.Value,
 		arg.Key,
 		arg.Url,
@@ -179,5 +212,17 @@ func (q *Queries) UpdateSecret(ctx context.Context, arg UpdateSecretParams) erro
 		arg.UserID,
 		arg.ID,
 	)
-	return err
+	var i Secret
+	err := row.Scan(
+		&i.ID,
+		&i.Value,
+		&i.Key,
+		&i.Url,
+		&i.Tags,
+		&i.UserID,
+		&i.SecretSharing,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
