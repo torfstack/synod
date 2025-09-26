@@ -1,14 +1,15 @@
 package fromdb
 
 import (
+	"crypto/x509"
 	"strings"
 
 	"github.com/torfstack/synod/backend/models"
 	sqlc "github.com/torfstack/synod/sql/gen"
 )
 
-func Secret(in sqlc.Secret) models.Secret {
-	return models.Secret{
+func Secret(in sqlc.Secret) models.EncryptedSecret {
+	return models.EncryptedSecret{
 		ID:    &in.ID,
 		Value: string(in.Value),
 		Key:   in.Key,
@@ -17,8 +18,8 @@ func Secret(in sqlc.Secret) models.Secret {
 	}
 }
 
-func Secrets(in []sqlc.Secret) models.Secrets {
-	out := make([]models.Secret, len(in))
+func Secrets(in []sqlc.Secret) []models.EncryptedSecret {
+	out := make([]models.EncryptedSecret, len(in))
 	for i, s := range in {
 		out[i] = Secret(s)
 	}
@@ -36,15 +37,23 @@ func User(in sqlc.User) models.ExistingUser {
 	}
 }
 
-func KeyPair(in sqlc.Key) models.UserKeyPair {
+func KeyPair(in sqlc.Key) (models.UserKeyPair, error) {
+	pub, err := x509.ParsePKCS1PublicKey(in.Public)
+	if err != nil {
+		return models.UserKeyPair{}, err
+	}
+	priv, err := x509.ParsePKCS1PrivateKey(in.Private)
+	if err != nil {
+		return models.UserKeyPair{}, err
+	}
 	return models.UserKeyPair{
 		ID:     &in.ID,
 		UserID: in.UserID,
 		KeyPair: models.KeyPair{
-			Public:  in.Public,
-			Private: in.Private,
+			Public:  *pub,
+			Private: *priv,
 		},
-	}
+	}, nil
 }
 
 func tagsSlice(tags string) []string {

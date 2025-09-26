@@ -1,8 +1,7 @@
 package models
 
 import (
-	"crypto/ed25519"
-	"errors"
+	"crypto/rsa"
 )
 
 type Secret struct {
@@ -12,6 +11,8 @@ type Secret struct {
 	Url   string   `json:"url"`
 	Tags  []string `json:"tags"`
 }
+
+type EncryptedSecret Secret
 
 type Secrets []Secret
 
@@ -27,16 +28,6 @@ type ExistingUser struct {
 	ID int64 `json:"id"`
 }
 
-func NewExistingUser(user User) (ExistingUser, error) {
-	if user.ID == nil {
-		return ExistingUser{}, errors.New("user ID cannot be nil")
-	}
-	return ExistingUser{
-		User: user,
-		ID:   *user.ID,
-	}, nil
-}
-
 type UserKeyPair struct {
 	ID     *int64
 	UserID int64
@@ -44,6 +35,6 @@ type UserKeyPair struct {
 }
 
 type KeyPair struct {
-	Public  ed25519.PublicKey
-	Private ed25519.PrivateKey
+	Public  rsa.PublicKey
+	Private rsa.PrivateKey
 }

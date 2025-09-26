@@ -1,6 +1,8 @@
 package todb
 
 import (
+	"crypto/x509"
+
 	"github.com/torfstack/synod/backend/models"
 	sqlc "github.com/torfstack/synod/sql/gen"
 )
@@ -15,7 +17,7 @@ func Secret(in models.Secret) sqlc.Secret {
 	}
 }
 
-func InsertSecretParams(in models.Secret, userID int64) sqlc.InsertSecretParams {
+func InsertSecretParams(in models.EncryptedSecret, userID int64) sqlc.InsertSecretParams {
 	return sqlc.InsertSecretParams{
 		Value:  []byte(in.Value),
 		Key:    in.Key,
@@ -25,7 +27,7 @@ func InsertSecretParams(in models.Secret, userID int64) sqlc.InsertSecretParams 
 	}
 }
 
-func UpdateSecretParams(in models.Secret, userID int64) sqlc.UpdateSecretParams {
+func UpdateSecretParams(in models.EncryptedSecret, userID int64) sqlc.UpdateSecretParams {
 	return sqlc.UpdateSecretParams{
 		ID:     *in.ID,
 		Value:  []byte(in.Value),
@@ -45,10 +47,12 @@ func InsertUserParams(in models.User) sqlc.InsertUserParams {
 }
 
 func InsertKeysParams(in models.UserKeyPair) sqlc.InsertKeysParams {
+	pub := x509.MarshalPKCS1PublicKey(&in.Public)
+	priv := x509.MarshalPKCS1PrivateKey(&in.Private)
 	return sqlc.InsertKeysParams{
 		UserID:  in.UserID,
-		Public:  []byte(in.Public),
-		Private: in.Private,
+		Public:  pub,
+		Private: priv,
 	}
 }
 

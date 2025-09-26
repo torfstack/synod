@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/torfstack/synod/backend/convert/fromdb"
@@ -93,11 +95,15 @@ func (d *database) SelectUserByName(ctx context.Context, username string) (model
 	return fromdb.User(dbUser), err
 }
 
-func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) (models.Secret, error) {
+func (d *database) UpsertSecret(
+	ctx context.Context,
+	secret models.EncryptedSecret,
+	userID int64,
+) (models.EncryptedSecret, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return models.Secret{}, err
+		return models.EncryptedSecret{}, err
 	}
 	var dbSecret sqlc.Secret
 	if secret.ID == nil || *secret.ID == 0 {
@@ -110,11 +116,11 @@ func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userI
 	return fromdb.Secret(dbSecret), err
 }
 
-func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error) {
+func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return []models.Secret{}, err
+		return []models.EncryptedSecret{}, err
 	}
 	dbSecrets, err := q.SelectSecrets(ctx, userID)
 	return fromdb.Secrets(dbSecrets), err
@@ -128,16 +134,44 @@ func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (mod
 	}
 	params := todb.InsertKeysParams(pair)
 	dbKeys, err := q.InsertKeys(ctx, params)
-	return fromdb.KeyPair(dbKeys), err
+	if err != nil {
+		return models.UserKeyPair{}, err
+	}
+	return fromdb.KeyPair(dbKeys)
 }
 
-func (d *database) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {
+func (d *database) SelectPublicKey(ctx context.Context, userID int64) (rsa.PublicKey, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return []byte{}, err
+		return rsa.PublicKey{}, err
 	}
-	return q.SelectPublicKeyForUser(ctx, userID)
+	dbKey, err := q.SelectPublicKeyForUser(ctx, userID)
+	if err != nil {
+		return rsa.PublicKey{}, err
+	}
+	parsedKey, err := x509.ParsePKCS1PublicKey(dbKey)
+	if err != nil {
+		return rsa.PublicKey{}, err
+	}
+	return *parsedKey, nil
+}
+
+func (d *database) SelectPrivateKey(ctx context.Context, userID int64) (rsa.PrivateKey, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return rsa.PrivateKey{}, err
+	}
+	dbKey, err := q.SelectPrivateKeyForUser(ctx, userID)
+	if err != nil {
+		return rsa.PrivateKey{}, err
+	}
+	parsedKey, err := x509.ParsePKCS1PrivateKey(dbKey)
+	if err != nil {
+		return rsa.PrivateKey{}, err
+	}
+	return *parsedKey, nil
 }
 
 func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {

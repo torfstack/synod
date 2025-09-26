@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"crypto/rsa"
 
 	"github.com/torfstack/synod/backend/models"
 )
@@ -12,10 +13,11 @@ type Database interface {
 	DoesUserExist(ctx context.Context, username string) (bool, error)
 	InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error)
 	SelectUserByName(ctx context.Context, username string) (models.ExistingUser, error)
-	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) (models.Secret, error)
-	SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error)
+	UpsertSecret(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
+	SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
 	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
-	SelectPublicKey(ctx context.Context, userID int64) ([]byte, error)
+	SelectPublicKey(ctx context.Context, userID int64) (rsa.PublicKey, error)
+	SelectPrivateKey(ctx context.Context, userID int64) (rsa.PrivateKey, error)
 }
 
 type Transaction interface {

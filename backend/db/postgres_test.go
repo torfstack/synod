@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 	"log"
 	"os"
@@ -76,8 +78,8 @@ func TestDatabase_SecretHandling(t *testing.T) {
 		id := u.ID
 
 		_, err = d.UpsertSecret(
-			ctx, models.Secret{
-				Value: "secret",
+			ctx, models.EncryptedSecret{
+				Value: "encrypted_secret",
 				Key:   "key",
 				Url:   "url",
 			}, createdUser.ID,
@@ -87,7 +89,7 @@ func TestDatabase_SecretHandling(t *testing.T) {
 		secrets, err := d.SelectSecrets(ctx, id)
 		assert.NoError(t, err)
 		assert.Len(t, secrets, 1)
-		assert.Equal(t, "secret", string(secrets[0].Value))
+		assert.Equal(t, "encrypted_secret", string(secrets[0].Value))
 	}
 }
 
@@ -128,17 +130,16 @@ func TestDatabase_KeyHandling(t *testing.T) {
 	assert.NoError(t, err)
 	d := NewDatabase(connStr)
 
-	_, err = d.InsertKeys(ctx, models.UserKeyPair{})
-	assert.Error(t, err)
-
 	createdUser, err := d.InsertUser(ctx, TestUser)
 	assert.NoError(t, err)
 
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	assert.NoError(t, err)
 	createdKeys, err := d.InsertKeys(ctx, models.UserKeyPair{
 		UserID: createdUser.ID,
 		KeyPair: models.KeyPair{
-			Public:  []byte{0x01, 0x02},
-			Private: []byte{0x02, 0x03},
+			Public:  priv.PublicKey,
+			Private: *priv,
 		},
 	})
 	assert.NoError(t, err)
@@ -147,7 +148,7 @@ func TestDatabase_KeyHandling(t *testing.T) {
 
 	p, err := d.SelectPublicKey(ctx, createdUser.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte{0x01, 0x02}, p)
+	assert.Equal(t, priv.PublicKey, p)
 }
 
 func TestDatabase_UserTransactionRollback(t *testing.T) {

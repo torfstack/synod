@@ -114,6 +114,19 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, e
 	return i, err
 }
 
+const selectPrivateKeyForUser = `-- name: SelectPrivateKeyForUser :one
+SELECT private
+FROM keys
+WHERE user_id = $1
+`
+
+func (q *Queries) SelectPrivateKeyForUser(ctx context.Context, userID int64) ([]byte, error) {
+	row := q.db.QueryRow(ctx, selectPrivateKeyForUser, userID)
+	var private []byte
+	err := row.Scan(&private)
+	return private, err
+}
+
 const selectPublicKeyForUser = `-- name: SelectPublicKeyForUser :one
 SELECT public
 FROM keys

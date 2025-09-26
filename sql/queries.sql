@@ -40,3 +40,8 @@ RETURNING *;
 SELECT public
 FROM keys
 WHERE user_id = $1;
+
+-- name: SelectPrivateKeyForUser :one
+SELECT private
+FROM keys
+WHERE user_id = $1;
