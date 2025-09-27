@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const doesUserExist = `-- name: DoesUserExist :one
@@ -20,22 +22,35 @@ func (q *Queries) DoesUserExist(ctx context.Context, subject string) (bool, erro
 	return exists, err
 }
 
+const hasKeys = `-- name: HasKeys :one
+SELECT EXISTS(SELECT 1 FROM keys WHERE user_id = $1)
+`
+
+func (q *Queries) HasKeys(ctx context.Context, userID int64) (bool, error) {
+	row := q.db.QueryRow(ctx, hasKeys, userID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const insertKeys = `-- name: InsertKeys :one
-INSERT INTO keys (user_id, type, public, private)
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, type, public, private
+INSERT INTO keys (user_id, password_id, type, public, private)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, password_id, type, public, private
 `
 
 type InsertKeysParams struct {
-	UserID  int64
-	Type    int32
-	Public  []byte
-	Private []byte
+	UserID     int64
+	PasswordID pgtype.Int8
+	Type       int32
+	Public     []byte
+	Private    []byte
 }
 
 func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) (Key, error) {
 	row := q.db.QueryRow(ctx, insertKeys,
 		arg.UserID,
+		arg.PasswordID,
 		arg.Type,
 		arg.Public,
 		arg.Private,
@@ -44,9 +59,34 @@ func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) (Key, er
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.PasswordID,
 		&i.Type,
 		&i.Public,
 		&i.Private,
+	)
+	return i, err
+}
+
+const insertPassword = `-- name: InsertPassword :one
+INSERT INTO passwords (hash, salt, iterations)
+VALUES ($1, $2, $3)
+RETURNING id, hash, salt, iterations
+`
+
+type InsertPasswordParams struct {
+	Hash       []byte
+	Salt       []byte
+	Iterations int64
+}
+
+func (q *Queries) InsertPassword(ctx context.Context, arg InsertPasswordParams) (Password, error) {
+	row := q.db.QueryRow(ctx, insertPassword, arg.Hash, arg.Salt, arg.Iterations)
+	var i Password
+	err := row.Scan(
+		&i.ID,
+		&i.Hash,
+		&i.Salt,
+		&i.Iterations,
 	)
 	return i, err
 }
@@ -114,27 +154,65 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, e
 	return i, err
 }
 
-const selectPrivateKeyForUser = `-- name: SelectPrivateKeyForUser :one
+const selectKeys = `-- name: SelectKeys :one
+SELECT id, user_id, password_id, type, public, private
+FROM keys
+WHERE user_id = $1
+`
+
+func (q *Queries) SelectKeys(ctx context.Context, userID int64) (Key, error) {
+	row := q.db.QueryRow(ctx, selectKeys, userID)
+	var i Key
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.PasswordID,
+		&i.Type,
+		&i.Public,
+		&i.Private,
+	)
+	return i, err
+}
+
+const selectPassword = `-- name: SelectPassword :one
+SELECT id, hash, salt, iterations
+FROM passwords
+WHERE id = $1
+`
+
+func (q *Queries) SelectPassword(ctx context.Context, id int64) (Password, error) {
+	row := q.db.QueryRow(ctx, selectPassword, id)
+	var i Password
+	err := row.Scan(
+		&i.ID,
+		&i.Hash,
+		&i.Salt,
+		&i.Iterations,
+	)
+	return i, err
+}
+
+const selectPrivateKey = `-- name: SelectPrivateKey :one
 SELECT private
 FROM keys
 WHERE user_id = $1
 `
 
-func (q *Queries) SelectPrivateKeyForUser(ctx context.Context, userID int64) ([]byte, error) {
-	row := q.db.QueryRow(ctx, selectPrivateKeyForUser, userID)
+func (q *Queries) SelectPrivateKey(ctx context.Context, userID int64) ([]byte, error) {
+	row := q.db.QueryRow(ctx, selectPrivateKey, userID)
 	var private []byte
 	err := row.Scan(&private)
 	return private, err
 }
 
-const selectPublicKeyForUser = `-- name: SelectPublicKeyForUser :one
+const selectPublicKey = `-- name: SelectPublicKey :one
 SELECT public
 FROM keys
 WHERE user_id = $1
 `
 
-func (q *Queries) SelectPublicKeyForUser(ctx context.Context, userID int64) ([]byte, error) {
-	row := q.db.QueryRow(ctx, selectPublicKeyForUser, userID)
+func (q *Queries) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {
+	row := q.db.QueryRow(ctx, selectPublicKey, userID)
 	var public []byte
 	err := row.Scan(&public)
 	return public, err

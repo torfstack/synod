@@ -19,8 +19,9 @@ import (
 var _ CryptoService = &service{}
 
 var (
-	MarkerBytes    = []byte{0x64, 0x61, 0x74, 0x71}
-	RsaMarkerBytes = []byte{0x00, 0x00, 0x00, 0x01}
+	MarkerBytes        = []byte{0x64, 0x61, 0x74, 0x71}
+	RsaOaepMarkerBytes = []byte{0x00, 0x00, 0x00, 0x01}
+	AesGcmMarkerBytes  = []byte{0x00, 0x00, 0x00, 0x02}
 )
 
 func (s *service) GenerateKeyPair() (models.KeyPair, error) {
@@ -38,7 +39,7 @@ func (s *service) GenerateKeyPair() (models.KeyPair, error) {
 func (s *service) EncryptSecret(
 	_ context.Context,
 	secret models.Secret,
-	key rsa.PublicKey,
+	key *rsa.PublicKey,
 ) (models.EncryptedSecret, error) {
 	aesKey, err := newAesKey()
 	if err != nil {
@@ -48,7 +49,7 @@ func (s *service) EncryptSecret(
 	if err != nil {
 		return models.EncryptedSecret{}, err
 	}
-	encryptedAesKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, &key, aesKey, nil)
+	encryptedAesKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, key, aesKey, nil)
 	if err != nil {
 		return models.EncryptedSecret{}, err
 	}
@@ -59,7 +60,7 @@ func (s *service) EncryptSecret(
 	}
 	nonceL := intToBytes(len(nonce))
 	cipherTextL := intToBytes(len(ciphertext))
-	encrypted := slices.Concat(MarkerBytes, RsaMarkerBytes, l, encryptedAesKey, nonceL, nonce, cipherTextL, ciphertext)
+	encrypted := slices.Concat(MarkerBytes, RsaOaepMarkerBytes, l, encryptedAesKey, nonceL, nonce, cipherTextL, ciphertext)
 	return models.EncryptedSecret{
 		ID:    secret.ID,
 		Value: base64.StdEncoding.EncodeToString(encrypted),
@@ -72,19 +73,19 @@ func (s *service) EncryptSecret(
 func (s *service) DecryptSecret(
 	_ context.Context,
 	secret models.EncryptedSecret,
-	key rsa.PrivateKey,
+	key *rsa.PrivateKey,
 ) (models.Secret, error) {
 	b, err := base64.StdEncoding.DecodeString(secret.Value)
 	if err != nil {
 		return models.Secret{}, err
 	}
 	header := b[:8]
-	if !slices.Equal(header, slices.Concat(MarkerBytes, RsaMarkerBytes)) {
+	if !slices.Equal(header, slices.Concat(MarkerBytes, RsaOaepMarkerBytes)) {
 		return models.Secret{}, errors.New("invalid encryption header bytes")
 	}
 	encryptedAesKeyLength := bytesToInt(b[8:12])
 	encryptedAesKey := b[12 : 12+encryptedAesKeyLength]
-	aesKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, &key, encryptedAesKey, nil)
+	aesKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, key, encryptedAesKey, nil)
 	if err != nil {
 		return models.Secret{}, err
 	}
@@ -109,14 +110,6 @@ func (s *service) DecryptSecret(
 		Url:   secret.Url,
 		Tags:  secret.Tags,
 	}, nil
-}
-
-func (s *service) GetPublicKey(ctx context.Context, userID int64) (rsa.PublicKey, error) {
-	return s.database.SelectPublicKey(ctx, userID)
-}
-
-func (s *service) GetPrivateKey(ctx context.Context, userID int64) (rsa.PrivateKey, error) {
-	return s.database.SelectPrivateKey(ctx, userID)
 }
 
 func newAesKey() ([]byte, error) {

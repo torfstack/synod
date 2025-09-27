@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 	"log"
 	"os"
@@ -136,19 +137,27 @@ func TestDatabase_KeyHandling(t *testing.T) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
 	createdKeys, err := d.InsertKeys(ctx, models.UserKeyPair{
-		UserID: createdUser.ID,
-		KeyPair: models.KeyPair{
-			Public:  priv.PublicKey,
-			Private: *priv,
-		},
+		UserID:  createdUser.ID,
+		Type:    models.KeyTypeRsa,
+		Public:  x509.MarshalPKCS1PublicKey(&priv.PublicKey),
+		Private: x509.MarshalPKCS1PrivateKey(priv),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, createdUser.ID, createdKeys.UserID)
 	assert.NotNil(t, createdKeys.ID)
 
-	p, err := d.SelectPublicKey(ctx, createdUser.ID)
+	keyPair, err := d.SelectKeys(ctx, createdUser.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, priv.PublicKey, p)
+
+	privParsed, err := x509.ParsePKCS1PrivateKey(keyPair.Private)
+	assert.NoError(t, err)
+	assert.Equal(t, priv, privParsed)
+
+	pubParsed, err := x509.ParsePKCS1PublicKey(keyPair.Public)
+	assert.NoError(t, err)
+	assert.Equal(t, priv.PublicKey, *pubParsed)
+
+	assert.Equal(t, createdUser.ID, keyPair.UserID)
 }
 
 func TestDatabase_UserTransactionRollback(t *testing.T) {

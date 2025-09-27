@@ -1,8 +1,7 @@
 package todb
 
 import (
-	"crypto/x509"
-
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/torfstack/synod/backend/models"
 	sqlc "github.com/torfstack/synod/sql/gen"
 )
@@ -47,12 +46,26 @@ func InsertUserParams(in models.User) sqlc.InsertUserParams {
 }
 
 func InsertKeysParams(in models.UserKeyPair) sqlc.InsertKeysParams {
-	pub := x509.MarshalPKCS1PublicKey(&in.Public)
-	priv := x509.MarshalPKCS1PrivateKey(&in.Private)
-	return sqlc.InsertKeysParams{
+	params := sqlc.InsertKeysParams{
 		UserID:  in.UserID,
-		Public:  pub,
-		Private: priv,
+		Type:    int32(in.Type),
+		Public:  in.Public,
+		Private: in.Private,
+	}
+	if in.PasswordID != nil {
+		params.PasswordID = pgtype.Int8{
+			Int64: *in.PasswordID,
+			Valid: true,
+		}
+	}
+	return params
+}
+
+func InsertPasswordParams(in models.HashedPassword) sqlc.InsertPasswordParams {
+	return sqlc.InsertPasswordParams{
+		Hash:       in.Hash,
+		Salt:       in.Salt,
+		Iterations: in.Iterations,
 	}
 }
 

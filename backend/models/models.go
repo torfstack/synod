@@ -28,13 +28,35 @@ type ExistingUser struct {
 	ID int64 `json:"id"`
 }
 
+type KeyType int
+
+const (
+	KeyTypeRsa KeyType = iota + 1
+)
+
 type UserKeyPair struct {
-	ID     *int64
-	UserID int64
-	KeyPair
+	ID         *int64
+	UserID     int64
+	Type       KeyType
+	PasswordID *int64
+	Public     []byte
+	Private    []byte
 }
 
 type KeyPair struct {
 	Public  rsa.PublicKey
 	Private rsa.PrivateKey
+}
+
+type HashedPassword struct {
+	ID         *int64
+	Hash       []byte
+	Salt       []byte
+	Iterations int64
+}
+
+type AuthStatus struct {
+	IsAuthenticated bool `json:"isAuthenticated"`
+	IsSetup         bool `json:"isSetup"`
+	NeedsToUnseal   bool `json:"needsToUnseal"`
 }

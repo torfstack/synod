@@ -1,7 +1,6 @@
 package fromdb
 
 import (
-	"crypto/x509"
 	"strings"
 
 	"github.com/torfstack/synod/backend/models"
@@ -37,23 +36,27 @@ func User(in sqlc.User) models.ExistingUser {
 	}
 }
 
-func KeyPair(in sqlc.Key) (models.UserKeyPair, error) {
-	pub, err := x509.ParsePKCS1PublicKey(in.Public)
-	if err != nil {
-		return models.UserKeyPair{}, err
+func KeyPair(in sqlc.Key) models.UserKeyPair {
+	userKeyPair := models.UserKeyPair{
+		ID:      &in.ID,
+		Type:    models.KeyType(in.Type),
+		UserID:  in.UserID,
+		Public:  in.Public,
+		Private: in.Private,
 	}
-	priv, err := x509.ParsePKCS1PrivateKey(in.Private)
-	if err != nil {
-		return models.UserKeyPair{}, err
+	if in.PasswordID.Valid {
+		userKeyPair.PasswordID = &in.PasswordID.Int64
 	}
-	return models.UserKeyPair{
-		ID:     &in.ID,
-		UserID: in.UserID,
-		KeyPair: models.KeyPair{
-			Public:  *pub,
-			Private: *priv,
-		},
-	}, nil
+	return userKeyPair
+}
+
+func HashedPassword(in sqlc.Password) models.HashedPassword {
+	return models.HashedPassword{
+		ID:         &in.ID,
+		Hash:       in.Hash,
+		Salt:       in.Salt,
+		Iterations: in.Iterations,
+	}
 }
 
 func tagsSlice(tags string) []string {

@@ -9,11 +9,19 @@ import (
 )
 
 type Key struct {
-	ID      int64
-	UserID  int64
-	Type    int32
-	Public  []byte
-	Private []byte
+	ID         int64
+	UserID     int64
+	PasswordID pgtype.Int8
+	Type       int32
+	Public     []byte
+	Private    []byte
+}
+
+type Password struct {
+	ID         int64
+	Hash       []byte
+	Salt       []byte
+	Iterations int64
 }
 
 type Secret struct {

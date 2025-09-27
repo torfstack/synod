@@ -20,14 +20,6 @@ func (s *service) InsertUser(ctx context.Context, user models.User) (models.Exis
 	if err != nil {
 		return models.ExistingUser{}, err
 	}
-	keyPair, err := s.GenerateKeyPair()
-	if err != nil {
-		return createdUser, err
-	}
-	_, err = s.database.InsertKeys(ctx, models.UserKeyPair{
-		UserID:  createdUser.ID,
-		KeyPair: keyPair,
-	})
 	return createdUser, err
 }
 

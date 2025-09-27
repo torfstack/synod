@@ -59,6 +59,11 @@ func (s *Server) Start() error {
 	authorization.GET("", s.IsAuthorized)
 	authorization.DELETE("", s.EndSession)
 
+	setup := api.Group("/setup", m)
+	setup.POST("/plain", s.PostSetupPlain)
+	setup.POST("/password", s.PostSetupPassword)
+	setup.POST("/unseal", s.UnsealWithPassword)
+
 	users := api.Group("/users")
 	users.GET("/lookup", s.LookUpUser)
 

@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/torfstack/synod/backend/convert/fromdb"
@@ -137,41 +135,56 @@ func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (mod
 	if err != nil {
 		return models.UserKeyPair{}, err
 	}
-	return fromdb.KeyPair(dbKeys)
+	return fromdb.KeyPair(dbKeys), nil
 }
 
-func (d *database) SelectPublicKey(ctx context.Context, userID int64) (rsa.PublicKey, error) {
+func (d *database) SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return rsa.PublicKey{}, err
+		return models.UserKeyPair{}, err
 	}
-	dbKey, err := q.SelectPublicKeyForUser(ctx, userID)
+	dbKeys, err := q.SelectKeys(ctx, userID)
 	if err != nil {
-		return rsa.PublicKey{}, err
+		return models.UserKeyPair{}, err
 	}
-	parsedKey, err := x509.ParsePKCS1PublicKey(dbKey)
-	if err != nil {
-		return rsa.PublicKey{}, err
-	}
-	return *parsedKey, nil
+	return fromdb.KeyPair(dbKeys), nil
 }
 
-func (d *database) SelectPrivateKey(ctx context.Context, userID int64) (rsa.PrivateKey, error) {
+func (d *database) HasKeys(ctx context.Context, userID int64) (bool, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return rsa.PrivateKey{}, err
+		return false, err
 	}
-	dbKey, err := q.SelectPrivateKeyForUser(ctx, userID)
+	return q.HasKeys(ctx, userID)
+}
+
+func (d *database) InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
 	if err != nil {
-		return rsa.PrivateKey{}, err
+		return models.HashedPassword{}, err
 	}
-	parsedKey, err := x509.ParsePKCS1PrivateKey(dbKey)
+	params := todb.InsertPasswordParams(password)
+	dbPassword, err := q.InsertPassword(ctx, params)
 	if err != nil {
-		return rsa.PrivateKey{}, err
+		return models.HashedPassword{}, err
 	}
-	return *parsedKey, nil
+	return fromdb.HashedPassword(dbPassword), nil
+}
+
+func (d *database) SelectPassword(ctx context.Context, passwordID int64) (models.HashedPassword, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return models.HashedPassword{}, err
+	}
+	dbPassword, err := q.SelectPassword(ctx, passwordID)
+	if err != nil {
+		return models.HashedPassword{}, err
+	}
+	return fromdb.HashedPassword(dbPassword), nil
 }
 
 func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {

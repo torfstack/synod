@@ -32,16 +32,34 @@ VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: InsertKeys :one
-INSERT INTO keys (user_id, type, public, private)
-VALUES ($1, $2, $3, $4)
+INSERT INTO keys (user_id, password_id, type, public, private)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
--- name: SelectPublicKeyForUser :one
+-- name: HasKeys :one
+SELECT EXISTS(SELECT 1 FROM keys WHERE user_id = $1);
+
+-- name: SelectKeys :one
+SELECT *
+FROM keys
+WHERE user_id = $1;
+
+-- name: SelectPublicKey :one
 SELECT public
 FROM keys
 WHERE user_id = $1;
 
--- name: SelectPrivateKeyForUser :one
+-- name: SelectPrivateKey :one
 SELECT private
 FROM keys
 WHERE user_id = $1;
+
+-- name: InsertPassword :one
+INSERT INTO passwords (hash, salt, iterations)
+VALUES ($1, $2, $3)
+RETURNING *;
+
+-- name: SelectPassword :one
+SELECT *
+FROM passwords
+WHERE id = $1;
