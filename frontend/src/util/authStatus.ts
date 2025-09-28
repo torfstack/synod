@@ -3,5 +3,3 @@ export type AuthStatus = {
     isSetup: boolean,
     needsToUnseal: boolean,
 }
-
-export const EmptyAuthStatus: AuthStatus = {isAuthenticated: false, isSetup: false, needsToUnseal: false}

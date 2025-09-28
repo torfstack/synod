@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/torfstack/synod/backend/convert/fromdb"
 	"github.com/torfstack/synod/backend/convert/todb"
 	"github.com/torfstack/synod/backend/models"
@@ -12,14 +13,18 @@ import (
 
 type database struct {
 	connStr string
-	conn    *pgx.Conn
+	pool    *pgxpool.Pool
 	tx      *transaction
 }
 
 var _ Database = (*database)(nil)
 
-func NewDatabase(connStr string) Database {
-	return &database{connStr: connStr}
+func NewDatabase(ctx context.Context, connStr string) (Database, error) {
+	pool, err := pgxpool.New(ctx, connStr)
+	if err != nil {
+		return nil, err
+	}
+	return &database{connStr: connStr, pool: pool}, nil
 }
 
 func (d *database) WithTx(ctx context.Context, withTx func(Database) error) error {
@@ -27,47 +32,23 @@ func (d *database) WithTx(ctx context.Context, withTx func(Database) error) erro
 		return withTx(d)
 	}
 
-	var conn *pgx.Conn
-	if d.conn != nil {
-		conn = d.conn
-	} else {
-		var err error
-		conn, err = pgx.Connect(ctx, d.connStr)
-		if err != nil {
-			return err
-		}
-	}
-
-	tx, err := conn.Begin(ctx)
+	tx, err := d.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	trans := &transaction{conn: conn, tx: tx}
+	trans := &transaction{tx: tx}
 	defer func(tx pgx.Tx, ctx context.Context) {
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
-	err = withTx(&database{connStr: d.connStr, conn: conn, tx: trans})
+	err = withTx(&database{connStr: d.connStr, pool: d.pool, tx: trans})
 	if err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
 }
 
-func (d *database) CommitTransaction(ctx context.Context) error {
-	if d.tx == nil {
-		return nil
-	}
-	defer func(context.Context) {
-		d.tx.Rollback(ctx)
-		_ = (*d.conn).Close(ctx)
-	}(ctx)
-	d.tx.Commit(ctx)
-	return nil
-}
-
 func (d *database) DoesUserExist(ctx context.Context, username string) (bool, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return false, err
 	}
@@ -75,8 +56,7 @@ func (d *database) DoesUserExist(ctx context.Context, username string) (bool, er
 }
 
 func (d *database) InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.ExistingUser{}, err
 	}
@@ -86,8 +66,7 @@ func (d *database) InsertUser(ctx context.Context, user models.User) (models.Exi
 }
 
 func (d *database) SelectUserByName(ctx context.Context, username string) (models.ExistingUser, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.ExistingUser{}, err
 	}
@@ -100,8 +79,7 @@ func (d *database) UpsertSecret(
 	secret models.EncryptedSecret,
 	userID int64,
 ) (models.EncryptedSecret, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.EncryptedSecret{}, err
 	}
@@ -117,8 +95,7 @@ func (d *database) UpsertSecret(
 }
 
 func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return []models.EncryptedSecret{}, err
 	}
@@ -127,8 +104,7 @@ func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.En
 }
 
 func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.UserKeyPair{}, err
 	}
@@ -141,8 +117,7 @@ func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (mod
 }
 
 func (d *database) SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.UserKeyPair{}, err
 	}
@@ -154,8 +129,7 @@ func (d *database) SelectKeys(ctx context.Context, userID int64) (models.UserKey
 }
 
 func (d *database) HasKeys(ctx context.Context, userID int64) (bool, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return false, err
 	}
@@ -163,8 +137,7 @@ func (d *database) HasKeys(ctx context.Context, userID int64) (bool, error) {
 }
 
 func (d *database) InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.HashedPassword{}, err
 	}
@@ -177,8 +150,7 @@ func (d *database) InsertPassword(ctx context.Context, password models.HashedPas
 }
 
 func (d *database) SelectPassword(ctx context.Context, passwordID int64) (models.HashedPassword, error) {
-	q, err := startQuery(ctx, d)
-	defer endQuery(ctx, d)
+	q, err := startQuery(d)
 	if err != nil {
 		return models.HashedPassword{}, err
 	}
@@ -189,23 +161,9 @@ func (d *database) SelectPassword(ctx context.Context, passwordID int64) (models
 	return fromdb.HashedPassword(dbPassword), nil
 }
 
-func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {
+func startQuery(d *database) (*sqlc.Queries, error) {
 	if d.tx != nil {
 		return sqlc.New(d.tx.SqlTx()), nil
 	}
-	if d.conn == nil {
-		conn, err := pgx.Connect(ctx, d.connStr)
-		if err != nil {
-			return nil, err
-		}
-		d.conn = conn
-	}
-	return sqlc.New(d.conn), nil
-}
-
-func endQuery(ctx context.Context, d *database) {
-	if d.conn != nil && d.tx == nil {
-		_ = (*d.conn).Close(ctx)
-		d.conn = nil
-	}
+	return sqlc.New(d.pool), nil
 }

@@ -3,12 +3,12 @@ import type {Secret} from "../util/secret.ts";
 import {useEffect, useState} from "react";
 import {getSecrets, postSecret} from "../util/api.ts";
 import {SecretModal} from "../components/secrets/SecretModal.tsx";
-import {showModal} from "../util/modal.ts";
 
 export const SecretsScreen = () => {
     const [secrets, setSecrets] = useState<Secret[]>([]);
     const [selectedSecret, setSelectedSecret] = useState<Secret | undefined>(undefined);
     const [filterValue, setFilterValue] = useState("");
+    const [isModalOpen, setModalOpen] = useState(false);
 
     useEffect(() => {
         retrieveSecrets()
@@ -25,23 +25,16 @@ export const SecretsScreen = () => {
     }
 
     function retrieveSecrets() {
-        getSecrets().then(resp => resp.json()).then(
-            (json) => {
-                setSecrets(json)
-            }
-        )
+        getSecrets().then(secrets => setSecrets(secrets))
     }
 
     async function uploadSecret(s: Secret) {
-        await postSecret(s)
-        retrieveSecrets()
-        setSelectedSecret(undefined)
-        setFilterValue("")
+        return postSecret(s).then(() => retrieveSecrets())
     }
 
     function selectSecret(s: Secret) {
         setSelectedSecret(s)
-        showModal()
+        setModalOpen(true)
     }
 
     return <>
@@ -53,7 +46,7 @@ export const SecretsScreen = () => {
                            onChange={(e) => setFilterValue(e.target.value)}/>
                     <button className="btn btn-neutral" onClick={() => {
                         setSelectedSecret(undefined);
-                        showModal()
+                        setModalOpen(true)
                     }}>
                         Add Secret
                     </button>
@@ -62,7 +55,12 @@ export const SecretsScreen = () => {
             </div>
         </div>
 
-        <SecretModal handleSecret={uploadSecret} existingSecret={selectedSecret}/>
+        <SecretModal
+            handleSecret={uploadSecret}
+            existingSecret={selectedSecret}
+            isOpen={isModalOpen}
+            closeModal={() => setModalOpen(false)}
+        />
     </>
 }
 

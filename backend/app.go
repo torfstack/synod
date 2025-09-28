@@ -28,7 +28,10 @@ func (a *Application) Run() error {
 		return fmt.Errorf("could not migrate database: %v", err)
 	}
 
-	database := db.NewDatabase(cfg.DB.ConnectionString())
+	database, err := db.NewDatabase(context.Background(), cfg.DB.ConnectionString())
+	if err != nil {
+		return fmt.Errorf("could not connect to database: %v", err)
+	}
 	domainService := domain.NewDomainService(database)
 	server := http.NewServer(*cfg, domainService)
 

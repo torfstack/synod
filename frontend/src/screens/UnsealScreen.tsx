@@ -1,20 +1,18 @@
 import {useState} from "react";
 import {postUnsealWithPassword} from "../util/api.ts";
 import {Eye, EyeSlash} from "../icons/Eye.tsx";
+import {useAuth} from "../contexts/AuthContext.tsx";
 
 export const UnsealScreen = () => {
+    const {reloadAuth} = useAuth();
     const [password, setPassword] = useState("");
     const [passwordVisible, setPasswordVisible] = useState(false)
     const [passwordsWarning, setPasswordsWarning] = useState(false)
 
     const handleUnseal = () => {
-        postUnsealWithPassword(password).then((resp) => {
-            if (resp.status != 204) {
-                setPasswordsWarning(true)
-                return
-            }
-            window.location.reload()
-        })
+        postUnsealWithPassword(password)
+            .then(() => reloadAuth())
+            .catch(() => setPasswordsWarning(true))
     };
 
     return <div className="flex flex-row justify-center items-center bg-base-200 h-full">

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -41,6 +42,27 @@ func (s *Server) LocalDevelopmentSession(next echo.HandlerFunc) echo.HandlerFunc
 				ExpiresAt: time.Now().Add(time.Hour),
 			},
 		)
+		return next(c)
+	}
+}
+
+func (s *Server) RequestAndResponseLogging(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if c.Request() != nil {
+			req := c.Request()
+			logging.Debugf(
+				req.Context(),
+				fmt.Sprintf("[%s] %s", req.Method, req.RequestURI),
+			)
+		}
+		if c.Response() != nil {
+			res := c.Response()
+			req := c.Request()
+			logging.Debugf(
+				req.Context(),
+				fmt.Sprintf("[%s] %s returned %d", req.Method, req.RequestURI, res.Status),
+			)
+		}
 		return next(c)
 	}
 }

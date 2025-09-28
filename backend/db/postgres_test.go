@@ -64,8 +64,9 @@ func TestDatabase_SecretHandling(t *testing.T) {
 	assert.NoError(t, pg.Restore(ctx))
 
 	connStr, err := pg.ConnectionString(ctx)
-	assert.NoError(t, err)
-	d := NewDatabase(connStr)
+	require.NoError(t, err)
+	d, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
 	{
 		secrets, err := d.SelectSecrets(ctx, 1)
 		assert.NoError(t, err)
@@ -100,7 +101,8 @@ func TestDatabase_UserHandling(t *testing.T) {
 
 	connStr, err := pg.ConnectionString(ctx)
 	assert.NoError(t, err)
-	d := NewDatabase(connStr)
+	d, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
 
 	b, err := d.DoesUserExist(ctx, TestUser.Subject)
 	assert.NoError(t, err)
@@ -129,7 +131,8 @@ func TestDatabase_KeyHandling(t *testing.T) {
 
 	connStr, err := pg.ConnectionString(ctx)
 	assert.NoError(t, err)
-	d := NewDatabase(connStr)
+	d, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
 
 	createdUser, err := d.InsertUser(ctx, TestUser)
 	assert.NoError(t, err)
@@ -166,7 +169,8 @@ func TestDatabase_UserTransactionRollback(t *testing.T) {
 
 	connStr, err := pg.ConnectionString(ctx)
 	assert.NoError(t, err)
-	dd := NewDatabase(connStr)
+	dd, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
 
 	err = dd.WithTx(ctx, func(d Database) error {
 		_, err = d.InsertUser(ctx, TestUser)
@@ -190,7 +194,8 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 
 	connStr, err := pg.ConnectionString(ctx)
 	assert.NoError(t, err)
-	dd := NewDatabase(connStr)
+	dd, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
 
 	err = dd.WithTx(ctx, func(d Database) error {
 		_, err = d.InsertUser(ctx, TestUser)

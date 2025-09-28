@@ -11,7 +11,7 @@ func (s *Server) UnsealWithPassword(c echo.Context) error {
 	ctx := c.Request().Context()
 	session, ok := getSession(c)
 	if !ok {
-		logging.Errorf(ctx, "no session found in GetSecrets")
+		logging.Errorf(ctx, "no session found in UnsealWithPassword")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
@@ -38,7 +38,7 @@ func (s *Server) PostSetupPlain(c echo.Context) error {
 	ctx := c.Request().Context()
 	session, ok := getSession(c)
 	if !ok {
-		logging.Errorf(ctx, "no session found in GetSecrets")
+		logging.Errorf(ctx, "no session found in PostSetupPlain")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 	err := s.domainService.SetupUserPlain(ctx, *session)

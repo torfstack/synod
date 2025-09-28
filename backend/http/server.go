@@ -48,7 +48,7 @@ func (s *Server) Start() error {
 		m = s.SessionCheck
 	}
 
-	api := e.Group("/api")
+	api := e.Group("/api", s.RequestAndResponseLogging)
 	secrets := api.Group("/secrets", m)
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)

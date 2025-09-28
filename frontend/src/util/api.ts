@@ -1,52 +1,29 @@
 import {config} from "./config.ts";
 import type {Secret} from './secret.ts';
+import type {AuthStatus} from "./authStatus.ts";
 
 export async function getAuth() {
-    return fetch(config.backendAuthUrl, {
+    return apiFetchJson<AuthStatus>(config.backendAuthUrl, {
         method: 'GET',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include'
     });
 }
 
 export async function deleteAuth() {
-    return fetch(config.backendAuthUrl, {
+    return apiFetch(config.backendAuthUrl, {
         method: 'DELETE',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include'
     });
 }
 
 export async function getSecrets() {
-    return fetch(config.backendSecretsUrl, {
+    return apiFetchJson<Secret[]>(config.backendSecretsUrl, {
         method: 'GET',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include'
     });
 }
 
 export async function postSecret(secret: Secret) {
     const tags = secret.tags.toSorted((a, b) => a.localeCompare(b))
-    return fetch(config.backendSecretsUrl, {
+    return apiFetch(config.backendSecretsUrl, {
         method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include',
         body: JSON.stringify({
             id: secret.id,
             value: secret.value,
@@ -57,39 +34,15 @@ export async function postSecret(secret: Secret) {
     });
 }
 
-export async function getSetupStatus() {
-    return fetch(config.backendSetupUrl, {
-        method: 'GET',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-    });
-}
-
 export async function postSetupPlain() {
-    return fetch(config.backendSetupPlainUrl, {
+    return apiFetch(config.backendSetupPlainUrl, {
         method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include'
     });
 }
 
 export async function postSetupPassword(password: string) {
-    return fetch(config.backendSetupPasswordUrl, {
+    return apiFetch(config.backendSetupPasswordUrl, {
         method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include',
         body: JSON.stringify({
             password: password
         })
@@ -97,16 +50,42 @@ export async function postSetupPassword(password: string) {
 }
 
 export async function postUnsealWithPassword(password: string) {
-    return fetch(config.backendUnsealUrl, {
-        method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include',
+    return apiFetch(config.backendUnsealUrl, {
+        method: "POST",
         body: JSON.stringify({
             password: password
         })
-    });
+    })
 }
+
+async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const res = await fetch(url, {
+        ...options,
+        credentials: "include",
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+        },
+    });
+
+    if (res.status === 401) {
+        window.dispatchEvent(new Event("unauthorized"));
+        throw new Error("Unauthorized");
+    }
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "API request failed");
+    }
+
+    return res;
+}
+
+async function apiFetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+    const res = await apiFetch(url, options)
+    return res.json() as Promise<T>;
+}
+
+

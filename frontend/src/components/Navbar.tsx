@@ -1,12 +1,9 @@
 import {ThemeSwitcher} from "./ThemeSwitcher.tsx";
+import {useAuth} from "../contexts/AuthContext.tsx";
 
-type NavbarProps = {
-    isAuthenticated: boolean
-    loginButtonPressed: () => void
-    logoutButtonPressed: () => void
-}
+export const Navbar = () => {
+    const {authStatus, login, logout} = useAuth()
 
-export const Navbar = (props: NavbarProps) => {
     return (
         <div className="flex flex-col">
             <div className="navbar bg-base-100 shadow-sm">
@@ -17,9 +14,9 @@ export const Navbar = (props: NavbarProps) => {
                 </div>
 
                 <div className="flex flex-row gap-4 items-center">
-                    {props.isAuthenticated
-                        ? <LogoutButton logoutButtonPressed={props.logoutButtonPressed}/>
-                        : <LoginButton loginButtonPressed={props.loginButtonPressed}/>}
+                    {authStatus && authStatus.isAuthenticated
+                        ? <LogoutButton logoutButtonPressed={logout}/>
+                        : <LoginButton loginButtonPressed={login}/>}
 
                     <ThemeSwitcher/>
                 </div>

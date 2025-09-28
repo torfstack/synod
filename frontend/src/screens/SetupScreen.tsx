@@ -1,8 +1,10 @@
 import {useEffect, useState} from "react";
 import {postSetupPassword, postSetupPlain} from "../util/api.ts";
 import {Eye, EyeSlash} from "../icons/Eye.tsx";
+import {useAuth} from "../contexts/AuthContext.tsx";
 
 export const SetupScreen = () => {
+    const {reloadAuth} = useAuth();
     const [isChecked, setChecked] = useState(true);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("")
@@ -29,13 +31,7 @@ export const SetupScreen = () => {
         } else {
             promise = postSetupPlain()
         }
-        promise.then((resp) => {
-            if (resp.status != 201) {
-                // TODO: show warning
-                return
-            }
-            window.location.reload()
-        })
+        promise.then(() => reloadAuth())
     };
 
     return <div className="flex flex-row justify-center items-center bg-base-200 h-full">
