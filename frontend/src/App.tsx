@@ -25,7 +25,10 @@ export const App = () => {
     }
 
     function signOut() {
-        deleteAuth().then(_ => {
+        deleteAuth().then((resp) => {
+            if (resp.status != 200) {
+                return
+            }
             setAuthStatus(EmptyAuthStatus)
         })
     }
