@@ -43,7 +43,9 @@ func (d *database) WithTx(ctx context.Context, withTx func(Database) error) erro
 		return err
 	}
 	trans := &transaction{conn: conn, tx: tx}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		_ = tx.Rollback(ctx)
+	}(tx, ctx)
 	err = withTx(&database{connStr: d.connStr, conn: conn, tx: trans})
 	if err != nil {
 		return err
