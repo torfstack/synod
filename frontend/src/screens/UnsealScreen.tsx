@@ -21,6 +21,7 @@ export const UnsealScreen = () => {
         <div className="w-5/6 md:w-1/4 flex flex-col gap-4 p-4 bg-base-100 rounded-box shadow-md">
             <h2 className="text-xl">Unseal with password</h2>
             <p>Provide the password to unseal your secrets.</p>
+
             {/* Password input */}
             <label className={passwordsWarning ? "input input-error w-full" : "input w-full"}>
                 Password
@@ -36,7 +37,7 @@ export const UnsealScreen = () => {
                 </button>
             </label>
 
-            {/* Setup button */}
+            {/* Unseal button */}
             <button
                 className="btn btn-primary"
                 onClick={handleUnseal}

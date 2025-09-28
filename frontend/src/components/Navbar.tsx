@@ -51,7 +51,7 @@ type LogoutButtonProps = {
 }
 
 const LogoutButton = (props: LogoutButtonProps) => {
-    return <button className="btn btn-soft btn-secondary" onClick={props.logoutButtonPressed}>
+    return <button className="btn btn-soft btn-wide btn-secondary" onClick={props.logoutButtonPressed}>
         Logout
     </button>
 }
