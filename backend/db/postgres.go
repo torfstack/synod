@@ -13,7 +13,7 @@ import (
 type database struct {
 	connStr string
 	conn    *pgx.Conn
-	tx      pgx.Tx
+	tx      *transaction
 }
 
 var _ Database = (*database)(nil)
@@ -22,16 +22,35 @@ func NewDatabase(connStr string) Database {
 	return &database{connStr: connStr}
 }
 
-func (d *database) WithTx(ctx context.Context) (Database, Transaction) {
-	conn, err := pgx.Connect(ctx, d.connStr)
-	if err != nil {
-		return nil, nil
+func (d *database) WithTx(ctx context.Context, withTx func(Database) error) error {
+	if d.tx != nil {
+		return withTx(d)
 	}
+
+	var conn *pgx.Conn
+	if d.conn != nil {
+		conn = d.conn
+	} else {
+		var err error
+		conn, err = pgx.Connect(ctx, d.connStr)
+		if err != nil {
+			return err
+		}
+	}
+
 	tx, err := conn.Begin(ctx)
 	if err != nil {
-		return nil, nil
+		return err
 	}
-	return &database{connStr: d.connStr, conn: conn, tx: tx}, &transaction{conn: conn, tx: tx}
+	trans := &transaction{conn: conn, tx: tx}
+	defer func(tx pgx.Tx, ctx context.Context) {
+		_ = tx.Rollback(ctx)
+	}(tx, ctx)
+	err = withTx(&database{connStr: d.connStr, conn: conn, tx: trans})
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (d *database) CommitTransaction(ctx context.Context) error {
@@ -39,10 +58,11 @@ func (d *database) CommitTransaction(ctx context.Context) error {
 		return nil
 	}
 	defer func(context.Context) {
-		_ = (d.tx).Rollback(ctx)
+		d.tx.Rollback(ctx)
 		_ = (*d.conn).Close(ctx)
 	}(ctx)
-	return (d.tx).Commit(ctx)
+	d.tx.Commit(ctx)
+	return nil
 }
 
 func (d *database) DoesUserExist(ctx context.Context, username string) (bool, error) {
@@ -54,72 +74,124 @@ func (d *database) DoesUserExist(ctx context.Context, username string) (bool, er
 	return q.DoesUserExist(ctx, username)
 }
 
-func (d *database) InsertUser(ctx context.Context, user models.User) error {
+func (d *database) InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.ExistingUser{}, err
 	}
 	params := todb.InsertUserParams(user)
-	return q.InsertUser(ctx, params)
+	dbUser, err := q.InsertUser(ctx, params)
+	return fromdb.User(dbUser), err
 }
 
-func (d *database) SelectUserByName(ctx context.Context, username string) (models.User, error) {
+func (d *database) SelectUserByName(ctx context.Context, username string) (models.ExistingUser, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return models.User{}, err
+		return models.ExistingUser{}, err
 	}
 	dbUser, err := q.SelectUserByName(ctx, username)
 	return fromdb.User(dbUser), err
 }
 
-func (d *database) UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error {
+func (d *database) UpsertSecret(
+	ctx context.Context,
+	secret models.EncryptedSecret,
+	userID int64,
+) (models.EncryptedSecret, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.EncryptedSecret{}, err
 	}
+	var dbSecret sqlc.Secret
 	if secret.ID == nil || *secret.ID == 0 {
 		params := todb.InsertSecretParams(secret, userID)
-		return q.InsertSecret(ctx, params)
+		dbSecret, err = q.InsertSecret(ctx, params)
 	} else {
 		params := todb.UpdateSecretParams(secret, userID)
-		return q.UpdateSecret(ctx, params)
+		dbSecret, err = q.UpdateSecret(ctx, params)
 	}
+	return fromdb.Secret(dbSecret), err
 }
 
-func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error) {
+func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return []models.Secret{}, err
+		return []models.EncryptedSecret{}, err
 	}
 	dbSecrets, err := q.SelectSecrets(ctx, userID)
 	return fromdb.Secrets(dbSecrets), err
 }
 
-func (d *database) InsertSecret(ctx context.Context, params sqlc.InsertSecretParams) error {
+func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.UserKeyPair{}, err
 	}
-	return q.InsertSecret(ctx, params)
+	params := todb.InsertKeysParams(pair)
+	dbKeys, err := q.InsertKeys(ctx, params)
+	if err != nil {
+		return models.UserKeyPair{}, err
+	}
+	return fromdb.KeyPair(dbKeys), nil
 }
 
-func (d *database) UpdateSecret(ctx context.Context, params sqlc.UpdateSecretParams) error {
+func (d *database) SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error) {
 	q, err := startQuery(ctx, d)
 	defer endQuery(ctx, d)
 	if err != nil {
-		return err
+		return models.UserKeyPair{}, err
 	}
-	return q.UpdateSecret(ctx, params)
+	dbKeys, err := q.SelectKeys(ctx, userID)
+	if err != nil {
+		return models.UserKeyPair{}, err
+	}
+	return fromdb.KeyPair(dbKeys), nil
+}
+
+func (d *database) HasKeys(ctx context.Context, userID int64) (bool, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return false, err
+	}
+	return q.HasKeys(ctx, userID)
+}
+
+func (d *database) InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return models.HashedPassword{}, err
+	}
+	params := todb.InsertPasswordParams(password)
+	dbPassword, err := q.InsertPassword(ctx, params)
+	if err != nil {
+		return models.HashedPassword{}, err
+	}
+	return fromdb.HashedPassword(dbPassword), nil
+}
+
+func (d *database) SelectPassword(ctx context.Context, passwordID int64) (models.HashedPassword, error) {
+	q, err := startQuery(ctx, d)
+	defer endQuery(ctx, d)
+	if err != nil {
+		return models.HashedPassword{}, err
+	}
+	dbPassword, err := q.SelectPassword(ctx, passwordID)
+	if err != nil {
+		return models.HashedPassword{}, err
+	}
+	return fromdb.HashedPassword(dbPassword), nil
 }
 
 func startQuery(ctx context.Context, d *database) (*sqlc.Queries, error) {
 	if d.tx != nil {
-		return sqlc.New(d.tx), nil
+		return sqlc.New(d.tx.SqlTx()), nil
 	}
 	if d.conn == nil {
 		conn, err := pgx.Connect(ctx, d.connStr)

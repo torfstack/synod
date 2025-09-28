@@ -1,6 +1,6 @@
 import {SecretsList} from "../components/secrets/SecretsList.tsx";
 import type {Secret} from "../util/secret.ts";
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {getSecrets, postSecret} from "../util/api.ts";
 import {SecretModal} from "../components/secrets/SecretModal.tsx";
 import {showModal} from "../util/modal.ts";
@@ -14,7 +14,9 @@ export const SecretsScreen = () => {
         retrieveSecrets()
     }, [])
 
-    const filteredSecrets = filterSecrets(secrets, filterValue)
+    const filteredSecrets = useMemo(() =>
+        filterSecrets(secrets, filterValue), [secrets, filterValue]
+    )
 
     function filterSecrets(secrets: Secret[], filterValue: string): Secret[] {
         return secrets.filter(secret => {

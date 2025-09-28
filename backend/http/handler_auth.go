@@ -2,10 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
+	"github.com/torfstack/synod/backend/domain"
 	"github.com/torfstack/synod/backend/logging"
+	"github.com/torfstack/synod/backend/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/labstack/echo/v4"
@@ -61,7 +64,7 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		logging.Errorf(ctx, "could not get user based on id token from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	session, err := s.domainService.CreateSession(user.ID)
+	session, err := s.domainService.CreateSession(ctx, user.ID)
 	if err != nil {
 		logging.Errorf(ctx, "could not create session: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -84,13 +87,21 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	_, err = s.domainService.GetSession(sessionID)
-	if err != nil {
-		logging.Debugf(ctx, "could not get session: %v", err)
-		return c.NoContent(http.StatusUnauthorized)
+	session, err := s.domainService.GetSession(sessionID)
+	if errors.Is(err, domain.ErrSessionNotFound) {
+		return c.JSON(http.StatusUnauthorized, models.AuthStatus{IsAuthenticated: false})
 	}
 
-	return c.NoContent(http.StatusOK)
+	isUserSetup, err := s.domainService.IsUserSetup(ctx, *session)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, models.AuthStatus{
+		IsAuthenticated: true,
+		IsSetup:         isUserSetup,
+		NeedsToUnseal:   session.PrivateKey == nil,
+	})
 }
 
 func (s *Server) EndSession(c echo.Context) error {

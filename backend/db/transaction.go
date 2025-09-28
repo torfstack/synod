@@ -22,3 +22,7 @@ func (t *transaction) Rollback(ctx context.Context) {
 	_ = t.tx.Rollback(ctx)
 	_ = t.tx.Conn().Close(ctx)
 }
+
+func (t *transaction) SqlTx() pgx.Tx {
+	return t.tx
+}

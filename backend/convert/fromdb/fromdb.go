@@ -7,8 +7,8 @@ import (
 	sqlc "github.com/torfstack/synod/sql/gen"
 )
 
-func Secret(in sqlc.Secret) models.Secret {
-	return models.Secret{
+func Secret(in sqlc.Secret) models.EncryptedSecret {
+	return models.EncryptedSecret{
 		ID:    &in.ID,
 		Value: string(in.Value),
 		Key:   in.Key,
@@ -17,20 +17,45 @@ func Secret(in sqlc.Secret) models.Secret {
 	}
 }
 
-func Secrets(in []sqlc.Secret) models.Secrets {
-	out := make([]models.Secret, len(in))
+func Secrets(in []sqlc.Secret) []models.EncryptedSecret {
+	out := make([]models.EncryptedSecret, len(in))
 	for i, s := range in {
 		out[i] = Secret(s)
 	}
 	return out
 }
 
-func User(in sqlc.User) models.User {
-	return models.User{
-		ID:       &in.ID,
-		Subject:  in.Subject,
-		Email:    in.Email,
-		FullName: in.FullName,
+func User(in sqlc.User) models.ExistingUser {
+	return models.ExistingUser{
+		ID: in.ID,
+		User: models.User{
+			Subject:  in.Subject,
+			Email:    in.Email,
+			FullName: in.FullName,
+		},
+	}
+}
+
+func KeyPair(in sqlc.Key) models.UserKeyPair {
+	userKeyPair := models.UserKeyPair{
+		ID:      &in.ID,
+		Type:    models.KeyType(in.Type),
+		UserID:  in.UserID,
+		Public:  in.Public,
+		Private: in.Private,
+	}
+	if in.PasswordID.Valid {
+		userKeyPair.PasswordID = &in.PasswordID.Int64
+	}
+	return userKeyPair
+}
+
+func HashedPassword(in sqlc.Password) models.HashedPassword {
+	return models.HashedPassword{
+		ID:         &in.ID,
+		Hash:       in.Hash,
+		Salt:       in.Salt,
+		Iterations: in.Iterations,
 	}
 }
 

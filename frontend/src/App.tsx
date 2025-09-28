@@ -3,16 +3,19 @@ import {useEffect, useState} from "react";
 import {deleteAuth, getAuth} from "./util/api.ts";
 import {Navbar} from "./components/Navbar.tsx";
 import {config} from "./util/config.ts";
-import {StartScreen} from "./screens/StartScreen.tsx";
 import {SecretsScreen} from "./screens/SecretsScreen.tsx";
+import {StartScreen} from "./screens/StartScreen.tsx";
+import {SetupScreen} from "./screens/SetupScreen.tsx";
+import {UnsealScreen} from "./screens/UnsealScreen.tsx";
+import {type AuthStatus, EmptyAuthStatus} from "./util/authStatus.ts";
 
 export const App = () => {
-    const [isAuthenticated, setAuthenticated] = useState(false);
+    const [authStatus, setAuthStatus] = useState<AuthStatus>(EmptyAuthStatus);
 
     useEffect(() => {
         getAuth().then(res => {
             if (res.status == 200) {
-                setAuthenticated(true);
+                res.json().then((json) => setAuthStatus(json))
             }
         })
     }, []);
@@ -22,17 +25,27 @@ export const App = () => {
     }
 
     function signOut() {
-        deleteAuth().then(res => {
-            setAuthenticated(res.status == 204)
+        deleteAuth().then((resp) => {
+            if (resp.status != 200) {
+                return
+            }
+            setAuthStatus(EmptyAuthStatus)
         })
     }
 
+    const isAuthenticated = authStatus.isAuthenticated
+    const isSetup = authStatus.isSetup
+    const needsToUnseal = authStatus.needsToUnseal
+
     return (
         <div className="flex flex-col app">
-            <Navbar isAuthenticated={isAuthenticated}
+            <Navbar isAuthenticated={authStatus.isAuthenticated}
                     loginButtonPressed={signInWithProvider}
                     logoutButtonPressed={signOut}/>
-            {isAuthenticated ? <SecretsScreen/> : <StartScreen/>}
+            {isAuthenticated && isSetup && !needsToUnseal && <SecretsScreen/>}
+            {isAuthenticated && isSetup && needsToUnseal && <UnsealScreen/>}
+            {isAuthenticated && !isSetup && <SetupScreen/>}
+            {!isAuthenticated && <StartScreen/>}
         </div>
     )
 }

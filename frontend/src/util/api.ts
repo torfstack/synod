@@ -56,3 +56,57 @@ export async function postSecret(secret: Secret) {
         })
     });
 }
+
+export async function getSetupStatus() {
+    return fetch(config.backendSetupUrl, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+    });
+}
+
+export async function postSetupPlain() {
+    return fetch(config.backendSetupPlainUrl, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+    });
+}
+
+export async function postSetupPassword(password: string) {
+    return fetch(config.backendSetupPasswordUrl, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            password: password
+        })
+    });
+}
+
+export async function postUnsealWithPassword(password: string) {
+    return fetch(config.backendUnsealUrl, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            password: password
+        })
+    });
+}

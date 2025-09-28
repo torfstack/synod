@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/torfstack/synod/backend/db"
 	"github.com/torfstack/synod/backend/models"
 )
 
@@ -14,8 +15,12 @@ func (s *service) DoesUserExist(ctx context.Context, username string) (bool, err
 	return s.database.DoesUserExist(ctx, username)
 }
 
-func (s *service) InsertUser(ctx context.Context, user models.User) error {
-	return s.database.InsertUser(ctx, user)
+func (s *service) InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error) {
+	createdUser, err := s.database.InsertUser(ctx, user)
+	if err != nil {
+		return models.ExistingUser{}, err
+	}
+	return createdUser, err
 }
 
 func (s *service) GetUserFromToken(ctx context.Context, idToken string) (models.ExistingUser, error) {
@@ -36,25 +41,26 @@ func (s *service) GetUserFromToken(ctx context.Context, idToken string) (models.
 		return models.ExistingUser{}, err
 	}
 
-	d, t := s.database.WithTx(ctx)
-	defer t.Rollback(ctx)
-	exists, err := d.DoesUserExist(ctx, userParams.Subject)
-	if err != nil {
-		return models.ExistingUser{}, err
-	}
-	if !exists {
-		err = d.InsertUser(ctx, userParams)
+	var user models.ExistingUser
+	err = s.database.WithTx(ctx, func(d db.Database) error {
+		var exists bool
+		exists, err = d.DoesUserExist(ctx, userParams.Subject)
 		if err != nil {
-			return models.ExistingUser{}, err
+			return err
 		}
-	}
-	user, err := d.SelectUserByName(ctx, userParams.Subject)
-	if err != nil {
-		return models.ExistingUser{}, err
-	}
-	t.Commit(ctx)
-
-	return models.NewExistingUser(user)
+		if !exists {
+			_, err = s.InsertUser(ctx, userParams)
+			if err != nil {
+				return err
+			}
+		}
+		user, err = d.SelectUserByName(ctx, userParams.Subject)
+		if err != nil {
+			return err
+		}
+		return err
+	})
+	return user, err
 }
 
 func userFromClaims(claims jwt.MapClaims) (models.User, error) {

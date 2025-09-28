@@ -7,13 +7,21 @@ import (
 )
 
 type Database interface {
-	WithTx(ctx context.Context) (Database, Transaction)
+	WithTx(ctx context.Context, withTx func(Database) error) error
 
 	DoesUserExist(ctx context.Context, username string) (bool, error)
-	InsertUser(ctx context.Context, params models.User) error
-	SelectUserByName(ctx context.Context, username string) (models.User, error)
-	UpsertSecret(ctx context.Context, secret models.Secret, userID int64) error
-	SelectSecrets(ctx context.Context, userID int64) ([]models.Secret, error)
+	InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error)
+	SelectUserByName(ctx context.Context, username string) (models.ExistingUser, error)
+
+	UpsertSecret(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
+	SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
+
+	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
+	SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error)
+	HasKeys(ctx context.Context, userID int64) (bool, error)
+
+	InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error)
+	SelectPassword(ctx context.Context, passwordID int64) (models.HashedPassword, error)
 }
 
 type Transaction interface {

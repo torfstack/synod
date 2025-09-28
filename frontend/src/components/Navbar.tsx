@@ -12,7 +12,7 @@ export const Navbar = (props: NavbarProps) => {
             <div className="navbar bg-base-100 shadow-sm">
                 <div className="flex-1">
                     <a className="btn btn-ghost text-l" href={"/"}>
-                        <img className="w-8 h-8" src="/favicon.svg"/>
+                        <img alt="synod logo" className="w-8 h-8" src="/favicon.svg"/>
                     </a>
                 </div>
 
@@ -51,7 +51,7 @@ type LogoutButtonProps = {
 }
 
 const LogoutButton = (props: LogoutButtonProps) => {
-    return <button className="btn btn-accent" onClick={props.logoutButtonPressed}>
+    return <button className="btn btn-soft btn-secondary" onClick={props.logoutButtonPressed}>
         Logout
     </button>
 }
