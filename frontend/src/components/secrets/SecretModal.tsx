@@ -86,9 +86,16 @@ export const SecretModal = (props: SecretModalProps) => {
                         <label className="input w-full">
                             Add Tag
                             <input type="text" placeholder="example" value={tag}
-                                   onChange={(e) => setTag(e.target.value)}
+                                   onChange={(e) => {
+                                       const lastChar = e.target.value.charAt(e.target.value.length - 1)
+                                       if (lastChar == " " || lastChar == ",") {
+                                           return
+                                       }
+                                       setTag(e.target.value)
+                                   }}
                                    onKeyDown={(e) => {
-                                       if (e.code == "Space" || e.key == " ") {
+                                       if (e.code == "Space" || e.key == " " || e.code == "Comma" || e.key == ",") {
+                                           if (tag.length == 0) return
                                            setTags([...tags, tag])
                                            setTag("")
                                        }
@@ -96,12 +103,14 @@ export const SecretModal = (props: SecretModalProps) => {
                                    disabled={tags.length >= 3} className="grow"/>
                             <span className="badge badge-neutral badge-xs">&lt;4</span>
                             <kbd className="kbd kbd-sm">␣</kbd>
+                            /
+                            <kbd className="kbd kbd-sm">,</kbd>
                         </label>
                         <div className="flex flex-col gap-2">
                             {tags.map((tag) => (
-                                <button key={tag} className="badge badge-neutral btn" onClick={removeTag(tag)}>
+                                <div key={tag} className="badge badge-neutral btn" onClick={removeTag(tag)}>
                                     <p className="truncate max-w-56">{tag}</p>
-                                </button>
+                                </div>
                             ))}
                         </div>
                         <div className="modal-action">
