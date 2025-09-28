@@ -15,7 +15,14 @@ func (s *Server) UnsealWithPassword(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	err := s.domainService.UnsealWithPassword(ctx, session, "test")
+	var input UnsealRequest
+	err := c.Bind(&input)
+	if err != nil {
+		logging.Errorf(ctx, "input could not be parsed to UnsealRequest: %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err = s.domainService.UnsealWithPassword(ctx, session, input.Password)
 	if err != nil {
 		return err
 	}
@@ -41,6 +48,10 @@ func (s *Server) PostSetupPlain(c echo.Context) error {
 	return c.NoContent(http.StatusCreated)
 }
 
+type SetupPasswordRequest struct {
+	Password string `json:"password"`
+}
+
 func (s *Server) PostSetupPassword(c echo.Context) error {
 	ctx := c.Request().Context()
 	session, ok := getSession(c)
@@ -48,7 +59,15 @@ func (s *Server) PostSetupPassword(c echo.Context) error {
 		logging.Errorf(ctx, "no session found in PostSetupPassword")
 		return c.NoContent(http.StatusUnauthorized)
 	}
-	err := s.domainService.SetupUserWithPassword(ctx, *session, "test")
+
+	var input SetupPasswordRequest
+	err := c.Bind(&input)
+	if err != nil {
+		logging.Errorf(ctx, "input could not be parsed to SetupPasswordRequest: %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err = s.domainService.SetupUserWithPassword(ctx, *session, input.Password)
 	if err != nil {
 		return err
 	}
