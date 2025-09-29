@@ -41,6 +41,8 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
         setSecret(existingSecret?.value ?? "")
         setUrl(existingSecret?.url ?? "")
         setTags(existingSecret?.tags ?? [])
+        setTag("")
+        setPasswordVisible(false)
     }, [existingSecret, isOpen]);
 
     async function onSubmit() {
@@ -116,7 +118,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
                                            setTag(e.target.value)
                                        }}
                                        onKeyDown={(e) => {
-                                           if (e.code == "Space" || e.key == " " || e.code == "Comma" || e.key == ",") {
+                                           if (e.code == "Enter") {
                                                if (tag.length == 0) return
                                                setTags([...tags, tag])
                                                setTag("")
@@ -124,9 +126,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
                                        }}
                                        disabled={tags.length >= 3} className="grow"/>
                                 <span className="badge badge-neutral badge-xs">&lt;4</span>
-                                <kbd className="kbd kbd-sm">␣</kbd>
-                                /
-                                <kbd className="kbd kbd-sm">,</kbd>
+                                <kbd className="kbd kbd-sm">↵</kbd>
                             </label>
                             <div className="flex flex-col gap-2">
                                 {tags.map((tag) => (

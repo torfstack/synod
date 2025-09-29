@@ -10,7 +10,7 @@ export const StartPage = () => {
                         only be
                         accessed if enough secret shares are collected.
                     </p>
-                    <img className="h-16 w-16 lg:h-32 lg:w-32" src="/favicon.svg"/>
+                    <img alt="synod logo" className="h-16 w-16 lg:h-32 lg:w-32" src="/favicon.svg"/>
                 </div>
             </div>
         </div>

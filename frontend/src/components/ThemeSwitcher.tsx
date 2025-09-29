@@ -1,28 +1,7 @@
-import {useEffect, useState} from "react";
+import {useTheme} from "../contexts/ThemeContext.tsx";
 
 export const ThemeSwitcher = () => {
-    const themes = ["corporate", "business"]
-    const [theme, setTheme] = useState(currentTheme())
-
-    function currentTheme(): string {
-        return document.documentElement.getAttribute("data-theme") ?? "corporate"
-    }
-
-    useEffect(() => {
-        const saved = localStorage.getItem("theme");
-        if (saved) {
-            setTheme(saved);
-            document.documentElement.setAttribute("data-theme", saved);
-        }
-    }, []);
-
-    const toggleTheme = () => {
-        const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
-        const nextTheme = themes[nextIndex];
-        setTheme(nextTheme);
-        document.documentElement.setAttribute("data-theme", nextTheme);
-        localStorage.setItem("theme", nextTheme);
-    }
+    const {theme, switchTheme} = useTheme();
 
     return <div className="dropdown dropdown-end">
         <label className="flex cursor-pointer gap-2">
@@ -44,7 +23,7 @@ export const ThemeSwitcher = () => {
                 type="checkbox"
                 checked={theme == "business"}
                 className="toggle theme-controller"
-                onChange={toggleTheme}
+                onChange={switchTheme}
             />
             <svg
                 xmlns="http://www.w3.org/2000/svg"

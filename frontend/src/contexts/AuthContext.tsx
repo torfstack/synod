@@ -15,19 +15,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({children}: { children: React.ReactNode }) {
     const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
 
-    const checkAuth = async () => {
-        try {
-            const authStatus = await getAuth();
-            setAuthStatus(authStatus)
-        } catch {
-            setAuthStatus(null);
-        }
+    const checkAuth = () => {
+        getAuth()
+            .then(authStatus => setAuthStatus(authStatus))
+            .catch(() => setAuthStatus(null))
     }
 
     useEffect(() => {
-        (async () => {
-            await checkAuth();
-        })();
+        checkAuth();
     }, []);
 
     useEffect(() => {
@@ -50,9 +45,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     };
 
     const reloadAuth = () => {
-        (async () => {
-            await checkAuth();
-        })();
+        checkAuth();
     }
 
     return (
