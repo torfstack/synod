@@ -24,7 +24,8 @@ func (s *Server) UnsealWithPassword(c echo.Context) error {
 
 	err = s.domainService.UnsealWithPassword(ctx, session, input.Password)
 	if err != nil {
-		return err
+		logging.Errorf(ctx, "could not unseal vault: %v", err)
+		return c.NoContent(http.StatusUnauthorized)
 	}
 
 	return c.NoContent(http.StatusNoContent)
