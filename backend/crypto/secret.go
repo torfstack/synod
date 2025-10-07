@@ -1,4 +1,4 @@
-package secret
+package crypto
 
 import (
 	"crypto/rand"
