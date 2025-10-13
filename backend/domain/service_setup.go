@@ -98,10 +98,13 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 		return err
 	}
 
-	hashedPassword := crypto.HashPasswordWithOptions([]byte(password), crypto.HashOptions{
+	hashedPassword, err := crypto.HashPasswordWithOptions([]byte(password), crypto.HashOptions{
 		Salt:       dbPassword.Salt,
 		Iterations: dbPassword.Iterations,
 	})
+	if err != nil {
+		return err
+	}
 
 	if subtle.ConstantTimeCompare(dbPassword.Hash, hashedPassword.Hash) == 0 {
 		return errors.New("password hash mismatch")

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_symmetricCipher_Encrypt(t *testing.T) {
+func Test_SymmetricCipher_Encrypt(t *testing.T) {
 	tests := []struct {
 		name string
 		run  func(*testing.T)
