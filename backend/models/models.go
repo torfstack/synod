@@ -35,12 +35,11 @@ const (
 )
 
 type UserKeyPair struct {
-	ID         *int64
-	UserID     int64
-	Type       KeyType
-	PasswordID *int64
-	Public     []byte
-	Private    []byte
+	ID          *int64
+	UserID      int64
+	Type        KeyType
+	PasswordID  *int64
+	KeyMaterial []byte
 }
 
 type KeyPair struct {

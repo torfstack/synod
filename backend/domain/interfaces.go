@@ -2,8 +2,8 @@ package domain
 
 import (
 	"context"
-	"crypto/rsa"
 
+	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/models"
 )
 
@@ -21,8 +21,8 @@ type UserService interface {
 }
 
 type SecretService interface {
-	GetSecrets(ctx context.Context, userID int64, key *rsa.PrivateKey) ([]models.Secret, error)
-	UpsertSecret(ctx context.Context, secret models.Secret, userID int64, key *rsa.PrivateKey) (models.EncryptedSecret, error)
+	GetSecrets(ctx context.Context, userID int64, cipher *crypto.AsymmetricCipher) ([]models.Secret, error)
+	UpsertSecret(ctx context.Context, secret models.Secret, userID int64, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error)
 }
 
 type SessionService interface {
@@ -32,9 +32,8 @@ type SessionService interface {
 }
 
 type CryptoService interface {
-	GenerateKeyPair() (models.KeyPair, error)
-	EncryptSecret(ctx context.Context, secret models.Secret, key *rsa.PublicKey) (models.EncryptedSecret, error)
-	DecryptSecret(ctx context.Context, secret models.EncryptedSecret, key *rsa.PrivateKey) (models.Secret, error)
+	EncryptSecret(ctx context.Context, secret models.Secret, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error)
+	DecryptSecret(ctx context.Context, secret models.EncryptedSecret, cipher *crypto.AsymmetricCipher) (models.Secret, error)
 }
 
 type SetupService interface {

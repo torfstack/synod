@@ -17,7 +17,7 @@ func (s *Server) GetSecrets(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	secrets, err := s.domainService.GetSecrets(ctx, session.UserID, session.PrivateKey)
+	secrets, err := s.domainService.GetSecrets(ctx, session.UserID, session.Cipher)
 	if err != nil {
 		logging.Errorf(ctx, "could not retrieve secrets from DB: %v", err)
 		return err
@@ -41,7 +41,7 @@ func (s *Server) PostSecret(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	_, err = s.domainService.UpsertSecret(ctx, input, session.UserID, session.PrivateKey)
+	_, err = s.domainService.UpsertSecret(ctx, input, session.UserID, session.Cipher)
 	if err != nil {
 		logging.Errorf(ctx, "could not insert/update secret: %v", err)
 		return err

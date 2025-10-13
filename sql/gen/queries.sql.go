@@ -34,17 +34,16 @@ func (q *Queries) HasKeys(ctx context.Context, userID int64) (bool, error) {
 }
 
 const insertKeys = `-- name: InsertKeys :one
-INSERT INTO keys (user_id, password_id, type, public, private)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, password_id, type, public, private
+INSERT INTO keys (user_id, password_id, type, key_material)
+VALUES ($1, $2, $3, $4)
+RETURNING id, user_id, password_id, type, key_material
 `
 
 type InsertKeysParams struct {
-	UserID     int64
-	PasswordID pgtype.Int8
-	Type       int32
-	Public     []byte
-	Private    []byte
+	UserID      int64
+	PasswordID  pgtype.Int8
+	Type        int32
+	KeyMaterial []byte
 }
 
 func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) (Key, error) {
@@ -52,8 +51,7 @@ func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) (Key, er
 		arg.UserID,
 		arg.PasswordID,
 		arg.Type,
-		arg.Public,
-		arg.Private,
+		arg.KeyMaterial,
 	)
 	var i Key
 	err := row.Scan(
@@ -61,8 +59,7 @@ func (q *Queries) InsertKeys(ctx context.Context, arg InsertKeysParams) (Key, er
 		&i.UserID,
 		&i.PasswordID,
 		&i.Type,
-		&i.Public,
-		&i.Private,
+		&i.KeyMaterial,
 	)
 	return i, err
 }
@@ -154,8 +151,21 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, e
 	return i, err
 }
 
+const selectKeyMaterial = `-- name: SelectKeyMaterial :one
+SELECT key_material
+FROM keys
+WHERE user_id = $1
+`
+
+func (q *Queries) SelectKeyMaterial(ctx context.Context, userID int64) ([]byte, error) {
+	row := q.db.QueryRow(ctx, selectKeyMaterial, userID)
+	var key_material []byte
+	err := row.Scan(&key_material)
+	return key_material, err
+}
+
 const selectKeys = `-- name: SelectKeys :one
-SELECT id, user_id, password_id, type, public, private
+SELECT id, user_id, password_id, type, key_material
 FROM keys
 WHERE user_id = $1
 `
@@ -168,8 +178,7 @@ func (q *Queries) SelectKeys(ctx context.Context, userID int64) (Key, error) {
 		&i.UserID,
 		&i.PasswordID,
 		&i.Type,
-		&i.Public,
-		&i.Private,
+		&i.KeyMaterial,
 	)
 	return i, err
 }
@@ -190,32 +199,6 @@ func (q *Queries) SelectPassword(ctx context.Context, id int64) (Password, error
 		&i.Iterations,
 	)
 	return i, err
-}
-
-const selectPrivateKey = `-- name: SelectPrivateKey :one
-SELECT private
-FROM keys
-WHERE user_id = $1
-`
-
-func (q *Queries) SelectPrivateKey(ctx context.Context, userID int64) ([]byte, error) {
-	row := q.db.QueryRow(ctx, selectPrivateKey, userID)
-	var private []byte
-	err := row.Scan(&private)
-	return private, err
-}
-
-const selectPublicKey = `-- name: SelectPublicKey :one
-SELECT public
-FROM keys
-WHERE user_id = $1
-`
-
-func (q *Queries) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {
-	row := q.db.QueryRow(ctx, selectPublicKey, userID)
-	var public []byte
-	err := row.Scan(&public)
-	return public, err
 }
 
 const selectSecrets = `-- name: SelectSecrets :many

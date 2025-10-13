@@ -100,7 +100,7 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 	return c.JSON(http.StatusOK, models.AuthStatus{
 		IsAuthenticated: true,
 		IsSetup:         isUserSetup,
-		NeedsToUnseal:   session.PrivateKey == nil,
+		NeedsToUnseal:   session.Cipher == nil,
 	})
 }
 

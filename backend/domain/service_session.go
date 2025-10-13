@@ -2,13 +2,13 @@ package domain
 
 import (
 	"context"
-	"crypto/rsa"
 	"crypto/x509"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/torfstack/synod/backend/crypto"
 )
 
 var _ SessionService = &service{}
@@ -22,10 +22,10 @@ var (
 )
 
 type Session struct {
-	SessionID  string
-	UserID     int64
-	ExpiresAt  time.Time
-	PrivateKey *rsa.PrivateKey
+	SessionID string
+	UserID    int64
+	ExpiresAt time.Time
+	Cipher    *crypto.AsymmetricCipher
 }
 
 type sessionStore map[string]Session
@@ -43,16 +43,20 @@ func (s *service) CreateSession(ctx context.Context, userID int64) (Session, err
 		return session, err
 	}
 	if hasKeys {
-		keyPair, err := s.database.SelectKeys(ctx, userID)
+		key, err := s.database.SelectKeys(ctx, userID)
 		if err != nil {
 			return session, err
 		}
-		if keyPair.PasswordID == nil {
-			priv, err := x509.ParsePKCS1PrivateKey(keyPair.Private)
+		if key.PasswordID == nil {
+			priv, err := x509.ParsePKCS1PrivateKey(key.KeyMaterial)
 			if err != nil {
 				return session, err
 			}
-			session.PrivateKey = priv
+			priv.Precompute()
+			session.Cipher, err = crypto.AsymmetricCipherFromPrivateKey(priv)
+			if err != nil {
+				return session, err
+			}
 		}
 	}
 

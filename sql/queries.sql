@@ -32,8 +32,8 @@ VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: InsertKeys :one
-INSERT INTO keys (user_id, password_id, type, public, private)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO keys (user_id, password_id, type, key_material)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: HasKeys :one
@@ -44,13 +44,8 @@ SELECT *
 FROM keys
 WHERE user_id = $1;
 
--- name: SelectPublicKey :one
-SELECT public
-FROM keys
-WHERE user_id = $1;
-
--- name: SelectPrivateKey :one
-SELECT private
+-- name: SelectKeyMaterial :one
+SELECT key_material
 FROM keys
 WHERE user_id = $1;
 

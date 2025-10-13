@@ -23,12 +23,11 @@ CREATE TABLE secrets
 
 CREATE TABLE keys
 (
-    id          BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    password_id BIGINT REFERENCES passwords (id) ON DELETE CASCADE,
-    type        INT    NOT NULL,
-    public      BYTEA  NOT NULL,
-    private     BYTEA  NOT NULL
+    id           BIGSERIAL PRIMARY KEY,
+    user_id      BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    password_id  BIGINT REFERENCES passwords (id) ON DELETE CASCADE,
+    type         INT    NOT NULL,
+    key_material BYTEA  NOT NULL
 );
 
 CREATE TABLE passwords
