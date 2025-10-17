@@ -22,7 +22,12 @@ type UserService interface {
 
 type SecretService interface {
 	GetSecrets(ctx context.Context, userID int64, cipher *crypto.AsymmetricCipher) ([]models.Secret, error)
-	UpsertSecret(ctx context.Context, secret models.Secret, userID int64, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error)
+	UpsertSecret(
+		ctx context.Context,
+		secret models.Secret,
+		userID int64,
+		cipher *crypto.AsymmetricCipher,
+	) (models.EncryptedSecret, error)
 }
 
 type SessionService interface {
@@ -32,8 +37,16 @@ type SessionService interface {
 }
 
 type CryptoService interface {
-	EncryptSecret(ctx context.Context, secret models.Secret, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error)
-	DecryptSecret(ctx context.Context, secret models.EncryptedSecret, cipher *crypto.AsymmetricCipher) (models.Secret, error)
+	EncryptSecret(
+		ctx context.Context,
+		secret models.Secret,
+		cipher *crypto.AsymmetricCipher,
+	) (models.EncryptedSecret, error)
+	DecryptSecret(
+		ctx context.Context,
+		secret models.EncryptedSecret,
+		cipher *crypto.AsymmetricCipher,
+	) (models.Secret, error)
 }
 
 type SetupService interface {

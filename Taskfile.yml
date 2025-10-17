@@ -7,17 +7,21 @@ vars:
     sh: git tag --sort=-creatordate | head -n 1
 
 tasks:
-  ## Local
   start-local:
     cmds:
       - cmd: docker compose up --build --detach
   stop-local:
     cmds:
       - cmd: docker compose down
-  ## CI/CD
   test:
     cmds:
       - cmd: set -euo pipefail && go test -json -v ./... 2>&1 | gotestfmt
+  lint:
+    cmds:
+      - cmd: golangci-lint run
+  fmt:
+    cmds:
+      - cmd: golangci-lint fmt
   release:
     requires:
       vars: [ IMAGE_TAG ]

@@ -11,7 +11,11 @@ import (
 
 var _ SecretService = &service{}
 
-func (s *service) GetSecrets(ctx context.Context, userID int64, cipher *crypto.AsymmetricCipher) ([]models.Secret, error) {
+func (s *service) GetSecrets(
+	ctx context.Context,
+	userID int64,
+	cipher *crypto.AsymmetricCipher,
+) ([]models.Secret, error) {
 	if cipher == nil {
 		return []models.Secret{}, errors.New("need cipher to decrypt secrets")
 	}
@@ -31,7 +35,12 @@ func (s *service) GetSecrets(ctx context.Context, userID int64, cipher *crypto.A
 	return secrets, nil
 }
 
-func (s *service) UpsertSecret(ctx context.Context, secret models.Secret, userID int64, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error) {
+func (s *service) UpsertSecret(
+	ctx context.Context,
+	secret models.Secret,
+	userID int64,
+	cipher *crypto.AsymmetricCipher,
+) (models.EncryptedSecret, error) {
 	if cipher == nil {
 		return models.EncryptedSecret{}, errors.New("need cipher to encrypt secrets")
 	}

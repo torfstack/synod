@@ -7,11 +7,11 @@ import (
 )
 
 type DBConfig struct {
-	Host     string `yaml:"host" validate:"required"`
-	Port     int    `yaml:"port" validate:"required"`
-	User     string `yaml:"user" validate:"required"`
+	Host     string `yaml:"host"     validate:"required"`
+	Port     int    `yaml:"port"     validate:"required"`
+	User     string `yaml:"user"     validate:"required"`
 	Password string `yaml:"password" validate:"required"`
-	DBName   string `yaml:"dbname" validate:"required"`
+	DBName   string `yaml:"dbname"   validate:"required"`
 }
 
 func (dbCfg DBConfig) ConnectionString() string {
@@ -26,20 +26,20 @@ func (dbCfg DBConfig) ConnectionString() string {
 }
 
 type AuthConfig struct {
-	Issuer       string `yaml:"issuer" validate:"required"`
-	ClientID     string `yaml:"clientId" validate:"required"`
+	Issuer       string `yaml:"issuer"       validate:"required"`
+	ClientID     string `yaml:"clientId"     validate:"required"`
 	ClientSecret string `yaml:"clientSecret" validate:"required"`
-	RedirectURL  string `yaml:"redirectUrl" validate:"required"`
+	RedirectURL  string `yaml:"redirectUrl"  validate:"required"`
 }
 
 type ServerConfig struct {
-	Port    int    `yaml:"port" validate:"required"`
+	Port    int    `yaml:"port"    validate:"required"`
 	BaseURL string `yaml:"baseUrl" validate:"required"`
 }
 
 type Config struct {
-	DB     DBConfig     `yaml:"db" validate:"required"`
-	Auth   AuthConfig   `yaml:"auth" validate:"required"`
+	DB     DBConfig     `yaml:"db"     validate:"required"`
+	Auth   AuthConfig   `yaml:"auth"   validate:"required"`
 	Server ServerConfig `yaml:"server" validate:"required"`
 }
 
