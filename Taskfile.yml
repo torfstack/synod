@@ -13,6 +13,9 @@ tasks:
   stop-local:
     cmds:
       - cmd: docker compose down
+  gen:
+    cmds:
+      - cmd: sqlc generate
   test:
     cmds:
       - cmd: set -euo pipefail && go test -json -v ./... 2>&1 | gotestfmt
