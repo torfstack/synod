@@ -38,11 +38,10 @@ func User(in sqlc.User) models.ExistingUser {
 
 func KeyPair(in sqlc.Key) models.UserKeyPair {
 	userKeyPair := models.UserKeyPair{
-		ID:      &in.ID,
-		Type:    models.KeyType(in.Type),
-		UserID:  in.UserID,
-		Public:  in.Public,
-		Private: in.Private,
+		ID:          &in.ID,
+		Type:        models.KeyType(in.Type),
+		UserID:      in.UserID,
+		KeyMaterial: in.KeyMaterial,
 	}
 	if in.PasswordID.Valid {
 		userKeyPair.PasswordID = &in.PasswordID.Int64

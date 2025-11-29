@@ -2,27 +2,31 @@ package domain
 
 import (
 	"context"
-	"crypto/rsa"
 	"errors"
 
+	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/logging"
 	"github.com/torfstack/synod/backend/models"
 )
 
 var _ SecretService = &service{}
 
-func (s *service) GetSecrets(ctx context.Context, userID int64, key *rsa.PrivateKey) ([]models.Secret, error) {
+func (s *service) GetSecrets(
+	ctx context.Context,
+	userID int64,
+	cipher *crypto.AsymmetricCipher,
+) ([]models.Secret, error) {
+	if cipher == nil {
+		return []models.Secret{}, errors.New("need cipher to decrypt secrets")
+	}
 	encryptedSecrets, err := s.database.SelectSecrets(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if key == nil {
-		return []models.Secret{}, errors.New("need private key to decrypt secrets")
-	}
 
 	secrets := make([]models.Secret, len(encryptedSecrets))
 	for i, encryptedSecret := range encryptedSecrets {
-		decrypted, err := s.DecryptSecret(ctx, encryptedSecret, key)
+		decrypted, err := s.DecryptSecret(ctx, encryptedSecret, cipher)
 		if err != nil {
 			return nil, err
 		}
@@ -31,12 +35,16 @@ func (s *service) GetSecrets(ctx context.Context, userID int64, key *rsa.Private
 	return secrets, nil
 }
 
-func (s *service) UpsertSecret(ctx context.Context, secret models.Secret, userID int64, key *rsa.PrivateKey) (models.EncryptedSecret, error) {
-	if key == nil {
-		return models.EncryptedSecret{}, errors.New("need public key to encrypt secrets")
+func (s *service) UpsertSecret(
+	ctx context.Context,
+	secret models.Secret,
+	userID int64,
+	cipher *crypto.AsymmetricCipher,
+) (models.EncryptedSecret, error) {
+	if cipher == nil {
+		return models.EncryptedSecret{}, errors.New("need cipher to encrypt secrets")
 	}
-	pub := key.PublicKey
-	encryptedSecret, err := s.EncryptSecret(ctx, secret, &pub)
+	encryptedSecret, err := s.EncryptSecret(ctx, secret, cipher)
 	if err != nil {
 		return models.EncryptedSecret{}, err
 	}

@@ -2,9 +2,9 @@ package domain
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/torfstack/synod/backend/db"
 	"github.com/torfstack/synod/backend/models"
 )
@@ -23,62 +23,44 @@ func (s *service) InsertUser(ctx context.Context, user models.User) (models.Exis
 	return createdUser, err
 }
 
-func (s *service) GetUserFromToken(ctx context.Context, idToken string) (models.ExistingUser, error) {
-	// TODO: Implement proper JWT validation
-	res, _ := jwt.Parse(
-		idToken, func(token *jwt.Token) (interface{}, error) {
-			return nil, nil
-		},
-	)
-
-	claims, ok := res.Claims.(jwt.MapClaims)
-	if !ok {
-		return models.ExistingUser{}, errors.New("error parsing claims as jwt.MapClaims")
-	}
-
-	userParams, err := userFromClaims(claims)
+func (s *service) GetUserFromToken(ctx context.Context, idToken *oidc.IDToken) (models.ExistingUser, error) {
+	var c claims
+	err := idToken.Claims(&c)
 	if err != nil {
-		return models.ExistingUser{}, err
+		return models.ExistingUser{}, fmt.Errorf("oidc: failed to decode claims: %w", err)
+	}
+	userParams := models.User{
+		Subject:  c.Subject,
+		Email:    c.Email,
+		FullName: c.Name,
 	}
 
 	var user models.ExistingUser
-	err = s.database.WithTx(ctx, func(d db.Database) error {
-		var exists bool
-		exists, err = d.DoesUserExist(ctx, userParams.Subject)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			_, err = s.InsertUser(ctx, userParams)
+	err = s.database.WithTx(
+		ctx, func(d db.Database) error {
+			var exists bool
+			exists, err = d.DoesUserExist(ctx, c.Subject)
 			if err != nil {
 				return err
 			}
-		}
-		user, err = d.SelectUserByName(ctx, userParams.Subject)
-		if err != nil {
+			if !exists {
+				_, err = s.InsertUser(ctx, userParams)
+				if err != nil {
+					return err
+				}
+			}
+			user, err = d.SelectUserByName(ctx, userParams.Subject)
+			if err != nil {
+				return err
+			}
 			return err
-		}
-		return err
-	})
+		},
+	)
 	return user, err
 }
 
-func userFromClaims(claims jwt.MapClaims) (models.User, error) {
-	subject, ok := claims["sub"]
-	if !ok {
-		return models.User{}, errors.New("error parsing subject as string")
-	}
-	email, ok := claims["email"]
-	if !ok {
-		email = ""
-	}
-	fullName, ok := claims["name"]
-	if !ok {
-		fullName = ""
-	}
-	return models.User{
-		Subject:  subject.(string),
-		Email:    email.(string),
-		FullName: fullName.(string),
-	}, nil
+type claims struct {
+	Subject string `json:"sub"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
 }

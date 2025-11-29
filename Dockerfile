@@ -11,7 +11,7 @@ COPY frontend .
 RUN ["npm", "run", "build"]
 RUN ["npm", "prune", "--production"]
 
-FROM golang:1.25.1 AS builder
+FROM golang:1.25.4 AS builder
 
 WORKDIR /opt/synod
 

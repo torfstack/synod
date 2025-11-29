@@ -3,8 +3,8 @@ import React, {useEffect, useRef, useState} from "react";
 import {Eye, EyeSlash} from "../../icons/Eye.tsx";
 
 interface SecretModalProps {
-    handleSecret: (s: Secret) => Promise<void>
-    existingSecret?: Secret
+    handleSecret: (s: Secret) => Promise<void>;
+    existingSecret?: Secret;
     isOpen: boolean;
     closeModal: () => void;
 }

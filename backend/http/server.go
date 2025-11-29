@@ -48,18 +48,22 @@ func (s *Server) Start() error {
 		m = s.SessionCheck
 	}
 
-	api := e.Group("/api", s.RequestAndResponseLogging)
-	secrets := api.Group("/secrets", m)
+	loggerMiddleware := middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `[${time_rfc3339}] method=${method}, uri=${uri}, status=${status}, latency=${latency_human}` + "\n",
+	})
+
+	api := e.Group("/api")
+	secrets := api.Group("/secrets", m, loggerMiddleware)
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
 
-	authorization := api.Group("/auth")
+	authorization := api.Group("/auth", loggerMiddleware)
 	authorization.GET("/start", s.StartAuthentication)
 	authorization.GET("/callback", s.EstablishSession)
 	authorization.GET("", s.IsAuthorized)
 	authorization.DELETE("", s.EndSession)
 
-	setup := api.Group("/setup", m)
+	setup := api.Group("/setup", m, loggerMiddleware)
 	setup.POST("/plain", s.PostSetupPlain)
 	setup.POST("/password", s.PostSetupPassword)
 	setup.POST("/unseal", s.UnsealWithPassword)

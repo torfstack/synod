@@ -1,8 +1,10 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -47,23 +49,19 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		logging.Errorf(ctx, "could not perform token request: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	resBytes, err := io.ReadAll(res.Body)
+
+	idToken, err := s.verifyAndGetIdToken(ctx, res.Body, provider, clientId)
 	if err != nil {
-		logging.Errorf(ctx, "could not read token response from oidc provider: %v", err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
-	var oidcResponse OidcResponse
-	err = json.Unmarshal(resBytes, &oidcResponse)
-	if err != nil {
-		logging.Errorf(ctx, "could not unmarshal token response from oidc provider: %v", err)
+		logging.Errorf(ctx, "could not verify id token: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	user, err := s.domainService.GetUserFromToken(ctx, oidcResponse.IdToken)
+	user, err := s.domainService.GetUserFromToken(ctx, idToken)
 	if err != nil {
 		logging.Errorf(ctx, "could not get user based on id token from oidc provider: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
 	session, err := s.domainService.CreateSession(ctx, user.ID)
 	if err != nil {
 		logging.Errorf(ctx, "could not create session: %v", err)
@@ -72,6 +70,36 @@ func (s *Server) EstablishSession(c echo.Context) error {
 
 	c.SetCookie(newSessionCookie(session.SessionID, session.ExpiresAt))
 	return c.Redirect(http.StatusFound, s.cfg.Server.BaseURL)
+}
+
+func (s *Server) verifyAndGetIdToken(
+	ctx context.Context,
+	body io.Reader,
+	provider *oidc.Provider,
+	clientId string,
+) (*oidc.IDToken, error) {
+	resBytes, err := io.ReadAll(body)
+	if err != nil {
+		return nil, fmt.Errorf("could not read token response from oidc provider: %w", err)
+	}
+
+	var oidcResponse OidcResponse
+	err = json.Unmarshal(resBytes, &oidcResponse)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal token response from oidc provider: %w", err)
+	}
+	if oidcResponse.IdToken == "" {
+		return nil, fmt.Errorf("no id token found in oidc response")
+	}
+
+	idToken, err := provider.
+		VerifierContext(ctx, &oidc.Config{ClientID: clientId}).
+		Verify(ctx, oidcResponse.IdToken)
+	if err != nil {
+		return nil, fmt.Errorf("could not verify id token: %w", err)
+	}
+
+	return idToken, nil
 }
 
 type OidcResponse struct {
@@ -97,11 +125,13 @@ func (s *Server) IsAuthorized(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, models.AuthStatus{
-		IsAuthenticated: true,
-		IsSetup:         isUserSetup,
-		NeedsToUnseal:   session.PrivateKey == nil,
-	})
+	return c.JSON(
+		http.StatusOK, models.AuthStatus{
+			IsAuthenticated: true,
+			IsSetup:         isUserSetup,
+			NeedsToUnseal:   session.Cipher == nil,
+		},
+	)
 }
 
 func (s *Server) EndSession(c echo.Context) error {

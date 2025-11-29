@@ -40,8 +40,7 @@ func (d *database) WithTx(ctx context.Context, withTx func(Database) error) erro
 	defer func(tx pgx.Tx, ctx context.Context) {
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
-	err = withTx(&database{connStr: d.connStr, pool: d.pool, tx: trans})
-	if err != nil {
+	if err = withTx(&database{connStr: d.connStr, pool: d.pool, tx: trans}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

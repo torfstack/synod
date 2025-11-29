@@ -140,10 +140,9 @@ func TestDatabase_KeyHandling(t *testing.T) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
 	createdKeys, err := d.InsertKeys(ctx, models.UserKeyPair{
-		UserID:  createdUser.ID,
-		Type:    models.KeyTypeRsa,
-		Public:  x509.MarshalPKCS1PublicKey(&priv.PublicKey),
-		Private: x509.MarshalPKCS1PrivateKey(priv),
+		UserID:      createdUser.ID,
+		Type:        models.KeyTypeRsa,
+		KeyMaterial: x509.MarshalPKCS1PrivateKey(priv),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, createdUser.ID, createdKeys.UserID)
@@ -152,13 +151,9 @@ func TestDatabase_KeyHandling(t *testing.T) {
 	keyPair, err := d.SelectKeys(ctx, createdUser.ID)
 	assert.NoError(t, err)
 
-	privParsed, err := x509.ParsePKCS1PrivateKey(keyPair.Private)
+	privParsed, err := x509.ParsePKCS1PrivateKey(keyPair.KeyMaterial)
 	assert.NoError(t, err)
 	assert.Equal(t, priv, privParsed)
-
-	pubParsed, err := x509.ParsePKCS1PublicKey(keyPair.Public)
-	assert.NoError(t, err)
-	assert.Equal(t, priv.PublicKey, *pubParsed)
 
 	assert.Equal(t, createdUser.ID, keyPair.UserID)
 }
