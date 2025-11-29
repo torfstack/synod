@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/models"
 )
@@ -17,7 +18,7 @@ type Service interface {
 type UserService interface {
 	DoesUserExist(ctx context.Context, username string) (bool, error)
 	InsertUser(ctx context.Context, user models.User) (models.ExistingUser, error)
-	GetUserFromToken(ctx context.Context, token string) (models.ExistingUser, error)
+	GetUserFromToken(ctx context.Context, token *oidc.IDToken) (models.ExistingUser, error)
 }
 
 type SecretService interface {
