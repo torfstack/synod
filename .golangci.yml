@@ -113,10 +113,6 @@ linters:
     - whitespace
     - wrapcheck
     - wsl
-    - wsl_v5
-    - zerologlint
-  settings:
-    option: value
   exclusions:
     generated: lax
     presets:
