@@ -9,7 +9,7 @@ services:
     volumes:
       - type: bind
         source: ./config.yaml
-        target: /config.yaml
+        target: /app/config.yaml
     ports:
       - "4000:4000"
       - "4200:4200"

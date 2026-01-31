@@ -4,35 +4,52 @@ WORKDIR /opt/synod-frontend
 
 COPY frontend/package*.json .
 
-RUN ["npm", "ci"]
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 COPY frontend .
 
-RUN ["npm", "run", "build"]
-RUN ["npm", "prune", "--production"]
+RUN npm run build
 
-FROM golang:1.25.6 AS builder
+FROM golang:1.25.6-alpine AS builder
 
 WORKDIR /opt/synod
 
 COPY go.mod go.sum ./
-COPY backend backend
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
 COPY 'cmd' 'cmd'
+COPY backend backend
 COPY sql sql
 
-RUN CGO_ENABLED=0 go build -o bin/synod cmd/main.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/synod cmd/main.go
 
-FROM alpine:edge AS runner
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 go build -gcflags="all=-N -l" -o bin/synod-debug cmd/main.go
 
-COPY --from=frontend-builder /opt/synod-frontend/dist static
-COPY --from=builder /opt/synod/bin/synod synod
-COPY sql/migrations sql/migrations
+FROM alpine:3.23 AS runner
+
+WORKDIR /app
+
+COPY --from=builder /opt/synod/bin/synod ./synod
+COPY --from=frontend-builder /opt/synod-frontend/dist ./static
+COPY sql/migrations ./sql/migrations
 
 CMD ["./synod"]
 
-FROM runner AS runner-debug
+FROM alpine:3.23 AS runner-debug
 
 RUN apk add --no-cache delve
+
+WORKDIR /app
+
+COPY --from=builder /opt/synod/bin/synod-debug ./synod
+COPY --from=frontend-builder /opt/synod-frontend/dist ./static
+COPY sql/migrations ./sql/migrations
 
 CMD ["dlv", "exec", "./synod", "--headless", "--listen=:4200", "--api-version=2", "--accept-multiclient", "--continue"]
 
