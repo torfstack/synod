@@ -4,7 +4,12 @@
     themes: corporate --default, business --prefersdark;
 }
 
+@theme {
+    --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
 html {
+    font-family: var(--font-sans);
     scrollbar-gutter: auto !important;
 }
 

@@ -1,0 +1,6 @@
+[tools]
+go = "latest"
+node = "24"
+
+[env]
+
