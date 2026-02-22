@@ -27,7 +27,7 @@ spec:
             - containerPort: 4000
               hostPort: 4000
           volumeMounts:
-            - mountPath: "/config.yaml"
+            - mountPath: "/app/config.yaml"
               subPath: "config.yaml"
               name: config-yaml
               readOnly: true

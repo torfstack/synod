@@ -1,17 +1,16 @@
-FROM node:24-alpine AS frontend-builder
+FROM oven/bun:1.3.9-alpine AS frontend-builder
 
 WORKDIR /opt/synod-frontend
 
-COPY frontend/package*.json .
+COPY frontend/package.json frontend/bun.lock ./
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN bun install --frozen-lockfile
 
 COPY frontend .
 
-RUN npm run build
+RUN bun run build
 
-FROM golang:1.25.6-alpine AS builder
+FROM golang:1.26.0-alpine AS builder
 
 WORKDIR /opt/synod
 
