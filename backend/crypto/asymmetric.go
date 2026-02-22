@@ -1,110 +1,73 @@
 package crypto
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
+	"crypto/hpke"
+	"errors"
 	"slices"
-
-	"github.com/torfstack/synod/backend/util"
 )
 
 type AsymmetricCipher struct {
-	publicKey  *rsa.PublicKey
-	privateKey *rsa.PrivateKey
+	publicKey  hpke.PublicKey
+	privateKey hpke.PrivateKey
 }
 
+var (
+	kem  = hpke.MLKEM768X25519()
+	kdf  = hpke.HKDFSHA512()
+	aead = hpke.AES256GCM()
+)
+
 func (a *AsymmetricCipher) Encrypt(plaintext []byte) ([]byte, error) {
-	s, err := NewSymmetricCipher()
+	c, err := hpke.Seal(a.publicKey, kdf, aead, nil, plaintext)
 	if err != nil {
 		return nil, err
 	}
-	encryptedSymmetricKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, a.publicKey, s.key, nil)
-	if err != nil {
-		return nil, err
-	}
-	ciphertext, err := s.Encrypt(plaintext)
-	if err != nil {
-		return nil, err
-	}
-	return slices.Concat(
-		MarkerBytes, RsaOaepMarkerBytes,
-		util.IntToBytes(uint32(len(encryptedSymmetricKey))), encryptedSymmetricKey,
-		util.IntToBytes(uint32(len(ciphertext))), ciphertext,
-	), nil
+	return slices.Concat(MarkerBytes, AsymmetricMarkerBytes, c), nil
 }
 
 func (a *AsymmetricCipher) Decrypt(ciphertext []byte) ([]byte, error) {
-	b := bytes.NewBuffer(ciphertext)
-
-	marker := b.Next(4)
-	if !slices.Equal(marker, MarkerBytes) {
+	if len(ciphertext) < 9 {
+		return nil, errors.New("ciphertext too short")
+	}
+	marker, algorithm := ciphertext[:4], ciphertext[4:8]
+	if !slices.Equal(marker, MarkerBytes) || !slices.Equal(algorithm, AsymmetricMarkerBytes) {
 		return nil, ErrCryptoInvalidMarker
 	}
-
-	algorithm := b.Next(4)
-	if !slices.Equal(algorithm, RsaOaepMarkerBytes) {
-		return nil, ErrCryptoAlgorithmMarker
-	}
-
-	encryptedSymmetricKeyLen := util.BytesToInt(b.Next(4))
-	encryptedSymmetricKey := b.Next(int(encryptedSymmetricKeyLen))
-
-	symmetricKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, a.privateKey, encryptedSymmetricKey, nil)
+	p, err := hpke.Open(a.privateKey, kdf, aead, nil, ciphertext[8:])
 	if err != nil {
 		return nil, err
 	}
-	s, err := SymmetricCipherFromKey(symmetricKey)
-	if err != nil {
-		return nil, err
-	}
-
-	innerCiphertextLen := util.BytesToInt(b.Next(4))
-	innerCiphertext := b.Next(int(innerCiphertextLen))
-
-	plaintext, err := s.Decrypt(innerCiphertext)
-	if err != nil {
-		return nil, err
-	}
-	return plaintext, nil
+	return p, nil
 }
 
 func NewAsymmetricCipher() (*AsymmetricCipher, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, RsaKeyLengthInBits)
+	privateKey, err := hpke.MLKEM768X25519().GenerateKey()
 	if err != nil {
 		return nil, err
 	}
-	publicKey := privateKey.PublicKey
+	publicKey := privateKey.PublicKey()
 	return &AsymmetricCipher{
-		publicKey:  &publicKey,
+		publicKey:  publicKey,
 		privateKey: privateKey,
 	}, nil
 }
 
-func AsymmetricCipherFromPublicKey(publicKey *rsa.PublicKey) (*AsymmetricCipher, error) {
+func AsymmetricCipherFromPrivateKey(privateKey hpke.PrivateKey) (*AsymmetricCipher, error) {
 	return &AsymmetricCipher{
-		publicKey: publicKey,
-	}, nil
-}
-
-func AsymmetricCipherFromPrivateKey(privateKey *rsa.PrivateKey) (*AsymmetricCipher, error) {
-	return &AsymmetricCipher{
-		publicKey:  privateKey.Public().(*rsa.PublicKey),
+		publicKey:  privateKey.PublicKey(),
 		privateKey: privateKey,
 	}, nil
 }
 
-func AsymmetricCipherFromPrivateKeyBytes(b []byte) (*AsymmetricCipher, error) {
-	priv, err := x509.ParsePKCS1PrivateKey(b)
+func AsymmetricCipherFromBytes(b []byte) (*AsymmetricCipher, error) {
+	priv, err := kem.NewPrivateKey(b)
 	if err != nil {
 		return nil, err
 	}
-	priv.Precompute()
 	return AsymmetricCipherFromPrivateKey(priv)
 }
 
 func (a *AsymmetricCipher) Serialize() []byte {
-	return x509.MarshalPKCS1PrivateKey(a.privateKey)
+	b, _ := a.privateKey.Bytes()
+	return b
 }

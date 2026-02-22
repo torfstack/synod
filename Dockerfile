@@ -40,7 +40,7 @@ COPY sql/migrations ./sql/migrations
 
 CMD ["./synod"]
 
-FROM alpine:3.23 AS runner-debug
+FROM alpine:edge AS runner-debug
 
 RUN apk add --no-cache delve
 

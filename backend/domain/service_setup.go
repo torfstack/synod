@@ -24,11 +24,13 @@ func (s *service) SetupUserPlain(ctx context.Context, session Session) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.database.InsertKeys(ctx, models.UserKeyPair{
-		UserID:      session.UserID,
-		Type:        models.KeyTypeRsa,
-		KeyMaterial: a.Serialize(),
-	})
+	_, err = s.database.InsertKeys(
+		ctx, models.UserKeyPair{
+			UserID:      session.UserID,
+			Type:        models.KeyTypeRsa,
+			KeyMaterial: a.Serialize(),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -55,21 +57,25 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 	if err != nil {
 		return err
 	}
-	dbPassword, err := s.database.InsertPassword(ctx, models.HashedPassword{
-		Hash:       hashedPassword.Hash,
-		Salt:       hashedPassword.Salt,
-		Iterations: hashedPassword.IterationsUsed,
-	})
+	dbPassword, err := s.database.InsertPassword(
+		ctx, models.HashedPassword{
+			Hash:       hashedPassword.Hash,
+			Salt:       hashedPassword.Salt,
+			Iterations: hashedPassword.IterationsUsed,
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.database.InsertKeys(ctx, models.UserKeyPair{
-		UserID:      session.UserID,
-		PasswordID:  dbPassword.ID,
-		Type:        models.KeyTypeRsa,
-		KeyMaterial: encrypted,
-	})
+	_, err = s.database.InsertKeys(
+		ctx, models.UserKeyPair{
+			UserID:      session.UserID,
+			PasswordID:  dbPassword.ID,
+			Type:        models.KeyTypeRsa,
+			KeyMaterial: encrypted,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -98,10 +104,12 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 		return err
 	}
 
-	hashedPassword, err := crypto.HashPasswordWithOptions([]byte(password), crypto.HashOptions{
-		Salt:       dbPassword.Salt,
-		Iterations: dbPassword.Iterations,
-	})
+	hashedPassword, err := crypto.HashPasswordWithOptions(
+		[]byte(password), crypto.HashOptions{
+			Salt:       dbPassword.Salt,
+			Iterations: dbPassword.Iterations,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -120,7 +128,7 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 		return err
 	}
 
-	a, err := crypto.AsymmetricCipherFromPrivateKeyBytes(decryptedPrivateKey)
+	a, err := crypto.AsymmetricCipherFromBytes(decryptedPrivateKey)
 	if err != nil {
 		return err
 	}

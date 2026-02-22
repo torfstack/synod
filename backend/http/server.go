@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/torfstack/synod/backend/config"
@@ -48,9 +49,21 @@ func (s *Server) Start() error {
 		m = s.SessionCheck
 	}
 
-	loggerMiddleware := middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `[${time_rfc3339}] method=${method}, uri=${uri}, status=${status}, latency=${latency_human}` + "\n",
-	})
+	loggerMiddleware := middleware.RequestLoggerWithConfig(
+		middleware.RequestLoggerConfig{
+			LogStatus:  true,
+			LogURI:     true,
+			LogMethod:  true,
+			LogLatency: true,
+			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+				fmt.Printf(
+					"[%s] method=%s, uri=%s, status=%d, latency=%s\n",
+					v.StartTime.Format(time.RFC3339), v.Method, v.URI, v.Status, v.Latency.String(),
+				)
+				return nil
+			},
+		},
+	)
 
 	api := e.Group("/api")
 	secrets := api.Group("/secrets", m, loggerMiddleware)
