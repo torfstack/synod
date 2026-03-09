@@ -1,6 +1,7 @@
 [tools]
 go = "latest"
 bun = "latest"
+golangci-lint = "latest"
 
 [env]
 
