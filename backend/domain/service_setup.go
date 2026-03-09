@@ -11,10 +11,6 @@ import (
 	"github.com/torfstack/synod/backend/models"
 )
 
-var (
-	KeyDerivationSalt = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-)
-
 var _ SetupService = &service{}
 
 func (s *service) IsUserSetup(ctx context.Context, session Session) (bool, error) {
