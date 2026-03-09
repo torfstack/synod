@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/torfstack/synod/backend/domain"
 	"github.com/torfstack/synod/backend/logging"
@@ -24,9 +25,16 @@ func (s *Server) StartAuthentication(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	verifier, challenge, err := generatePKCE()
+	if err != nil {
+		logging.Errorf(ctx, "could not generate PKCE parameters: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	c.SetCookie(newPKCECookie(verifier, time.Now().Add(10*time.Minute)))
 	return c.Redirect(
 		http.StatusFound,
-		authUrl(provider.Endpoint().AuthURL, s.cfg.Auth.ClientID, s.cfg.Auth.RedirectURL),
+		authUrl(provider.Endpoint().AuthURL, s.cfg.Auth.ClientID, s.cfg.Auth.RedirectURL, challenge),
 	)
 }
 
@@ -44,11 +52,20 @@ func (s *Server) EstablishSession(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	res, err := doTokenRequest(provider.Endpoint().TokenURL, clientId, clientSecret, code, redirectUrl)
+	pkceVerifierCookie, err := c.Cookie(PKCECookieName)
+	if err != nil {
+		logging.Errorf(ctx, "pkce verifier cookie missing: %v", err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+	codeVerifier := pkceVerifierCookie.Value
+	c.SetCookie(newEmptyPKCECookie())
+
+	res, err := doTokenRequest(provider.Endpoint().TokenURL, clientId, clientSecret, code, redirectUrl, codeVerifier)
 	if err != nil {
 		logging.Errorf(ctx, "could not perform token request: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	defer res.Body.Close()
 
 	idToken, err := s.verifyAndGetIdToken(ctx, res.Body, provider, clientId)
 	if err != nil {
