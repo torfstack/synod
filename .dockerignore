@@ -14,7 +14,6 @@ frontend/build
 npm-debug.log
 
 # Backend
-bin/
 backend/vendor/
 
 # OS files
