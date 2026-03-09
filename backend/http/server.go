@@ -76,10 +76,12 @@ func (s *Server) Start() error {
 	authorization.GET("", s.IsAuthorized)
 	authorization.DELETE("", s.EndSession)
 
+	unsealRateLimiter := newUnsealRateLimiter()
+
 	setup := api.Group("/setup", m, loggerMiddleware)
 	setup.POST("/plain", s.PostSetupPlain)
 	setup.POST("/password", s.PostSetupPassword)
-	setup.POST("/unseal", s.UnsealWithPassword)
+	setup.POST("/unseal", s.UnsealWithPassword, unsealRateLimiter)
 
 	users := api.Group("/users")
 	users.GET("/lookup", s.LookUpUser)
