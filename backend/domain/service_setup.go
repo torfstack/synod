@@ -2,8 +2,10 @@ package domain
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"errors"
+	"slices"
 
 	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/models"
@@ -44,7 +46,13 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 	if err != nil {
 		return err
 	}
-	p, err := crypto.SymmetricCipherFromPassword([]byte(password))
+
+	kdfSalt := make([]byte, crypto.KDFSaltLength)
+	if _, err = rand.Read(kdfSalt); err != nil {
+		return err
+	}
+
+	p, err := crypto.SymmetricCipherFromPasswordWithSalt([]byte(password), kdfSalt)
 	if err != nil {
 		return err
 	}
@@ -68,12 +76,14 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 		return err
 	}
 
+	// Key material format: [KDFSaltPrefix (4 bytes)][kdfSalt (16 bytes)][encrypted private key]
+	keyMaterial := slices.Concat(crypto.KDFSaltPrefix, kdfSalt, encrypted)
 	_, err = s.database.InsertKeys(
 		ctx, models.UserKeyPair{
 			UserID:      session.UserID,
 			PasswordID:  dbPassword.ID,
 			Type:        models.KeyTypeRsa,
-			KeyMaterial: encrypted,
+			KeyMaterial: keyMaterial,
 		},
 	)
 	if err != nil {
@@ -118,12 +128,18 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 		return errors.New("password hash mismatch")
 	}
 
-	p, err := crypto.SymmetricCipherFromPassword([]byte(password))
+	if len(key.KeyMaterial) <= 4+crypto.KDFSaltLength || !slices.Equal(key.KeyMaterial[:4], crypto.KDFSaltPrefix) {
+		return errors.New("key material has unsupported format")
+	}
+	kdfSalt := key.KeyMaterial[4 : 4+crypto.KDFSaltLength]
+	encryptedKey := key.KeyMaterial[4+crypto.KDFSaltLength:]
+
+	p, err := crypto.SymmetricCipherFromPasswordWithSalt([]byte(password), kdfSalt)
 	if err != nil {
 		return err
 	}
 
-	decryptedPrivateKey, err := p.Decrypt(key.KeyMaterial)
+	decryptedPrivateKey, err := p.Decrypt(encryptedKey)
 	if err != nil {
 		return err
 	}

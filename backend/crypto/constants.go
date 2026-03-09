@@ -10,8 +10,11 @@ var (
 
 	AesKeyLengthInBytes = 32
 
-	KeyDerivationSalt       = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	KeyDerivationIterations = 600000
+
+	// KDFSaltPrefix is prepended to password-protected key material.
+	KDFSaltPrefix = []byte{0x73, 0x79, 0x6e, 0x64} // "synd"
+	KDFSaltLength = 16
 
 	ErrCryptoInvalidMarker   = errors.New("invalid encryption marker")
 	ErrCryptoAlgorithmMarker = errors.New("invalid algorithm marker")
