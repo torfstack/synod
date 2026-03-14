@@ -18,7 +18,7 @@ services:
         condition: service_healthy
   synod-db:
     container_name: synod-db
-    image: postgres:latest
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: synod
       POSTGRES_PASSWORD: synodpass
