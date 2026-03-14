@@ -10,11 +10,6 @@ import (
 
 var _ CryptoService = &service{}
 
-var (
-	MarkerBytes        = []byte{0x64, 0x61, 0x74, 0x71}
-	RsaOaepMarkerBytes = []byte{0x00, 0x00, 0x00, 0x01}
-)
-
 func (s *service) EncryptSecret(
 	_ context.Context,
 	secret models.Secret,
