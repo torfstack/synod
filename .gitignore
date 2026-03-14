@@ -35,6 +35,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Claude Code ###
+.claude/
+
 ## FRONTEND
 .DS_Store
 frontend/node_modules

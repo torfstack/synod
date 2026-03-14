@@ -1,6 +1,9 @@
 package http
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -15,6 +18,7 @@ import (
 const (
 	SessionCookieName  = "sessionId"
 	SessionContextName = "session"
+	PKCECookieName     = "pkce_verifier"
 )
 
 func newEmptySessionCookie() *http.Cookie {
@@ -61,20 +65,59 @@ func getSession(c echo.Context) (*domain.Session, bool) {
 	return session.(*domain.Session), true
 }
 
-func authUrl(authBaseURL, clientID, redirectURL string) string {
+func generatePKCE() (verifier, challenge string, err error) {
+	b := make([]byte, 32)
+	if _, err = rand.Read(b); err != nil {
+		return
+	}
+	verifier = base64.RawURLEncoding.EncodeToString(b)
+	h := sha256.Sum256([]byte(verifier))
+	challenge = base64.RawURLEncoding.EncodeToString(h[:])
+	return
+}
+
+func newPKCECookie(verifier string, expiry time.Time) *http.Cookie {
+	return &http.Cookie{
+		Name:     PKCECookieName,
+		Path:     "/api/auth",
+		Value:    verifier,
+		Expires:  expiry,
+		SameSite: http.SameSiteLaxMode, // Lax required: cookie must arrive on the OIDC redirect
+		HttpOnly: true,
+		Secure:   true,
+	}
+}
+
+func newEmptyPKCECookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     PKCECookieName,
+		Path:     "/api/auth",
+		Value:    "",
+		Expires:  time.UnixMilli(0),
+		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
+		Secure:   true,
+	}
+}
+
+func authUrl(authBaseURL, clientID, redirectURL, codeChallenge string) string {
 	return fmt.Sprintf(
-		"%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=%s",
+		"%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=%s&code_challenge=%s&code_challenge_method=S256",
 		authBaseURL,
 		clientID,
 		redirectURL,
+		codeChallenge,
 	)
 }
 
-func doTokenRequest(tokenBaseURL, clientID, clientSecret, authCode, redirectURL string) (*http.Response, error) {
+func doTokenRequest(tokenBaseURL, clientID, clientSecret, authCode, redirectURL, codeVerifier string) (
+	*http.Response, error,
+) {
 	values := make(url.Values)
 	values.Add("code", authCode)
 	values.Add("grant_type", "authorization_code")
 	values.Add("redirect_uri", redirectURL)
+	values.Add("code_verifier", codeVerifier)
 	r := strings.NewReader(values.Encode())
 	req, err := http.NewRequest("POST", tokenBaseURL, r)
 	if err != nil {

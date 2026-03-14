@@ -2,15 +2,13 @@ package domain
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"errors"
+	"slices"
 
 	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/models"
-)
-
-var (
-	KeyDerivationSalt = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 )
 
 var _ SetupService = &service{}
@@ -24,11 +22,13 @@ func (s *service) SetupUserPlain(ctx context.Context, session Session) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.database.InsertKeys(ctx, models.UserKeyPair{
-		UserID:      session.UserID,
-		Type:        models.KeyTypeRsa,
-		KeyMaterial: a.Serialize(),
-	})
+	_, err = s.database.InsertKeys(
+		ctx, models.UserKeyPair{
+			UserID:      session.UserID,
+			Type:        models.KeyTypeRsa,
+			KeyMaterial: a.Serialize(),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,13 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 	if err != nil {
 		return err
 	}
-	p, err := crypto.SymmetricCipherFromPassword([]byte(password))
+
+	kdfSalt := make([]byte, crypto.KDFSaltLength)
+	if _, err = rand.Read(kdfSalt); err != nil {
+		return err
+	}
+
+	p, err := crypto.SymmetricCipherFromPasswordWithSalt([]byte(password), kdfSalt)
 	if err != nil {
 		return err
 	}
@@ -55,21 +61,27 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 	if err != nil {
 		return err
 	}
-	dbPassword, err := s.database.InsertPassword(ctx, models.HashedPassword{
-		Hash:       hashedPassword.Hash,
-		Salt:       hashedPassword.Salt,
-		Iterations: hashedPassword.IterationsUsed,
-	})
+	dbPassword, err := s.database.InsertPassword(
+		ctx, models.HashedPassword{
+			Hash:       hashedPassword.Hash,
+			Salt:       hashedPassword.Salt,
+			Iterations: hashedPassword.IterationsUsed,
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.database.InsertKeys(ctx, models.UserKeyPair{
-		UserID:      session.UserID,
-		PasswordID:  dbPassword.ID,
-		Type:        models.KeyTypeRsa,
-		KeyMaterial: encrypted,
-	})
+	// Key material format: [KDFSaltPrefix (4 bytes)][kdfSalt (16 bytes)][encrypted private key]
+	keyMaterial := slices.Concat(crypto.KDFSaltPrefix, kdfSalt, encrypted)
+	_, err = s.database.InsertKeys(
+		ctx, models.UserKeyPair{
+			UserID:      session.UserID,
+			PasswordID:  dbPassword.ID,
+			Type:        models.KeyTypeRsa,
+			KeyMaterial: keyMaterial,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -98,10 +110,12 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 		return err
 	}
 
-	hashedPassword, err := crypto.HashPasswordWithOptions([]byte(password), crypto.HashOptions{
-		Salt:       dbPassword.Salt,
-		Iterations: dbPassword.Iterations,
-	})
+	hashedPassword, err := crypto.HashPasswordWithOptions(
+		[]byte(password), crypto.HashOptions{
+			Salt:       dbPassword.Salt,
+			Iterations: dbPassword.Iterations,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -110,17 +124,23 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 		return errors.New("password hash mismatch")
 	}
 
-	p, err := crypto.SymmetricCipherFromPassword([]byte(password))
+	if len(key.KeyMaterial) <= 4+crypto.KDFSaltLength || !slices.Equal(key.KeyMaterial[:4], crypto.KDFSaltPrefix) {
+		return errors.New("key material has unsupported format")
+	}
+	kdfSalt := key.KeyMaterial[4 : 4+crypto.KDFSaltLength]
+	encryptedKey := key.KeyMaterial[4+crypto.KDFSaltLength:]
+
+	p, err := crypto.SymmetricCipherFromPasswordWithSalt([]byte(password), kdfSalt)
 	if err != nil {
 		return err
 	}
 
-	decryptedPrivateKey, err := p.Decrypt(key.KeyMaterial)
+	decryptedPrivateKey, err := p.Decrypt(encryptedKey)
 	if err != nil {
 		return err
 	}
 
-	a, err := crypto.AsymmetricCipherFromPrivateKeyBytes(decryptedPrivateKey)
+	a, err := crypto.AsymmetricCipherFromBytes(decryptedPrivateKey)
 	if err != nil {
 		return err
 	}

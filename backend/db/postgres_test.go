@@ -139,11 +139,13 @@ func TestDatabase_KeyHandling(t *testing.T) {
 
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
-	createdKeys, err := d.InsertKeys(ctx, models.UserKeyPair{
-		UserID:      createdUser.ID,
-		Type:        models.KeyTypeRsa,
-		KeyMaterial: x509.MarshalPKCS1PrivateKey(priv),
-	})
+	createdKeys, err := d.InsertKeys(
+		ctx, models.UserKeyPair{
+			UserID:      createdUser.ID,
+			Type:        models.KeyTypeRsa,
+			KeyMaterial: x509.MarshalPKCS1PrivateKey(priv),
+		},
+	)
 	assert.NoError(t, err)
 	assert.Equal(t, createdUser.ID, createdKeys.UserID)
 	assert.NotNil(t, createdKeys.ID)
@@ -167,15 +169,17 @@ func TestDatabase_UserTransactionRollback(t *testing.T) {
 	dd, err := NewDatabase(ctx, connStr)
 	require.NoError(t, err)
 
-	err = dd.WithTx(ctx, func(d Database) error {
-		_, err = d.InsertUser(ctx, TestUser)
-		assert.NoError(t, err)
+	err = dd.WithTx(
+		ctx, func(d Database) error {
+			_, err = d.InsertUser(ctx, TestUser)
+			assert.NoError(t, err)
 
-		b, err := d.DoesUserExist(ctx, TestUser.Subject)
-		assert.NoError(t, err)
-		assert.True(t, b)
-		return errors.New("trigger rollback")
-	})
+			b, err := d.DoesUserExist(ctx, TestUser.Subject)
+			assert.NoError(t, err)
+			assert.True(t, b)
+			return errors.New("trigger rollback")
+		},
+	)
 	require.Error(t, err)
 
 	b, err := dd.DoesUserExist(ctx, TestUser.Subject)
@@ -192,15 +196,17 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 	dd, err := NewDatabase(ctx, connStr)
 	require.NoError(t, err)
 
-	err = dd.WithTx(ctx, func(d Database) error {
-		_, err = d.InsertUser(ctx, TestUser)
-		assert.NoError(t, err)
+	err = dd.WithTx(
+		ctx, func(d Database) error {
+			_, err = d.InsertUser(ctx, TestUser)
+			assert.NoError(t, err)
 
-		b, err := d.DoesUserExist(ctx, TestUser.Subject)
-		assert.NoError(t, err)
-		assert.True(t, b)
-		return nil
-	})
+			b, err := d.DoesUserExist(ctx, TestUser.Subject)
+			assert.NoError(t, err)
+			assert.True(t, b)
+			return nil
+		},
+	)
 	require.NoError(t, err)
 
 	b, err := dd.DoesUserExist(ctx, TestUser.Subject)
@@ -211,7 +217,7 @@ func TestDatabase_UserTransactionCommit(t *testing.T) {
 func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 	postgresContainer, err := postgres.Run(
 		ctx,
-		"postgres:17-alpine",
+		"postgres:18-alpine",
 		postgres.WithDatabase(dbName),
 		postgres.WithUsername(dbUser),
 		postgres.WithPassword(dbPassword),

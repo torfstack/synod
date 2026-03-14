@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"strings"
 	"time"
@@ -48,12 +47,7 @@ func (s *service) CreateSession(ctx context.Context, userID int64) (Session, err
 			return session, err
 		}
 		if key.PasswordID == nil {
-			priv, err := x509.ParsePKCS1PrivateKey(key.KeyMaterial)
-			if err != nil {
-				return session, err
-			}
-			priv.Precompute()
-			session.Cipher, err = crypto.AsymmetricCipherFromPrivateKey(priv)
+			session.Cipher, err = crypto.AsymmetricCipherFromBytes(key.KeyMaterial)
 			if err != nil {
 				return session, err
 			}

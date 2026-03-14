@@ -32,7 +32,7 @@ func (a *Application) Run() error {
 	if err != nil {
 		return fmt.Errorf("could not connect to database: %v", err)
 	}
-	domainService := domain.NewDomainService(database)
+	domainService := domain.NewDomainService(context.Background(), database)
 	server := http.NewServer(*cfg, domainService)
 
 	return server.Start()
