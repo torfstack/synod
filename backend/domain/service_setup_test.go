@@ -268,8 +268,7 @@ func TestUnsealWithPassword_WrongPassword_ReturnsError(t *testing.T) {
 	session := &Session{SessionID: "s5", UserID: 2, Cipher: nil}
 	err = svc.UnsealWithPassword(context.Background(), session, crypto.Password("wrong-password"))
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "hash mismatch")
+	require.ErrorIs(t, err, ErrInvalidPassword)
 }
 
 func TestUnsealWithPassword_NoPasswordID_ReturnsError(t *testing.T) {

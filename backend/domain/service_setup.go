@@ -13,6 +13,10 @@ import (
 
 var _ SetupService = &service{}
 
+var (
+	ErrInvalidPassword = errors.New("invalid password")
+)
+
 func (s *service) IsUserSetup(ctx context.Context, session Session) (bool, error) {
 	return s.database.HasKeys(ctx, session.UserID)
 }
@@ -137,7 +141,7 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 	}
 
 	if subtle.ConstantTimeCompare(dbPassword.Hash, hashedPassword.Hash) == 0 {
-		return errors.New("password hash mismatch")
+		return ErrInvalidPassword
 	}
 
 	if len(key.KeyMaterial) <= 4+crypto.KDFSaltLength || !slices.Equal(key.KeyMaterial[:4], crypto.KDFSaltPrefix) {

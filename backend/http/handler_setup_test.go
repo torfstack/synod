@@ -43,11 +43,11 @@ func TestUnsealWithPassword_InvalidBody_Returns400(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
-func TestUnsealWithPassword_WrongPassword_Returns401(t *testing.T) {
+func TestUnsealWithPassword_WrongPassword_Returns403(t *testing.T) {
 	session := &domain.Session{UserID: 1}
 	svc := &mockDomainService{
 		unsealWithPasswordFn: func(_ context.Context, _ *domain.Session, _ crypto.Password) error {
-			return errors.New("password hash mismatch")
+			return domain.ErrInvalidPassword
 		},
 	}
 	s := NewServer(testConfig(), svc)
@@ -59,7 +59,7 @@ func TestUnsealWithPassword_WrongPassword_Returns401(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
 
 func TestUnsealWithPassword_Success_Returns204(t *testing.T) {
