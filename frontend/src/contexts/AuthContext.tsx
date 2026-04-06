@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import {config} from "../util/config.ts";
 import {deleteAuth, getAuth} from "../util/api.ts";
 import {AuthContext} from "./auth-context.ts";
+import type {AuthStatus} from "../util/authStatus.ts";
 
 export function AuthProvider({children}: { children: React.ReactNode }) {
     const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
