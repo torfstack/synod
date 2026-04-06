@@ -19,7 +19,7 @@ func Test_PolynomialSecretSharing(t *testing.T) {
 				degree := 3
 				p, err := NewPolynomialFromSecret(degree, *secret)
 				assert.NoError(t, err)
-				assert.Len(t, p.coefficients, degree)
+				assert.Len(t, p.coefficients, degree+1)
 				assert.Equal(t, *secret, p.coefficients[0])
 
 				pointAtOne := p.Evaluate(*big.NewInt(1))

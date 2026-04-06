@@ -54,15 +54,19 @@ func (s *service) CreateSession(ctx context.Context, userID int64) (Session, err
 		}
 	}
 
+	s.sessionsMu.Lock()
 	s.sessions[u] = session
+	s.sessionsMu.Unlock()
 	return session, nil
 }
 
 func (s *service) GetSession(token string) (*Session, error) {
 	t := strings.ToLower(token)
+	s.sessionsMu.Lock()
+	defer s.sessionsMu.Unlock()
 	if session, ok := s.sessions[t]; ok {
 		if time.Now().After(session.ExpiresAt) {
-			_ = s.DeleteSession(token)
+			delete(s.sessions, t)
 			return nil, ErrSessionNotFound
 		}
 		return &session, nil
@@ -72,7 +76,9 @@ func (s *service) GetSession(token string) (*Session, error) {
 
 func (s *service) DeleteSession(token string) error {
 	t := strings.ToLower(token)
+	s.sessionsMu.Lock()
 	delete(s.sessions, t)
+	s.sessionsMu.Unlock()
 	return nil
 }
 

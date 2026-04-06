@@ -2,31 +2,35 @@ package crypto
 
 import (
 	"crypto/rand"
+	"errors"
 	"math/big"
 )
 
-var (
-	MaxInt big.Int // 2^130 - 1
-)
+// ShamirPrime is the Mersenne prime 2^127 - 1, used as the finite field modulus
+// for Shamir secret sharing. All secret values and share coordinates must be
+// strictly less than this value.
+var ShamirPrime *big.Int
 
 func init() {
-	m := new(big.Int)
-	MaxInt = *m.Exp(big.NewInt(2), big.NewInt(130), nil).Sub(m, big.NewInt(1))
+	ShamirPrime = new(big.Int).Sub(
+		new(big.Int).Exp(big.NewInt(2), big.NewInt(127), nil),
+		big.NewInt(1),
+	)
 }
 
-// Polynomial represents a polynomial with coefficients
-// the constant term is the first element in the slice
-// for our purposes: len(coefficients) == degree+1
+// Polynomial represents a polynomial over GF(ShamirPrime).
+// The constant term (index 0) is the secret; all other coefficients are random.
+// A degree-k polynomial has exactly k+1 coefficients.
 type Polynomial struct {
 	coefficients []big.Int
 }
 
-// NewPolynomialFromSecret creates a new polynomial with the given degree
-// and secret as the constant term, all other coefficients are random
+// NewPolynomialFromSecret creates a degree-k polynomial with the given secret as
+// the constant term and k random coefficients drawn from [1, ShamirPrime-1].
 func NewPolynomialFromSecret(degree int, secret big.Int) (Polynomial, error) {
-	coefficients := make([]big.Int, degree)
+	coefficients := make([]big.Int, degree+1)
 	coefficients[0] = secret
-	for i := 1; i < degree; i++ {
+	for i := 1; i <= degree; i++ {
 		b, err := RandomBigInt()
 		if err != nil {
 			return Polynomial{}, err
@@ -36,40 +40,63 @@ func NewPolynomialFromSecret(degree int, secret big.Int) (Polynomial, error) {
 	return Polynomial{coefficients: coefficients}, nil
 }
 
-// ReconstructPolynomialAndEvaluateAtZero takes a slice of points and returns the polynomial
-// that passes through all of them, and evaluates it at 0
+// ReconstructPolynomialAndEvaluateAtZero reconstructs the secret via Lagrange
+// interpolation over GF(ShamirPrime). It requires exactly degree+1 distinct points.
 func ReconstructPolynomialAndEvaluateAtZero(points []Point) (*big.Int, error) {
-	degree := len(points) - 1
-	valueAtZero := new(big.Rat)
-	for i := 0; i <= degree; i++ {
-		term := new(big.Rat).SetFrac(&points[i].Output, big.NewInt(1))
-		for j := 0; j <= degree; j++ {
+	p := ShamirPrime
+	result := big.NewInt(0)
+	n := len(points)
+
+	for i := 0; i < n; i++ {
+		numerator := new(big.Int).Set(&points[i].Output)
+		denominator := big.NewInt(1)
+
+		for j := 0; j < n; j++ {
 			if i == j {
 				continue
 			}
-			num := new(big.Rat).SetFrac(&points[j].Input, big.NewInt(-1))
-			den := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Sub(&points[i].Input, &points[j].Input))
-			term.Mul(term, num)
-			term.Mul(term, den)
+			// numerator   *= (0 - x_j) mod p
+			negXj := new(big.Int).Neg(&points[j].Input)
+			negXj.Mod(negXj, p)
+			numerator.Mul(numerator, negXj)
+			numerator.Mod(numerator, p)
+
+			// denominator *= (x_i - x_j) mod p
+			diff := new(big.Int).Sub(&points[i].Input, &points[j].Input)
+			diff.Mod(diff, p)
+			denominator.Mul(denominator, diff)
+			denominator.Mod(denominator, p)
 		}
-		valueAtZero.Add(valueAtZero, term)
+
+		// term = numerator * modInverse(denominator, p)
+		inv := new(big.Int).ModInverse(denominator, p)
+		if inv == nil {
+			return nil, errors.New("zero denominator: share x-coordinates must be distinct and non-zero")
+		}
+		term := new(big.Int).Mul(numerator, inv)
+		term.Mod(term, p)
+
+		result.Add(result, term)
+		result.Mod(result, p)
 	}
 
-	return valueAtZero.Num(), nil
+	return result, nil
 }
 
-// RandomBigInt returns a random big.Int, a 130-bits integer, i.e 2^130 - 1
+// RandomBigInt returns a random element from [1, ShamirPrime-1].
 func RandomBigInt() (*big.Int, error) {
-	return rand.Int(rand.Reader, &MaxInt)
+	return rand.Int(rand.Reader, ShamirPrime)
 }
 
-// Evaluate returns the result of evaluating the polynomial at x
+// Evaluate evaluates the polynomial at x over GF(ShamirPrime).
 func (p Polynomial) Evaluate(x big.Int) Point {
 	result := big.NewInt(0)
 	for i, c := range p.coefficients {
-		term := new(big.Int).Exp(&x, big.NewInt(int64(i)), nil)
-		term.Mul(term, &c)
+		xPow := new(big.Int).Exp(&x, big.NewInt(int64(i)), ShamirPrime)
+		term := new(big.Int).Mul(xPow, &c)
+		term.Mod(term, ShamirPrime)
 		result.Add(result, term)
+		result.Mod(result, ShamirPrime)
 	}
 	return Point{Input: x, Output: *result}
 }

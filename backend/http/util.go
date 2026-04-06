@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +13,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
+
+var oidcClient = &http.Client{Timeout: 10 * time.Second}
 
 const (
 	SessionCookieName  = "sessionId"
@@ -101,13 +102,14 @@ func newEmptyPKCECookie() *http.Cookie {
 }
 
 func authUrl(authBaseURL, clientID, redirectURL, codeChallenge string) string {
-	return fmt.Sprintf(
-		"%s?client_id=%s&response_type=code&scope=openid+email+profile&redirect_uri=%s&code_challenge=%s&code_challenge_method=S256",
-		authBaseURL,
-		clientID,
-		redirectURL,
-		codeChallenge,
-	)
+	v := url.Values{}
+	v.Set("client_id", clientID)
+	v.Set("response_type", "code")
+	v.Set("scope", "openid email profile")
+	v.Set("redirect_uri", redirectURL)
+	v.Set("code_challenge", codeChallenge)
+	v.Set("code_challenge_method", "S256")
+	return authBaseURL + "?" + v.Encode()
 }
 
 func doTokenRequest(tokenBaseURL, clientID, clientSecret, authCode, redirectURL, codeVerifier string) (
@@ -125,5 +127,5 @@ func doTokenRequest(tokenBaseURL, clientID, clientSecret, authCode, redirectURL,
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(clientID, clientSecret)
-	return http.DefaultClient.Do(req)
+	return oidcClient.Do(req)
 }

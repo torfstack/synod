@@ -7,21 +7,27 @@ import (
 )
 
 type DBConfig struct {
-	Host     string `yaml:"host"     validate:"required"`
-	Port     int    `yaml:"port"     validate:"required"`
-	User     string `yaml:"user"     validate:"required"`
+	Host    string `yaml:"host"    validate:"required"`
+	Port    int    `yaml:"port"    validate:"required"`
+	User    string `yaml:"user"    validate:"required"`
 	Password string `yaml:"password" validate:"required"`
-	DBName   string `yaml:"dbname"   validate:"required"`
+	DBName  string `yaml:"dbname"  validate:"required"`
+	SSLMode string `yaml:"sslMode"`
 }
 
 func (dbCfg DBConfig) ConnectionString() string {
+	sslMode := dbCfg.SSLMode
+	if sslMode == "" {
+		sslMode = "require"
+	}
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		dbCfg.Host,
 		dbCfg.Port,
 		dbCfg.User,
 		dbCfg.Password,
 		dbCfg.DBName,
+		sslMode,
 	)
 }
 

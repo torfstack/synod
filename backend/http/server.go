@@ -2,7 +2,9 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4/middleware"
@@ -29,8 +31,13 @@ func (s *Server) Start() error {
 	e := echo.New()
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		println(err.Error())
-		_ = c.JSON(500, map[string]string{"error": err.Error()})
+		code := http.StatusInternalServerError
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			code = he.Code
+		}
+		logging.Errorf(c.Request().Context(), "unhandled error: %v", err)
+		_ = c.JSON(code, map[string]string{"error": http.StatusText(code)})
 	}
 
 	var m echo.MiddlewareFunc
@@ -83,7 +90,7 @@ func (s *Server) Start() error {
 	setup.POST("/password", s.PostSetupPassword)
 	setup.POST("/unseal", s.UnsealWithPassword, unsealRateLimiter)
 
-	users := api.Group("/users")
+	users := api.Group("/users", m, loggerMiddleware)
 	users.GET("/lookup", s.LookUpUser)
 
 	e.Static("/", "static")

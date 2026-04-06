@@ -56,7 +56,8 @@ func Test_AsymmetricCipher_Encrypt(t *testing.T) {
 				c, err := a.Encrypt([]byte("synod testing serialize"))
 				require.NoError(t, err)
 
-				b := a.Serialize()
+				b, err := a.Serialize()
+				require.NoError(t, err)
 				a2, err := AsymmetricCipherFromBytes(b)
 				require.NoError(t, err)
 

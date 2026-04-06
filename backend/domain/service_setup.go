@@ -22,22 +22,30 @@ func (s *service) SetupUserPlain(ctx context.Context, session Session) error {
 	if err != nil {
 		return err
 	}
+	keyMaterial, err := a.Serialize()
+	if err != nil {
+		return err
+	}
 	_, err = s.database.InsertKeys(
 		ctx, models.UserKeyPair{
 			UserID:      session.UserID,
 			Type:        models.KeyTypeRsa,
-			KeyMaterial: a.Serialize(),
+			KeyMaterial: keyMaterial,
 		},
 	)
 	if err != nil {
 		return err
 	}
 	session.Cipher = a
+	s.sessionsMu.Lock()
 	s.sessions[session.SessionID] = session
+	s.sessionsMu.Unlock()
 	return err
 }
 
-func (s *service) SetupUserWithPassword(ctx context.Context, session Session, password string) error {
+func (s *service) SetupUserWithPassword(ctx context.Context, session Session, password crypto.Password) error {
+	defer password.Zero()
+
 	a, err := crypto.NewAsymmetricCipher()
 	if err != nil {
 		return err
@@ -48,16 +56,20 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 		return err
 	}
 
-	p, err := crypto.SymmetricCipherFromPasswordWithSalt([]byte(password), kdfSalt)
+	p, err := crypto.SymmetricCipherFromPasswordWithSalt(password, kdfSalt)
 	if err != nil {
 		return err
 	}
-	encrypted, err := p.Encrypt(a.Serialize())
+	privateKeyBytes, err := a.Serialize()
+	if err != nil {
+		return err
+	}
+	encrypted, err := p.Encrypt(privateKeyBytes)
 	if err != nil {
 		return err
 	}
 
-	hashedPassword, err := crypto.HashPassword([]byte(password))
+	hashedPassword, err := crypto.HashPassword(password)
 	if err != nil {
 		return err
 	}
@@ -87,12 +99,16 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 	}
 
 	session.Cipher = a
+	s.sessionsMu.Lock()
 	s.sessions[session.SessionID] = session
+	s.sessionsMu.Unlock()
 
 	return err
 }
 
-func (s *service) UnsealWithPassword(ctx context.Context, session *Session, password string) error {
+func (s *service) UnsealWithPassword(ctx context.Context, session *Session, password crypto.Password) error {
+	defer password.Zero()
+
 	if session.Cipher != nil {
 		return nil
 	}
@@ -111,7 +127,7 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 	}
 
 	hashedPassword, err := crypto.HashPasswordWithOptions(
-		[]byte(password), crypto.HashOptions{
+		password, crypto.HashOptions{
 			Salt:       dbPassword.Salt,
 			Iterations: dbPassword.Iterations,
 		},
@@ -130,7 +146,7 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 	kdfSalt := key.KeyMaterial[4 : 4+crypto.KDFSaltLength]
 	encryptedKey := key.KeyMaterial[4+crypto.KDFSaltLength:]
 
-	p, err := crypto.SymmetricCipherFromPasswordWithSalt([]byte(password), kdfSalt)
+	p, err := crypto.SymmetricCipherFromPasswordWithSalt(password, kdfSalt)
 	if err != nil {
 		return err
 	}
@@ -146,7 +162,9 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 	}
 
 	session.Cipher = a
+	s.sessionsMu.Lock()
 	s.sessions[session.SessionID] = *session
+	s.sessionsMu.Unlock()
 
 	return nil
 }

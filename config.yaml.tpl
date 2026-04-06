@@ -4,6 +4,7 @@ db:
   user: dbuser
   password: dbuser-password
   dbname: dbname
+  sslMode: require  # require | verify-full | disable (disable only for local dev)
 
 auth:
   issuer: issuer-url
