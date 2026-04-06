@@ -17,10 +17,8 @@ jobs:
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
-      - name: setup golang
-        uses: actions/setup-go@v5
-        with:
-          go-version: '^1.26.0'
+      - name: setup mise
+        uses: jdx/mise-action@v3
       - name: Set up gotestfmt
         uses: gotesttools/gotestfmt-action@v2
         with:
@@ -43,10 +41,9 @@ jobs:
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
-      - name: setup golang
-        uses: actions/setup-go@v5
-        with:
-          go-version: '^1.26.0'
+      - name: setup mise
+        uses: jdx/mise-action@v3
       - name: run linter
-        uses: golangci/golangci-lint-action@v8
-
+        run: |
+          set -euo pipefail
+          golangci-lint run ./...
