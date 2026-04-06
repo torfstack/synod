@@ -1,10 +1,12 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/torfstack/synod/backend/crypto"
+	"github.com/torfstack/synod/backend/domain"
 	"github.com/torfstack/synod/backend/logging"
 )
 
@@ -28,6 +30,9 @@ func (s *Server) UnsealWithPassword(c echo.Context) error {
 	err = s.domainService.UnsealWithPassword(ctx, session, password)
 	if err != nil {
 		logging.Errorf(ctx, "could not unseal vault: %v", err)
+		if errors.Is(err, domain.ErrInvalidPassword) {
+			return c.NoContent(http.StatusForbidden)
+		}
 		return c.NoContent(http.StatusUnauthorized)
 	}
 

@@ -3,13 +3,23 @@ import {config} from "../util/config.ts";
 import {deleteAuth, getAuth} from "../util/api.ts";
 import {AuthContext} from "./auth-context.ts";
 import type {AuthStatus} from "../util/authStatus.ts";
+import {
+    clearPostLoginHint,
+    getInitialAuthStatusFromPostLoginHint,
+    setPostLoginHint,
+} from "../util/postLoginHint.ts";
 
 export function AuthProvider({children}: { children: React.ReactNode }) {
-    const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+    const [authStatus, setAuthStatus] = useState<AuthStatus | null>(() => {
+        return getInitialAuthStatusFromPostLoginHint(window.sessionStorage);
+    });
 
     const checkAuth = () => {
         getAuth()
-            .then(authStatus => setAuthStatus(authStatus))
+            .then(authStatus => {
+                clearPostLoginHint(window.sessionStorage);
+                setAuthStatus(authStatus)
+            })
             .catch(() => setAuthStatus(null))
     }
 
@@ -19,6 +29,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
     useEffect(() => {
         function handleUnauthorized() {
+            clearPostLoginHint(window.sessionStorage);
             setAuthStatus(null);
         }
 
@@ -27,11 +38,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     }, []);
 
     const login = async () => {
+        setPostLoginHint(window.sessionStorage);
         return window.open(config.backendAuthStartUrl, "_self");
     };
 
     const logout = async () => {
         return deleteAuth().then(() => {
+            clearPostLoginHint(window.sessionStorage);
             setAuthStatus(null)
         })
     };
