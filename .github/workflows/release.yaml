@@ -18,22 +18,18 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - name: setup mise
+        uses: jdx/mise-action@v3
       - name: setup docker
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: install task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: release new version
-        run: task release
+        run: mise exec -- task release
       - name: create git tag
         run: |
           next_version=$(sh next_version)
           git tag $next_version
           git push --tags
-
