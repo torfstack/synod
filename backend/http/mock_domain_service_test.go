@@ -9,7 +9,6 @@ import (
 	"github.com/torfstack/synod/backend/models"
 )
 
-
 // mockDomainService is a flexible test double for domain.Service.
 // Individual test functions assign only the stubs they need.
 type mockDomainService struct {
@@ -57,14 +56,23 @@ func (m *mockDomainService) GetUserFromToken(ctx context.Context, token *oidc.ID
 	return models.ExistingUser{}, nil
 }
 
-func (m *mockDomainService) GetSecrets(ctx context.Context, userID int64, cipher *crypto.AsymmetricCipher) ([]models.Secret, error) {
+func (m *mockDomainService) GetSecrets(
+	ctx context.Context,
+	userID int64,
+	cipher *crypto.AsymmetricCipher,
+) ([]models.Secret, error) {
 	if m.getSecretsFn != nil {
 		return m.getSecretsFn(ctx, userID, cipher)
 	}
 	return nil, nil
 }
 
-func (m *mockDomainService) UpsertSecret(ctx context.Context, secret models.Secret, userID int64, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error) {
+func (m *mockDomainService) UpsertSecret(
+	ctx context.Context,
+	secret models.Secret,
+	userID int64,
+	cipher *crypto.AsymmetricCipher,
+) (models.EncryptedSecret, error) {
 	if m.upsertSecretFn != nil {
 		return m.upsertSecretFn(ctx, secret, userID, cipher)
 	}
@@ -106,14 +114,22 @@ func (m *mockDomainService) SetupUserPlain(ctx context.Context, session domain.S
 	return nil
 }
 
-func (m *mockDomainService) SetupUserWithPassword(ctx context.Context, session domain.Session, password crypto.Password) error {
+func (m *mockDomainService) SetupUserWithPassword(
+	ctx context.Context,
+	session domain.Session,
+	password crypto.Password,
+) error {
 	if m.setupUserWithPasswordFn != nil {
 		return m.setupUserWithPasswordFn(ctx, session, password)
 	}
 	return nil
 }
 
-func (m *mockDomainService) UnsealWithPassword(ctx context.Context, session *domain.Session, password crypto.Password) error {
+func (m *mockDomainService) UnsealWithPassword(
+	ctx context.Context,
+	session *domain.Session,
+	password crypto.Password,
+) error {
 	if m.unsealWithPasswordFn != nil {
 		return m.unsealWithPasswordFn(ctx, session, password)
 	}

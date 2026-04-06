@@ -7,12 +7,12 @@ import (
 )
 
 type DBConfig struct {
-	Host    string `yaml:"host"    validate:"required"`
-	Port    int    `yaml:"port"    validate:"required"`
-	User    string `yaml:"user"    validate:"required"`
+	Host     string `yaml:"host"     validate:"required"`
+	Port     int    `yaml:"port"     validate:"required"`
+	User     string `yaml:"user"     validate:"required"`
 	Password string `yaml:"password" validate:"required"`
-	DBName  string `yaml:"dbname"  validate:"required"`
-	SSLMode string `yaml:"sslMode"`
+	DBName   string `yaml:"dbname"   validate:"required"`
+	SSLMode  string `yaml:"sslMode"`
 }
 
 func (dbCfg DBConfig) ConnectionString() string {

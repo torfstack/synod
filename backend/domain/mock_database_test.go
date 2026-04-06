@@ -58,7 +58,11 @@ func (m *mockDatabase) SelectUserByName(ctx context.Context, username string) (m
 	return models.ExistingUser{}, nil
 }
 
-func (m *mockDatabase) UpsertSecret(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error) {
+func (m *mockDatabase) UpsertSecret(
+	ctx context.Context,
+	secret models.EncryptedSecret,
+	userID int64,
+) (models.EncryptedSecret, error) {
 	if m.upsertSecretFn != nil {
 		return m.upsertSecretFn(ctx, secret, userID)
 	}
@@ -93,14 +97,20 @@ func (m *mockDatabase) HasKeys(ctx context.Context, userID int64) (bool, error) 
 	return false, nil
 }
 
-func (m *mockDatabase) InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error) {
+func (m *mockDatabase) InsertPassword(
+	ctx context.Context,
+	password models.HashedPassword,
+) (models.HashedPassword, error) {
 	if m.insertPasswordFn != nil {
 		return m.insertPasswordFn(ctx, password)
 	}
 	return password, nil
 }
 
-func (m *mockDatabase) SelectPassword(ctx context.Context, passwordID int64) (models.HashedPassword, error) {
+func (m *mockDatabase) SelectPassword(
+	ctx context.Context,
+	passwordID int64,
+) (models.HashedPassword, error) {
 	if m.selectPasswordFn != nil {
 		return m.selectPasswordFn(ctx, passwordID)
 	}

@@ -107,7 +107,11 @@ func TestPostSecret_NoSession_Returns401(t *testing.T) {
 	s := NewServer(testConfig(), &mockDomainService{})
 	e.POST("/secrets", s.PostSecret)
 
-	req := httptest.NewRequest(http.MethodPost, "/secrets", strings.NewReader(`{"value":"v","key":"k","url":"u","tags":[]}`))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/secrets",
+		strings.NewReader(`{"value":"v","key":"k","url":"u","tags":[]}`),
+	)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -142,7 +146,11 @@ func TestPostSecret_ServiceError_PropagatesError(t *testing.T) {
 	e := newEchoWithSession(session)
 	e.POST("/secrets", s.PostSecret)
 
-	req := httptest.NewRequest(http.MethodPost, "/secrets", strings.NewReader(`{"value":"v","key":"k","url":"u","tags":[]}`))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/secrets",
+		strings.NewReader(`{"value":"v","key":"k","url":"u","tags":[]}`),
+	)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -162,7 +170,11 @@ func TestPostSecret_Success_Returns201(t *testing.T) {
 	e := newEchoWithSession(session)
 	e.POST("/secrets", s.PostSecret)
 
-	req := httptest.NewRequest(http.MethodPost, "/secrets", strings.NewReader(`{"value":"my-secret","key":"k","url":"u","tags":[]}`))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/secrets",
+		strings.NewReader(`{"value":"my-secret","key":"k","url":"u","tags":[]}`),
+	)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)

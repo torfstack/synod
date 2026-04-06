@@ -1,7 +1,7 @@
 import {useState} from "react";
 import {postUnsealWithPassword} from "../util/api.ts";
 import {Eye, EyeSlash} from "../icons/Eye.tsx";
-import {useAuth} from "../contexts/AuthContext.tsx";
+import {useAuth} from "../contexts/useAuth.ts";
 
 export const UnsealScreen = () => {
     const {reloadAuth} = useAuth();

@@ -139,7 +139,11 @@ func TestSetupUserWithPassword_KeyMaterialHasKDFPrefix(t *testing.T) {
 	}
 	svc := &service{database: db, sessions: make(sessionStore)}
 
-	err := svc.SetupUserWithPassword(context.Background(), Session{SessionID: "s3", UserID: 4}, crypto.Password("passw0rd"))
+	err := svc.SetupUserWithPassword(
+		context.Background(),
+		Session{SessionID: "s3", UserID: 4},
+		crypto.Password("passw0rd"),
+	)
 	require.NoError(t, err)
 
 	require.GreaterOrEqual(t, len(insertedKeyMaterial), 4)
@@ -159,7 +163,11 @@ func TestSetupUserWithPassword_InsertPasswordFails_ReturnsError(t *testing.T) {
 	}
 	svc := &service{database: db, sessions: make(sessionStore)}
 
-	err := svc.SetupUserWithPassword(context.Background(), Session{SessionID: "s4", UserID: 5}, crypto.Password("pw"))
+	err := svc.SetupUserWithPassword(
+		context.Background(),
+		Session{SessionID: "s4", UserID: 5},
+		crypto.Password("pw"),
+	)
 
 	require.ErrorIs(t, err, dbErr)
 }
@@ -207,7 +215,11 @@ func TestUnsealWithPassword_FullRoundTrip(t *testing.T) {
 	svc := &service{database: db, sessions: make(sessionStore)}
 
 	// Setup phase
-	err := svc.SetupUserWithPassword(context.Background(), Session{SessionID: sessionID, UserID: 1}, crypto.Password(password))
+	err := svc.SetupUserWithPassword(
+		context.Background(),
+		Session{SessionID: sessionID, UserID: 1},
+		crypto.Password(password),
+	)
 	require.NoError(t, err)
 
 	// Clear the cipher to simulate a sealed session (e.g. after server restart)
@@ -246,7 +258,11 @@ func TestUnsealWithPassword_WrongPassword_ReturnsError(t *testing.T) {
 	}
 	svc := &service{database: db, sessions: make(sessionStore)}
 
-	err := svc.SetupUserWithPassword(context.Background(), Session{SessionID: "s5", UserID: 2}, crypto.Password(password))
+	err := svc.SetupUserWithPassword(
+		context.Background(),
+		Session{SessionID: "s5", UserID: 2},
+		crypto.Password(password),
+	)
 	require.NoError(t, err)
 
 	session := &Session{SessionID: "s5", UserID: 2, Cipher: nil}
