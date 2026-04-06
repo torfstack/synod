@@ -4,7 +4,7 @@ import {SecretsScreen} from "./screens/SecretsScreen.tsx";
 import {StartScreen} from "./screens/StartScreen.tsx";
 import {SetupScreen} from "./screens/SetupScreen.tsx";
 import {UnsealScreen} from "./screens/UnsealScreen.tsx";
-import {useAuth} from "./contexts/AuthContext.tsx";
+import {useAuth} from "./contexts/useAuth.ts";
 
 export const App = () => {
     const {authStatus} = useAuth()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 )
 
 func Debugf(ctx context.Context, msg string, args ...interface{}) {
@@ -33,7 +34,8 @@ func Errorf(ctx context.Context, msg string, args ...interface{}) {
 func Fatalf(ctx context.Context, msg string, args ...interface{}) {
 	fields := logAttributeFields(ctx)
 	m := fmt.Sprintf(msg, args...)
-	panic(fmt.Sprint(m, fields))
+	slog.LogAttrs(ctx, slog.LevelError, m, fields...)
+	os.Exit(1)
 }
 
 func logAttributeFields(ctx context.Context) []slog.Attr {

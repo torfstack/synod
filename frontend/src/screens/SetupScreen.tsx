@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import {postSetupPassword, postSetupPlain} from "../util/api.ts";
 import {Eye, EyeSlash} from "../icons/Eye.tsx";
-import {useAuth} from "../contexts/AuthContext.tsx";
+import {useAuth} from "../contexts/useAuth.ts";
 
 export const SetupScreen = () => {
     const {reloadAuth} = useAuth();

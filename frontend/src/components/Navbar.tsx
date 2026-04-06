@@ -1,5 +1,5 @@
 import {ThemeSwitcher} from "./ThemeSwitcher.tsx";
-import {useAuth} from "../contexts/AuthContext.tsx";
+import {useAuth} from "../contexts/useAuth.ts";
 
 export const Navbar = () => {
     const {authStatus, login, logout} = useAuth()

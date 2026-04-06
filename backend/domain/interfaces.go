@@ -53,6 +53,6 @@ type CryptoService interface {
 type SetupService interface {
 	IsUserSetup(ctx context.Context, session Session) (bool, error)
 	SetupUserPlain(ctx context.Context, session Session) error
-	SetupUserWithPassword(ctx context.Context, session Session, password string) error
-	UnsealWithPassword(ctx context.Context, session *Session, password string) error
+	SetupUserWithPassword(ctx context.Context, session Session, password crypto.Password) error
+	UnsealWithPassword(ctx context.Context, session *Session, password crypto.Password) error
 }

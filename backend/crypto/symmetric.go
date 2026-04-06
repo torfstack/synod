@@ -75,7 +75,7 @@ func SymmetricCipherFromKey(key []byte) (*SymmetricCipher, error) {
 	return &SymmetricCipher{c, key}, nil
 }
 
-func SymmetricCipherFromPasswordWithSalt(password []byte, salt []byte) (*SymmetricCipher, error) {
+func SymmetricCipherFromPasswordWithSalt(password Password, salt []byte) (*SymmetricCipher, error) {
 	derivedKey, _ := pbkdf2.Key(sha256.New, string(password), salt, 600000, 32)
 	return SymmetricCipherFromKey(derivedKey)
 }

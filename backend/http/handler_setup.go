@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/logging"
 )
 
@@ -22,7 +23,9 @@ func (s *Server) UnsealWithPassword(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	err = s.domainService.UnsealWithPassword(ctx, session, input.Password)
+	password := crypto.Password(input.Password)
+	defer password.Zero()
+	err = s.domainService.UnsealWithPassword(ctx, session, password)
 	if err != nil {
 		logging.Errorf(ctx, "could not unseal vault: %v", err)
 		return c.NoContent(http.StatusUnauthorized)
@@ -68,7 +71,9 @@ func (s *Server) PostSetupPassword(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	err = s.domainService.SetupUserWithPassword(ctx, *session, input.Password)
+	setupPassword := crypto.Password(input.Password)
+	defer setupPassword.Zero()
+	err = s.domainService.SetupUserWithPassword(ctx, *session, setupPassword)
 	if err != nil {
 		return err
 	}

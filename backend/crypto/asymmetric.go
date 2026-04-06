@@ -67,7 +67,10 @@ func AsymmetricCipherFromBytes(b []byte) (*AsymmetricCipher, error) {
 	return AsymmetricCipherFromPrivateKey(priv)
 }
 
-func (a *AsymmetricCipher) Serialize() []byte {
-	b, _ := a.privateKey.Bytes()
-	return b
+func (a *AsymmetricCipher) Serialize() ([]byte, error) {
+	b, err := a.privateKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

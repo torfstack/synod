@@ -1,13 +1,5 @@
-import React, {createContext, useContext, useEffect, useState} from "react";
-
-type Theme = "corporate" | "business"
-
-interface ThemeContextType {
-    theme: Theme;
-    switchTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+import React, {useEffect, useState} from "react";
+import {ThemeContext, type Theme} from "./theme-context.ts";
 
 export const ThemeProvider = ({children}: { children: React.ReactNode }) => {
     const getPreferredTheme = (): Theme => {
@@ -55,10 +47,4 @@ export const ThemeProvider = ({children}: { children: React.ReactNode }) => {
             {children}
         </ThemeContext.Provider>
     );
-};
-
-export const useTheme = () => {
-    const ctx = useContext(ThemeContext);
-    if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
-    return ctx;
 };
