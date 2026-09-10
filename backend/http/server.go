@@ -35,7 +35,6 @@ func (s *Server) Start() error {
 func (s *Server) newRouter() *echo.Echo {
 	e := echo.New()
 
-	// The server starts only after migrations and application initialization succeed.
 	e.GET("/readyz", func(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	})

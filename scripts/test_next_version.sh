@@ -11,7 +11,6 @@ if sh "$script" >/dev/null 2>&1; then
     exit 1
 fi
 git init -q
-# Keep fixtures independent of developer hooks and signing configuration.
 git config core.hooksPath /dev/null
 git config commit.gpgsign false
 git config tag.gpgsign false
