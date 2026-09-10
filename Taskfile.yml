@@ -15,7 +15,7 @@ tasks:
     cmds:
       - cmd: docker compose down
   gen:
-    desc: Generate SQL code
+    desc: Run all code generation
     cmds:
       - cmd: sqlc generate
   frontend-install:
@@ -66,7 +66,7 @@ tasks:
           --set-string {{printf "tag=%s" .VERSION | quote}}
           --wait --rollback-on-failure --timeout {{.DEPLOY_TIMEOUT | quote}}
   dev-deploy:
-    desc: Deploy local changes
+    desc: Deploy local changes (used for testing)
     requires:
       vars: [ KUBE_CONTEXT, NAMESPACE ]
     preconditions:
