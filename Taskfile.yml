@@ -32,15 +32,11 @@ tasks:
     cmds:
       - cmd: golangci-lint run
       - cmd: bun run --cwd frontend lint
-      - task: lint-deployment
+      - cmd: helm lint deployment --strict --set-string tag=v0.0.0
   fmt:
     desc: Format Go code
     cmds:
       - cmd: golangci-lint fmt
-  lint-deployment:
-    desc: Lint Helm chart
-    cmds:
-      - cmd: helm lint deployment --strict --set-string tag=v0.0.0
   next-version:
     desc: Print next version
     cmds:
