@@ -16,15 +16,15 @@ jobs:
       contents: read
     steps:
       - name: checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: setup mise
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
       - name: Run tests
         run: |
           set -euo pipefail
           task test 2>&1 | tee /tmp/gotest.log
       - name: Upload test log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-log
@@ -36,9 +36,9 @@ jobs:
       contents: read
     steps:
       - name: checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: setup mise
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
       - name: install frontend dependencies
         run: task frontend-install
       - name: run linter
