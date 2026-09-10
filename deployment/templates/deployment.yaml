@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.appName }}
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Values.appName }}
 spec:
@@ -23,8 +23,15 @@ spec:
         - name: synod
           image: {{ .Values.image }}:{{ .Values.tag }}
           imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
           ports:
-            - containerPort: 4000
+            - name: http
+              containerPort: 4000
               hostPort: 4000
           volumeMounts:
             - mountPath: "/app/config.yaml"

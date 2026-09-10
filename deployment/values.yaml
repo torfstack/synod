@@ -4,4 +4,3 @@ postgres:
   host: "postgresql.default.svc.cluster.local"
 
 appName: synod
-namespace: default
