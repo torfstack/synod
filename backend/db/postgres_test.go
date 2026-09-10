@@ -154,8 +154,8 @@ func TestDatabase_KeyHandling(t *testing.T) {
 	assert.NoError(t, err)
 
 	privParsed, err := x509.ParsePKCS1PrivateKey(keyPair.KeyMaterial)
-	assert.NoError(t, err)
-	assert.Equal(t, priv, privParsed)
+	require.NoError(t, err)
+	assert.True(t, priv.Equal(privParsed), "stored RSA key must match the original")
 
 	assert.Equal(t, createdUser.ID, keyPair.UserID)
 }

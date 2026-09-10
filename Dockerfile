@@ -10,7 +10,7 @@ COPY frontend/ .
 
 RUN bun run build
 
-FROM golang:1.26.0-alpine AS builder-base
+FROM golang:1.27.1-alpine AS builder-base
 
 WORKDIR /opt/synod
 
