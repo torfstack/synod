@@ -1,51 +1,86 @@
 version: '3'
 
 vars:
-  IMAGE_TAG:
-    sh: sh next_version
-  VERSION_TO_DEPLOY:
-    sh: git tag --sort=-creatordate | head -n 1
+  IMAGE: ghcr.io/torfstack/synod
+  PLATFORM: linux/amd64
+  DEPLOY_TIMEOUT: 5m
 
 tasks:
   start-local:
+    desc: Start local services
     cmds:
       - cmd: docker compose up --build --detach
   stop-local:
+    desc: Stop local services
     cmds:
       - cmd: docker compose down
   gen:
+    desc: Run all code generation
     cmds:
       - cmd: sqlc generate
-  test:
+  frontend-install:
+    desc: Install frontend dependencies
     cmds:
+      - cmd: bun install --cwd frontend --frozen-lockfile
+  test:
+    desc: Run tests
+    cmds:
+      - cmd: sh scripts/test_next_version.sh
       - cmd: set -euo pipefail && go test -json -v ./... 2>&1 | gotestfmt
   lint:
+    desc: Run linters
     cmds:
       - cmd: golangci-lint run
       - cmd: bun run --cwd frontend lint
+      - cmd: helm lint deployment --strict --set-string tag=v0.0.0
   fmt:
+    desc: Format Go code
     cmds:
       - cmd: golangci-lint fmt
+  next-version:
+    desc: Print next version
+    cmds:
+      - cmd: sh scripts/next_version
+    silent: true
   release:
+    desc: Publish image
     requires:
-      vars: [ IMAGE_TAG ]
+      vars: [ VERSION ]
+    preconditions:
+      - sh: 'test {{.VERSION | quote}} != ""'
+        msg: VERSION must not be empty
     cmds:
-      - cmd: docker buildx build --target runner -t ghcr.io/torfstack/synod:{{.IMAGE_TAG}} .
-      - cmd: docker push ghcr.io/torfstack/synod:{{.IMAGE_TAG}}
+      - cmd: docker buildx build --push --platform {{.PLATFORM | quote}} --target runner -t {{printf "%s:%s" .IMAGE .VERSION | quote}} .
   deploy:
+    desc: Deploy version
     requires:
-      vars: [ VERSION_TO_DEPLOY ]
+      vars: [ VERSION, KUBE_CONTEXT, NAMESPACE ]
+    preconditions:
+      - sh: 'test {{.VERSION | quote}} != "" && test {{.KUBE_CONTEXT | quote}} != "" && test {{.NAMESPACE | quote}} != ""'
+        msg: VERSION, KUBE_CONTEXT and NAMESPACE must not be empty
     cmds:
-      - cmd: helm upgrade --install synod deployment --set tag={{.VERSION_TO_DEPLOY}}
+      - cmd: >-
+          helm upgrade --install synod deployment
+          --kube-context {{.KUBE_CONTEXT | quote}} --namespace {{.NAMESPACE | quote}}
+          --set-string {{printf "image=%s" .IMAGE | quote}}
+          --set-string {{printf "tag=%s" .VERSION | quote}}
+          --wait --rollback-on-failure --timeout {{.DEPLOY_TIMEOUT | quote}}
   dev-deploy:
+    desc: Deploy local changes (used for testing)
+    requires:
+      vars: [ KUBE_CONTEXT, NAMESPACE ]
+    preconditions:
+      - sh: 'test {{.KUBE_CONTEXT | quote}} != "" && test {{.NAMESPACE | quote}} != ""'
+        msg: KUBE_CONTEXT and NAMESPACE must not be empty
     vars:
-      DEV_IMAGE_TAG: development
+      DEV_VERSION:
+        sh: 'printf "dev-%s-%s-%s" "$(git rev-parse --short HEAD)" "$(date -u +%Y%m%d%H%M%S)" "$(od -An -N4 -tx1 /dev/urandom | tr -d " \n")"'
     cmds:
       - task: release
         vars:
-          IMAGE_TAG:
-            ref: .DEV_IMAGE_TAG
+          VERSION:
+            ref: .DEV_VERSION
       - task: deploy
         vars:
-          VERSION_TO_DEPLOY:
-            ref: .DEV_IMAGE_TAG
+          VERSION:
+            ref: .DEV_VERSION

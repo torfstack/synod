@@ -28,7 +28,16 @@ func NewServer(cfg config.Config, domainService domain.Service) *Server {
 }
 
 func (s *Server) Start() error {
+	e := s.newRouter()
+	return e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
+}
+
+func (s *Server) newRouter() *echo.Echo {
 	e := echo.New()
+
+	e.GET("/readyz", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		code := http.StatusInternalServerError
@@ -96,7 +105,7 @@ func (s *Server) Start() error {
 	e.Static("/", "static")
 	e.File("/", "static/index.html")
 
-	return e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
+	return e
 }
 
 // localMode build flag, set with -ldflags "-X github.com/torfstack/synod/internal/http.localMode=enabled"
