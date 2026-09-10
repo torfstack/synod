@@ -7,38 +7,47 @@ vars:
 
 tasks:
   start-local:
+    desc: Start local services
     cmds:
       - cmd: docker compose up --build --detach
   stop-local:
+    desc: Stop local services
     cmds:
       - cmd: docker compose down
   gen:
+    desc: Generate SQL code
     cmds:
       - cmd: sqlc generate
   frontend-install:
+    desc: Install frontend dependencies
     cmds:
       - cmd: bun install --cwd frontend --frozen-lockfile
   test:
+    desc: Run tests
     cmds:
       - cmd: sh scripts/test_next_version.sh
       - cmd: set -euo pipefail && go test -json -v ./... 2>&1 | gotestfmt
   lint:
+    desc: Run linters
     cmds:
       - cmd: golangci-lint run
       - cmd: bun run --cwd frontend lint
       - task: lint-deployment
   fmt:
+    desc: Format Go code
     cmds:
       - cmd: golangci-lint fmt
   lint-deployment:
+    desc: Lint Helm chart
     cmds:
       - cmd: helm lint deployment --strict --set-string tag=v0.0.0
   next-version:
+    desc: Print next version
     cmds:
       - cmd: sh scripts/next_version
     silent: true
   release:
-    desc: Build and publish an explicit image version
+    desc: Publish image
     requires:
       vars: [ VERSION ]
     preconditions:
@@ -47,7 +56,7 @@ tasks:
     cmds:
       - cmd: docker buildx build --push --platform {{.PLATFORM | quote}} --target runner -t {{printf "%s:%s" .IMAGE .VERSION | quote}} .
   deploy:
-    desc: Deploy an explicit version to a specific cluster and namespace
+    desc: Deploy version
     requires:
       vars: [ VERSION, KUBE_CONTEXT, NAMESPACE ]
     preconditions:
@@ -61,7 +70,7 @@ tasks:
           --set-string {{printf "tag=%s" .VERSION | quote}}
           --wait --rollback-on-failure --timeout {{.DEPLOY_TIMEOUT | quote}}
   dev-deploy:
-    desc: Publish and deploy a unique development build
+    desc: Deploy local changes
     requires:
       vars: [ KUBE_CONTEXT, NAMESPACE ]
     preconditions:
