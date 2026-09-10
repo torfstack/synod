@@ -35,7 +35,7 @@ tasks:
       - cmd: helm lint deployment --strict --set-string tag=v0.0.0
   next-version:
     cmds:
-      - cmd: sh next_version
+      - cmd: sh scripts/next_version
     silent: true
   release:
     desc: Build and publish an explicit image version

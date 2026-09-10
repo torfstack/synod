@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-script=$(pwd)/next_version
+script=$(pwd)/scripts/next_version
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT HUP INT TERM
 cd "$fixture"
