@@ -3,14 +3,24 @@
 Run `mise install` to install the pinned tools. Docker with Buildx is also required
 for publishing images. Authenticate Docker to `ghcr.io` before publishing locally.
 
-Pushes to `main` run lint and tests, calculate the next patch version once, publish
-that image, and tag the exact commit. Releases are serialized; GitHub may replace
+Pushes to `main` run lint and tests, calculate the next version once, publish that
+image, and tag the exact commit. Add one of the `release:patch`, `release:minor`,
+or `release:major` labels to a pull request to select its version increment. Pull
+requests without a release label and direct pushes use `release:patch`. Releases
+are serialized; GitHub may replace
 an older pending run with a newer one, so not every intermediate commit is
 necessarily released. An already tagged commit is rejected on rerun.
 
-`task next-version` considers only exact `vMAJOR.MINOR.PATCH` tags, chooses the
-highest numeric version, and increments its patch. With no matching tags it returns
-`v0.0.1`. It reads local tags; CI refreshes them before allocating a version.
+`task next-version` considers only exact `vMAJOR.MINOR.PATCH` tags and chooses the
+highest numeric version. It increments the patch by default. Pass `BUMP=minor` or
+`BUMP=major` to select another increment. With no matching tags, a patch increment
+returns `v0.0.1`. It reads local tags; CI refreshes them before allocating a version.
+
+```sh
+task next-version
+task next-version BUMP=minor
+task next-version BUMP=major
+```
 
 To publish manually, choose a fresh version explicitly:
 
@@ -57,4 +67,3 @@ database migrations; migrations must remain compatible with the previous app.
 If publishing succeeds but pushing the Git tag fails, verify that the published
 image belongs to that workflow commit and push that exact version tag to that
 commit before rerunning CI. Image publication and Git tagging are not atomic.
-
