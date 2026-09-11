@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -11,6 +12,78 @@ import (
 	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/models"
 )
+
+func TestShareSecretWrapsDataKeyForRecipient(t *testing.T) {
+	owner, err := crypto.NewAsymmetricCipher()
+	require.NoError(t, err)
+	recipient, err := crypto.NewAsymmetricCipher()
+	require.NoError(t, err)
+	recipientPublicKey, err := recipient.SerializePublicKey()
+	require.NoError(t, err)
+	dataKey, err := crypto.NewSymmetricKey()
+	require.NoError(t, err)
+	wrappedForOwner, err := owner.Encrypt(dataKey)
+	require.NoError(t, err)
+
+	var wrappedForRecipient []byte
+	db := &mockDatabase{
+		selectSecretForOwnerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+			return models.AccessibleSecret{
+				ID:               9,
+				OwnerID:          1,
+				Envelope:         true,
+				EncryptedDataKey: []byte(base64.StdEncoding.EncodeToString(wrappedForOwner)),
+			}, nil
+		},
+		selectUserBySharingIDFn: func(context.Context, string) (models.ExistingUser, error) {
+			return models.ExistingUser{ID: 2}, nil
+		},
+		selectPublicKeyFn: func(context.Context, int64) ([]byte, error) { return recipientPublicKey, nil },
+		insertSecretAccessFn: func(_ context.Context, _, userID, grantedBy int64, key []byte) error {
+			require.Equal(t, int64(2), userID)
+			require.Equal(t, int64(1), grantedBy)
+			wrappedForRecipient = key
+			return nil
+		},
+	}
+	svc := &service{database: db, sessions: make(sessionStore)}
+
+	require.NoError(t, svc.ShareSecret(context.Background(), 9, 1, "recipient", owner))
+	wrapped, err := base64.StdEncoding.DecodeString(string(wrappedForRecipient))
+	require.NoError(t, err)
+	unwrapped, err := recipient.Decrypt(wrapped)
+	require.NoError(t, err)
+	require.Equal(t, dataKey, unwrapped)
+}
+
+func TestGetSecretsDecryptsSharedEnvelope(t *testing.T) {
+	recipient, err := crypto.NewAsymmetricCipher()
+	require.NoError(t, err)
+	dataKey, err := crypto.NewSymmetricKey()
+	require.NoError(t, err)
+	payloadCipher, err := crypto.SymmetricCipherFromKey(dataKey)
+	require.NoError(t, err)
+	payload, err := json.Marshal(models.Secret{Key: "database", Value: "password", Tags: []string{}})
+	require.NoError(t, err)
+	encryptedPayload, err := payloadCipher.Encrypt(payload)
+	require.NoError(t, err)
+	wrappedKey, err := recipient.Encrypt(dataKey)
+	require.NoError(t, err)
+	db := &mockDatabase{selectAccessibleSecretsFn: func(context.Context, int64) ([]models.AccessibleSecret, error) {
+		return []models.AccessibleSecret{{
+			ID: 4, OwnerID: 1, Owned: false, Envelope: true,
+			EncryptedPayload: []byte(base64.StdEncoding.EncodeToString(encryptedPayload)),
+			EncryptedDataKey: []byte(base64.StdEncoding.EncodeToString(wrappedKey)),
+		}}, nil
+	}}
+	svc := &service{database: db, sessions: make(sessionStore)}
+
+	secrets, err := svc.GetSecrets(context.Background(), 2, recipient)
+	require.NoError(t, err)
+	require.Len(t, secrets, 1)
+	require.Equal(t, "password", secrets[0].Value)
+	require.False(t, secrets[0].Owned)
+}
 
 // newTestCipher creates a real AsymmetricCipher for use in tests.
 func newTestCipher(t *testing.T) *crypto.AsymmetricCipher {

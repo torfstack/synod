@@ -37,10 +37,9 @@ export const SetupScreen = () => {
     return <div className="flex flex-row justify-center items-center bg-base-200 h-full">
         <div className="w-5/6 md:w-1/4 flex flex-col gap-4 p-4 bg-base-100 rounded-box shadow-md">
             <h2 className="text-xl">Initial Setup</h2>
-            <p>You can choose to add a password to protect your secrets.</p>
-            <p>With a password: Your secrets will be protected with end-to-end encryption. Only you can decrypt
-                them,
-                and not even our servers can access your secrets.</p>
+            <p>You can choose to add a password to protect your private key at rest.</p>
+            <p>With a password: Your private key remains encrypted until you unseal your vault. The trusted Synod
+                server temporarily holds the decrypted key in memory while your session is active.</p>
             <p>Without a password: Your secrets will still be encrypted, but only with server-side encryption. This
                 means we can keep your data safe on our servers, but it won’t be protected if someone gains access
                 to

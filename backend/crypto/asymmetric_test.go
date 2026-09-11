@@ -8,6 +8,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPublicKeyCanEncryptForPrivateKeyHolder(t *testing.T) {
+	owner, err := NewAsymmetricCipher()
+	require.NoError(t, err)
+
+	publicKey, err := owner.SerializePublicKey()
+	require.NoError(t, err)
+	recipient, err := AsymmetricCipherFromPublicKeyBytes(publicKey)
+	require.NoError(t, err)
+
+	ciphertext, err := recipient.Encrypt([]byte("shared key"))
+	require.NoError(t, err)
+	plaintext, err := owner.Decrypt(ciphertext)
+	require.NoError(t, err)
+	require.Equal(t, []byte("shared key"), plaintext)
+}
+
 func Test_AsymmetricCipher_Encrypt(t *testing.T) {
 	tests := []struct {
 		name string

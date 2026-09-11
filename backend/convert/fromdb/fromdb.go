@@ -3,6 +3,8 @@ package fromdb
 import (
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/torfstack/synod/backend/models"
 	sqlc "github.com/torfstack/synod/sql/gen"
 )
@@ -27,7 +29,8 @@ func Secrets(in []sqlc.Secret) []models.EncryptedSecret {
 
 func User(in sqlc.User) models.ExistingUser {
 	return models.ExistingUser{
-		ID: in.ID,
+		ID:        in.ID,
+		SharingID: uuid.UUID(in.SharingID.Bytes).String(),
 		User: models.User{
 			Subject:  in.Subject,
 			Email:    in.Email,
@@ -42,6 +45,7 @@ func KeyPair(in sqlc.Key) models.UserKeyPair {
 		Type:        models.KeyType(in.Type),
 		UserID:      in.UserID,
 		KeyMaterial: in.KeyMaterial,
+		PublicKey:   in.PublicKey,
 	}
 	if in.PasswordID.Valid {
 		userKeyPair.PasswordID = &in.PasswordID.Int64

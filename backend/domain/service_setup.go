@@ -30,11 +30,16 @@ func (s *service) SetupUserPlain(ctx context.Context, session Session) error {
 	if err != nil {
 		return err
 	}
+	publicKey, err := a.SerializePublicKey()
+	if err != nil {
+		return err
+	}
 	_, err = s.database.InsertKeys(
 		ctx, models.UserKeyPair{
 			UserID:      session.UserID,
-			Type:        models.KeyTypeRsa,
+			Type:        models.KeyTypeHPKE,
 			KeyMaterial: keyMaterial,
+			PublicKey:   publicKey,
 		},
 	)
 	if err != nil {
@@ -68,6 +73,10 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 	if err != nil {
 		return err
 	}
+	publicKey, err := a.SerializePublicKey()
+	if err != nil {
+		return err
+	}
 	encrypted, err := p.Encrypt(privateKeyBytes)
 	if err != nil {
 		return err
@@ -94,8 +103,9 @@ func (s *service) SetupUserWithPassword(ctx context.Context, session Session, pa
 		ctx, models.UserKeyPair{
 			UserID:      session.UserID,
 			PasswordID:  dbPassword.ID,
-			Type:        models.KeyTypeRsa,
+			Type:        models.KeyTypeHPKE,
 			KeyMaterial: keyMaterial,
+			PublicKey:   publicKey,
 		},
 	)
 	if err != nil {
@@ -163,6 +173,15 @@ func (s *service) UnsealWithPassword(ctx context.Context, session *Session, pass
 	a, err := crypto.AsymmetricCipherFromBytes(decryptedPrivateKey)
 	if err != nil {
 		return err
+	}
+	if len(key.PublicKey) == 0 {
+		publicKey, err := a.SerializePublicKey()
+		if err != nil {
+			return err
+		}
+		if err := s.database.UpdatePublicKey(ctx, session.UserID, publicKey); err != nil {
+			return err
+		}
 	}
 
 	session.Cipher = a

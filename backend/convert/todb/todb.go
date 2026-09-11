@@ -50,6 +50,7 @@ func InsertKeysParams(in models.UserKeyPair) sqlc.InsertKeysParams {
 		UserID:      in.UserID,
 		Type:        int32(in.Type),
 		KeyMaterial: in.KeyMaterial,
+		PublicKey:   in.PublicKey,
 	}
 	if in.PasswordID != nil {
 		params.PasswordID = pgtype.Int8{

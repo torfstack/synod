@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/torfstack/synod/backend/convert/fromdb"
 	"github.com/torfstack/synod/backend/convert/todb"
@@ -102,6 +104,142 @@ func (d *database) SelectSecrets(ctx context.Context, userID int64) ([]models.En
 	return fromdb.Secrets(dbSecrets), err
 }
 
+func (d *database) SelectAccessibleSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectAccessibleSecrets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.AccessibleSecret, len(rows))
+	for i, row := range rows {
+		out[i] = models.AccessibleSecret{
+			ID:               row.ID,
+			OwnerID:          row.UserID,
+			EncryptedPayload: row.Value,
+			EncryptedDataKey: row.EncryptedDataKey,
+			Envelope:         row.Envelope,
+			Owned:            row.Owned,
+		}
+	}
+	return out, nil
+}
+
+func (d *database) SelectSecretForOwner(ctx context.Context, secretID, userID int64) (models.AccessibleSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return models.AccessibleSecret{}, err
+	}
+	row, err := q.SelectSecretForOwner(ctx, sqlc.SelectSecretForOwnerParams{ID: secretID, UserID: userID})
+	if err != nil {
+		return models.AccessibleSecret{}, err
+	}
+	return models.AccessibleSecret{
+		ID:               row.ID,
+		OwnerID:          row.UserID,
+		EncryptedPayload: row.Value,
+		EncryptedDataKey: row.EncryptedDataKey,
+		Envelope:         row.Envelope,
+		Legacy: fromdb.Secret(
+			sqlc.Secret{
+				ID:            row.ID,
+				Value:         row.Value,
+				Key:           row.Key,
+				Url:           row.Url,
+				Tags:          row.Tags,
+				UserID:        row.UserID,
+				SecretSharing: row.SecretSharing,
+				Envelope:      row.Envelope,
+				CreatedAt:     row.CreatedAt,
+				UpdatedAt:     row.UpdatedAt,
+			},
+		),
+	}, nil
+}
+
+func (d *database) InsertSecretAccess(
+	ctx context.Context,
+	secretID, userID, grantedBy int64,
+	encryptedDataKey []byte,
+) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.InsertSecretAccess(
+		ctx,
+		sqlc.InsertSecretAccessParams{
+			SecretID:         secretID,
+			UserID:           userID,
+			EncryptedDataKey: encryptedDataKey,
+			GrantedBy:        grantedBy,
+		},
+	)
+}
+
+func (d *database) DeleteSecretAccess(ctx context.Context, secretID, userID int64) (int64, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return 0, err
+	}
+	return q.DeleteSecretAccess(ctx, sqlc.DeleteSecretAccessParams{SecretID: secretID, UserID: userID})
+}
+
+func (d *database) SelectSecretRecipients(ctx context.Context, secretID, ownerID int64) ([]models.ExistingUser, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectSecretRecipients(ctx, sqlc.SelectSecretRecipientsParams{ID: secretID, UserID: ownerID})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.ExistingUser, len(rows))
+	for i, row := range rows {
+		out[i] = fromdb.User(row)
+	}
+	return out, nil
+}
+
+func (d *database) UpdateSecretEnvelope(ctx context.Context, secretID, userID int64, payload []byte) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.UpdateSecretEnvelope(ctx, sqlc.UpdateSecretEnvelopeParams{Value: payload, ID: secretID, UserID: userID})
+}
+
+func (d *database) SearchUsers(ctx context.Context, userID int64, search string) ([]models.ExistingUser, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SearchUsers(ctx, sqlc.SearchUsersParams{ID: userID, Lower: search})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.ExistingUser, len(rows))
+	for i, row := range rows {
+		out[i] = fromdb.User(row)
+	}
+	return out, nil
+}
+
+func (d *database) SelectUserBySharingID(ctx context.Context, sharingID string) (models.ExistingUser, error) {
+	id, err := uuid.Parse(sharingID)
+	if err != nil {
+		return models.ExistingUser{}, err
+	}
+	q, err := startQuery(d)
+	if err != nil {
+		return models.ExistingUser{}, err
+	}
+	user, err := q.SelectUserBySharingID(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	return fromdb.User(user), err
+}
+
 func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {
 	q, err := startQuery(d)
 	if err != nil {
@@ -133,6 +271,23 @@ func (d *database) HasKeys(ctx context.Context, userID int64) (bool, error) {
 		return false, err
 	}
 	return q.HasKeys(ctx, userID)
+}
+
+func (d *database) UpdatePublicKey(ctx context.Context, userID int64, publicKey []byte) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.UpdatePublicKey(ctx, sqlc.UpdatePublicKeyParams{UserID: userID, PublicKey: publicKey})
+}
+
+func (d *database) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	key, err := q.SelectPublicKey(ctx, userID)
+	return key.PublicKey, err
 }
 
 func (d *database) InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error) {

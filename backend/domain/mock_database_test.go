@@ -14,17 +14,37 @@ type mockDatabase struct {
 	insertUserFn       func(ctx context.Context, user models.User) (models.ExistingUser, error)
 	selectUserByNameFn func(ctx context.Context, username string) (models.ExistingUser, error)
 
-	upsertSecretFn  func(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
-	selectSecretsFn func(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
+	upsertSecretFn            func(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
+	selectSecretsFn           func(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
+	selectAccessibleSecretsFn func(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
+	selectSecretForOwnerFn    func(context.Context, int64, int64) (models.AccessibleSecret, error)
+	insertSecretAccessFn      func(context.Context, int64, int64, int64, []byte) error
+	selectUserBySharingIDFn   func(context.Context, string) (models.ExistingUser, error)
+	selectPublicKeyFn         func(ctx context.Context, userID int64) ([]byte, error)
 
-	insertKeysFn func(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
-	selectKeysFn func(ctx context.Context, userID int64) (models.UserKeyPair, error)
-	hasKeysFn    func(ctx context.Context, userID int64) (bool, error)
+	insertKeysFn      func(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
+	selectKeysFn      func(ctx context.Context, userID int64) (models.UserKeyPair, error)
+	hasKeysFn         func(ctx context.Context, userID int64) (bool, error)
+	updatePublicKeyFn func(ctx context.Context, userID int64, publicKey []byte) error
 
 	insertPasswordFn func(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error)
 	selectPasswordFn func(ctx context.Context, passwordID int64) (models.HashedPassword, error)
 
 	withTxFn func(ctx context.Context, fn func(db.Database) error) error
+}
+
+func (m *mockDatabase) UpdatePublicKey(ctx context.Context, userID int64, publicKey []byte) error {
+	if m.updatePublicKeyFn != nil {
+		return m.updatePublicKeyFn(ctx, userID, publicKey)
+	}
+	return nil
+}
+
+func (m *mockDatabase) SelectPublicKey(ctx context.Context, userID int64) ([]byte, error) {
+	if m.selectPublicKeyFn != nil {
+		return m.selectPublicKeyFn(ctx, userID)
+	}
+	return nil, nil
 }
 
 var _ db.Database = (*mockDatabase)(nil)
@@ -74,6 +94,45 @@ func (m *mockDatabase) SelectSecrets(ctx context.Context, userID int64) ([]model
 		return m.selectSecretsFn(ctx, userID)
 	}
 	return nil, nil
+}
+
+func (m *mockDatabase) SelectAccessibleSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error) {
+	if m.selectAccessibleSecretsFn != nil {
+		return m.selectAccessibleSecretsFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *mockDatabase) SelectSecretForOwner(
+	ctx context.Context,
+	secretID, userID int64,
+) (models.AccessibleSecret, error) {
+	if m.selectSecretForOwnerFn != nil {
+		return m.selectSecretForOwnerFn(ctx, secretID, userID)
+	}
+	return models.AccessibleSecret{}, nil
+}
+func (m *mockDatabase) InsertSecretAccess(ctx context.Context, secretID, userID, grantedBy int64, key []byte) error {
+	if m.insertSecretAccessFn != nil {
+		return m.insertSecretAccessFn(ctx, secretID, userID, grantedBy, key)
+	}
+	return nil
+}
+func (m *mockDatabase) DeleteSecretAccess(context.Context, int64, int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockDatabase) SelectSecretRecipients(context.Context, int64, int64) ([]models.ExistingUser, error) {
+	return nil, nil
+}
+func (m *mockDatabase) UpdateSecretEnvelope(context.Context, int64, int64, []byte) error { return nil }
+func (m *mockDatabase) SearchUsers(context.Context, int64, string) ([]models.ExistingUser, error) {
+	return nil, nil
+}
+func (m *mockDatabase) SelectUserBySharingID(ctx context.Context, sharingID string) (models.ExistingUser, error) {
+	if m.selectUserBySharingIDFn != nil {
+		return m.selectUserBySharingIDFn(ctx, sharingID)
+	}
+	return models.ExistingUser{}, nil
 }
 
 func (m *mockDatabase) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {
