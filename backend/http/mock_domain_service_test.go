@@ -79,6 +79,19 @@ func (m *mockDomainService) UpsertSecret(
 	return models.EncryptedSecret{}, nil
 }
 
+func (m *mockDomainService) SearchShareRecipients(context.Context, int64, string) ([]models.ShareRecipient, error) {
+	return nil, nil
+}
+func (m *mockDomainService) ShareSecret(context.Context, int64, int64, string, *crypto.AsymmetricCipher) error {
+	return nil
+}
+func (m *mockDomainService) RevokeSecretAccess(context.Context, int64, int64, string) error {
+	return nil
+}
+func (m *mockDomainService) GetSecretRecipients(context.Context, int64, int64) ([]models.ShareRecipient, error) {
+	return nil, nil
+}
+
 func (m *mockDomainService) CreateSession(ctx context.Context, userID int64) (domain.Session, error) {
 	if m.createSessionFn != nil {
 		return m.createSessionFn(ctx, userID)

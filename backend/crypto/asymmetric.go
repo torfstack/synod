@@ -26,6 +26,9 @@ func (a *AsymmetricCipher) Encrypt(plaintext []byte) ([]byte, error) {
 }
 
 func (a *AsymmetricCipher) Decrypt(ciphertext []byte) ([]byte, error) {
+	if a.privateKey == nil {
+		return nil, errors.New("private key required to decrypt")
+	}
 	if len(ciphertext) < 9 {
 		return nil, errors.New("ciphertext too short")
 	}
@@ -38,6 +41,18 @@ func (a *AsymmetricCipher) Decrypt(ciphertext []byte) ([]byte, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+func AsymmetricCipherFromPublicKeyBytes(b []byte) (*AsymmetricCipher, error) {
+	publicKey, err := kem.NewPublicKey(b)
+	if err != nil {
+		return nil, err
+	}
+	return &AsymmetricCipher{publicKey: publicKey}, nil
+}
+
+func (a *AsymmetricCipher) SerializePublicKey() ([]byte, error) {
+	return a.publicKey.Bytes(), nil
 }
 
 func NewAsymmetricCipher() (*AsymmetricCipher, error) {

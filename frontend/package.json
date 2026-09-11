@@ -15,6 +15,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "daisyui": "^5.1.12",
     "react": "^19.1.1",
+    "react-aria-components": "^1.21.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {

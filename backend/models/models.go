@@ -10,11 +10,29 @@ type Secret struct {
 	Key   string   `json:"key"`
 	Url   string   `json:"url"`
 	Tags  []string `json:"tags"`
+	Owned bool     `json:"owned"`
 }
 
 type EncryptedSecret Secret
 
 type Secrets []Secret
+
+type AccessibleSecret struct {
+	ID               int64
+	OwnerID          int64
+	EncryptedPayload []byte
+	EncryptedDataKey []byte
+	Envelope         bool
+	Owned            bool
+	Legacy           EncryptedSecret
+}
+
+type ShareRecipient struct {
+	ID       int64  `json:"-"`
+	Subject  string `json:"sharingId"`
+	Email    string `json:"emailHint"`
+	FullName string `json:"fullName"`
+}
 
 type User struct {
 	ID       *int64 `json:"id,omitempty"`
@@ -25,13 +43,15 @@ type User struct {
 
 type ExistingUser struct {
 	User
-	ID int64 `json:"id"`
+	ID        int64  `json:"id"`
+	SharingID string `json:"sharingId"`
 }
 
 type KeyType int
 
 const (
-	KeyTypeRsa KeyType = iota + 1
+	KeyTypeHPKE KeyType = iota + 1
+	KeyTypeRsa          = KeyTypeHPKE
 )
 
 type UserKeyPair struct {
@@ -40,6 +60,7 @@ type UserKeyPair struct {
 	Type        KeyType
 	PasswordID  *int64
 	KeyMaterial []byte
+	PublicKey   []byte
 }
 
 type KeyPair struct {

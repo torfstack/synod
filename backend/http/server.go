@@ -85,6 +85,9 @@ func (s *Server) newRouter() *echo.Echo {
 	secrets := api.Group("/secrets", m, loggerMiddleware)
 	secrets.GET("", s.GetSecrets)
 	secrets.POST("", s.PostSecret)
+	secrets.POST("/:id/shares", s.ShareSecret)
+	secrets.GET("/:id/shares", s.GetSecretRecipients)
+	secrets.DELETE("/:id/shares/:sharingId", s.RevokeSecretAccess)
 
 	authorization := api.Group("/auth", loggerMiddleware)
 	authorization.GET("/start", s.StartAuthentication)

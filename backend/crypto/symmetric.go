@@ -14,7 +14,6 @@ import (
 
 type SymmetricCipher struct {
 	cipher cipher.AEAD
-	key    []byte
 }
 
 func (s *SymmetricCipher) Encrypt(plaintext []byte) ([]byte, error) {
@@ -72,7 +71,7 @@ func SymmetricCipherFromKey(key []byte) (*SymmetricCipher, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SymmetricCipher{c, key}, nil
+	return &SymmetricCipher{cipher: c}, nil
 }
 
 func SymmetricCipherFromPasswordWithSalt(password Password, salt []byte) (*SymmetricCipher, error) {

@@ -15,9 +15,19 @@ type Database interface {
 
 	UpsertSecret(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
 	SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
+	SelectAccessibleSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
+	SelectSecretForOwner(ctx context.Context, secretID, userID int64) (models.AccessibleSecret, error)
+	InsertSecretAccess(ctx context.Context, secretID, userID, grantedBy int64, encryptedDataKey []byte) error
+	DeleteSecretAccess(ctx context.Context, secretID, userID int64) (int64, error)
+	SelectSecretRecipients(ctx context.Context, secretID, ownerID int64) ([]models.ExistingUser, error)
+	UpdateSecretEnvelope(ctx context.Context, secretID, userID int64, payload []byte) error
+	SearchUsers(ctx context.Context, userID int64, search string) ([]models.ExistingUser, error)
+	SelectUserBySharingID(ctx context.Context, sharingID string) (models.ExistingUser, error)
 
 	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
 	SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error)
+	UpdatePublicKey(ctx context.Context, userID int64, publicKey []byte) error
+	SelectPublicKey(ctx context.Context, userID int64) ([]byte, error)
 	HasKeys(ctx context.Context, userID int64) (bool, error)
 
 	InsertPassword(ctx context.Context, password models.HashedPassword) (models.HashedPassword, error)

@@ -29,6 +29,15 @@ type SecretService interface {
 		userID int64,
 		cipher *crypto.AsymmetricCipher,
 	) (models.EncryptedSecret, error)
+	SearchShareRecipients(ctx context.Context, userID int64, search string) ([]models.ShareRecipient, error)
+	ShareSecret(
+		ctx context.Context,
+		secretID, ownerID int64,
+		recipientSharingID string,
+		cipher *crypto.AsymmetricCipher,
+	) error
+	RevokeSecretAccess(ctx context.Context, secretID, ownerID int64, recipientSharingID string) error
+	GetSecretRecipients(ctx context.Context, secretID, ownerID int64) ([]models.ShareRecipient, error)
 }
 
 type SessionService interface {

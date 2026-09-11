@@ -5,13 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/torfstack/synod/backend/domain"
 )
 
 func TestLookUpUser_NoSearchString_Returns400(t *testing.T) {
 	s := NewServer(testConfig(), &mockDomainService{})
-	e := echo.New()
+	e := newEchoWithSession(&domain.Session{UserID: 1})
 	e.GET("/users/lookup", s.LookUpUser)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/lookup", nil)
@@ -24,7 +24,7 @@ func TestLookUpUser_NoSearchString_Returns400(t *testing.T) {
 
 func TestLookUpUser_WithSearchString_Returns200(t *testing.T) {
 	s := NewServer(testConfig(), &mockDomainService{})
-	e := echo.New()
+	e := newEchoWithSession(&domain.Session{UserID: 1})
 	e.GET("/users/lookup", s.LookUpUser)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/lookup?find=alice", nil)

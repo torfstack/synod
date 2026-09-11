@@ -51,6 +51,15 @@ func (s *service) CreateSession(ctx context.Context, userID int64) (Session, err
 			if err != nil {
 				return session, err
 			}
+			if len(key.PublicKey) == 0 {
+				publicKey, err := session.Cipher.SerializePublicKey()
+				if err != nil {
+					return session, err
+				}
+				if err := s.database.UpdatePublicKey(ctx, userID, publicKey); err != nil {
+					return session, err
+				}
+			}
 		}
 	}
 

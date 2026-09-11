@@ -34,6 +34,32 @@ export async function postSecret(secret: Secret) {
     });
 }
 
+export type ShareRecipient = {
+    sharingId: string;
+    fullName: string;
+    emailHint: string;
+};
+
+export async function searchShareRecipients(search: string, signal: AbortSignal) {
+    const url = `/api/users/lookup?find=${encodeURIComponent(search)}`;
+    return apiFetchJson<ShareRecipient[]>(url, {method: "GET", signal});
+}
+
+export async function shareSecret(secretId: number, sharingId: string) {
+    return apiFetch(`/api/secrets/${secretId}/shares`, {
+        method: "POST",
+        body: JSON.stringify({sharingId}),
+    });
+}
+
+export async function getSecretRecipients(secretId: number) {
+    return apiFetchJson<ShareRecipient[]>(`/api/secrets/${secretId}/shares`, {method: "GET"});
+}
+
+export async function revokeSecretAccess(secretId: number, sharingId: string) {
+    return apiFetch(`/api/secrets/${secretId}/shares/${sharingId}`, {method: "DELETE"});
+}
+
 export async function postSetupPlain() {
     return apiFetch(config.backendSetupPlainUrl, {
         method: 'POST',
@@ -87,5 +113,3 @@ async function apiFetchJson<T>(url: string, options: RequestInit = {}): Promise<
     const res = await apiFetch(url, options)
     return res.json() as Promise<T>;
 }
-
-

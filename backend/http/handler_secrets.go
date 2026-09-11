@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/torfstack/synod/backend/logging"
 
@@ -24,6 +25,63 @@ func (s *Server) GetSecrets(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, secrets)
+}
+
+type shareSecretRequest struct {
+	SharingID string `json:"sharingId"`
+}
+
+func (s *Server) GetSecretRecipients(c echo.Context) error {
+	ctx := c.Request().Context()
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	secretID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	recipients, err := s.domainService.GetSecretRecipients(ctx, secretID, session.UserID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, recipients)
+}
+
+func (s *Server) ShareSecret(c echo.Context) error {
+	ctx := c.Request().Context()
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	secretID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	var input shareSecretRequest
+	if err := c.Bind(&input); err != nil || input.SharingID == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.domainService.ShareSecret(ctx, secretID, session.UserID, input.SharingID, session.Cipher); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusCreated)
+}
+
+func (s *Server) RevokeSecretAccess(c echo.Context) error {
+	ctx := c.Request().Context()
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	secretID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.domainService.RevokeSecretAccess(ctx, secretID, session.UserID, c.Param("sharingId")); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (s *Server) PostSecret(c echo.Context) error {
