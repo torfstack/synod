@@ -38,6 +38,15 @@ type SecretService interface {
 	) error
 	RevokeSecretAccess(ctx context.Context, secretID, ownerID int64, recipientSharingID string) error
 	GetSecretRecipients(ctx context.Context, secretID, ownerID int64) ([]models.ShareRecipient, error)
+	CreateThresholdSecret(ctx context.Context, input models.ThresholdSecretInput, userID int64) (int64, error)
+	StartUnlock(ctx context.Context, secretID, userID int64, cipher *crypto.AsymmetricCipher) (int64, error)
+	GetUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error)
+	ContributeToUnlock(ctx context.Context, requestID, userID int64, cipher *crypto.AsymmetricCipher) error
+	GetUnlockResult(
+		ctx context.Context,
+		requestID, userID int64,
+		cipher *crypto.AsymmetricCipher,
+	) (models.UnlockResult, error)
 }
 
 type SessionService interface {

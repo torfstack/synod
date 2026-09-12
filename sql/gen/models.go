@@ -45,6 +45,29 @@ type SecretAccess struct {
 	CreatedAt        pgtype.Timestamp
 }
 
+type ThresholdSecretShare struct {
+	SecretID       int64
+	UserID         int64
+	EncryptedShare []byte
+	CreatedAt      pgtype.Timestamp
+}
+
+type UnlockContribution struct {
+	RequestID int64
+	UserID    int64
+	Share     []byte
+	CreatedAt pgtype.Timestamp
+}
+
+type UnlockRequest struct {
+	ID          int64
+	SecretID    int64
+	RequestedBy int64
+	CreatedAt   pgtype.Timestamp
+	ExpiresAt   pgtype.Timestamp
+	CompletedAt pgtype.Timestamp
+}
+
 type User struct {
 	ID        int64
 	Subject   string

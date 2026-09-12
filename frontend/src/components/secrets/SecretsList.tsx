@@ -23,6 +23,7 @@ export const SecretsList = (props: SecretListProps) => {
                             <p className="text-semibold truncate">{secret.key}</p>
                             {secret.owned === false &&
                                 <span className="badge badge-secondary badge-sm shrink-0">Shared with you</span>}
+                            {secret.locked && <span className="badge badge-warning badge-sm shrink-0">{secret.threshold} shares to unlock</span>}
                         </div>
                         <p className="font-normal italic truncate max-w-full">[{secret.url}]</p>
                         <div className="flex flex-row gap-2 max-w-full items-center truncate pt-1.5">

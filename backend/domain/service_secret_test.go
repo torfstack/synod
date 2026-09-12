@@ -56,6 +56,62 @@ func TestShareSecretWrapsDataKeyForRecipient(t *testing.T) {
 	require.Equal(t, dataKey, unwrapped)
 }
 
+func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
+	ciphers := map[int64]*crypto.AsymmetricCipher{}
+	publicKeys := map[int64][]byte{}
+	for _, id := range []int64{1, 2, 3} {
+		cipher, err := crypto.NewAsymmetricCipher()
+		require.NoError(t, err)
+		ciphers[id] = cipher
+		publicKeys[id], err = cipher.SerializePublicKey()
+		require.NoError(t, err)
+	}
+	users := map[string]int64{"two": 2, "three": 3}
+	shares := map[int64][]byte{}
+	var payload string
+	database := &mockDatabase{
+		selectUserBySharingIDFn: func(_ context.Context, sharingID string) (models.ExistingUser, error) {
+			return models.ExistingUser{ID: users[sharingID]}, nil
+		},
+		selectPublicKeyFn: func(_ context.Context, userID int64) ([]byte, error) { return publicKeys[userID], nil },
+		insertThresholdSecretFn: func(_ context.Context, secret models.EncryptedSecret, _ int64, threshold int) (int64, error) {
+			require.Equal(t, 2, threshold)
+			payload = secret.Value
+			return 9, nil
+		},
+		insertThresholdShareFn: func(_ context.Context, secretID, userID int64, share []byte) error {
+			require.Equal(t, int64(9), secretID)
+			shares[userID] = share
+			return nil
+		},
+	}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	id, err := svc.CreateThresholdSecret(context.Background(), models.ThresholdSecretInput{
+		Secret:    models.Secret{Key: "recovery", Value: "correct horse", Tags: []string{}},
+		Threshold: 2, SharingIDs: []string{"two", "three"},
+	}, 1)
+	require.NoError(t, err)
+	require.Equal(t, int64(9), id)
+
+	decryptedShares := make([][]byte, 2)
+	for i, userID := range []int64{1, 3} {
+		decryptedShares[i], err = ciphers[userID].Decrypt(shares[userID])
+		require.NoError(t, err)
+	}
+	key, err := crypto.CombineShares(decryptedShares)
+	require.NoError(t, err)
+	payloadCipher, err := crypto.SymmetricCipherFromKey(key)
+	require.NoError(t, err)
+	encoded, err := base64.StdEncoding.DecodeString(payload)
+	require.NoError(t, err)
+	plaintext, err := payloadCipher.Decrypt(encoded)
+	require.NoError(t, err)
+	var secret models.Secret
+	require.NoError(t, json.Unmarshal(plaintext, &secret))
+	require.Equal(t, "correct horse", secret.Value)
+}
+
 func TestGetSecretsDecryptsSharedEnvelope(t *testing.T) {
 	recipient, err := crypto.NewAsymmetricCipher()
 	require.NoError(t, err)
