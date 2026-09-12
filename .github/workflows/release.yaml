@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      pull-requests: read
     steps:
       - name: checkout repo
         uses: actions/checkout@v7
@@ -32,13 +33,25 @@ jobs:
           task test
       - name: select version
         id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git fetch origin --tags
           if git tag --points-at HEAD | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "This commit already has a release tag; refusing to publish it again." >&2
             exit 1
           fi
-          version=$(task next-version)
+          labels=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].labels[].name')
+          release_labels=$(printf '%s\n' "$labels" | grep -E '^release:(patch|minor|major)$' || true)
+          release_label_count=$(printf '%s\n' "$release_labels" | awk 'NF { count++ } END { print count + 0 }')
+          if [ "$release_label_count" -gt 1 ]; then
+            echo "A pull request may have only one release bump label." >&2
+            exit 1
+          fi
+          bump=${release_labels#release:}
+          bump=${bump:-patch}
+          version=$(task next-version BUMP="$bump")
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: setup docker
         uses: docker/login-action@v4

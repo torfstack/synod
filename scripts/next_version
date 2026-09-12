@@ -1,12 +1,31 @@
 #!/bin/sh
 set -eu
 
+bump=${1:-patch}
+case "$bump" in
+    patch|minor|major) ;;
+    *)
+        echo "bump must be patch, minor, or major" >&2
+        exit 1
+        ;;
+esac
+
 tags=$(git tag --list)
 current_version=$(printf '%s\n' "$tags" | LC_ALL=C awk '
     /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/ { print }
 ' | LC_ALL=C sort -t. -k1.2,1n -k2,2n -k3,3n | tail -n 1)
 
 current_version=${current_version:-v0.0.0}
-base=${current_version%.*}
-patch=${current_version##*.}
-printf '%s.%s\n' "$base" "$((patch + 1))"
+version=${current_version#v}
+major=${version%%.*}
+remainder=${version#*.}
+minor=${remainder%%.*}
+patch=${remainder##*.}
+
+case "$bump" in
+    patch) patch=$((patch + 1)) ;;
+    minor) minor=$((minor + 1)); patch=0 ;;
+    major) major=$((major + 1)); minor=0; patch=0 ;;
+esac
+
+printf 'v%s.%s.%s\n' "$major" "$minor" "$patch"

@@ -39,8 +39,10 @@ tasks:
       - cmd: golangci-lint fmt
   next-version:
     desc: Print next version
+    vars:
+      BUMP: '{{default "patch" .BUMP}}'
     cmds:
-      - cmd: sh scripts/next_version
+      - cmd: sh scripts/next_version {{.BUMP | quote}}
     silent: true
   release:
     desc: Publish image
