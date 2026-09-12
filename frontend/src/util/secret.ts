@@ -5,4 +5,6 @@ export type Secret = {
     url: string | undefined,
     tags: string[]
     owned?: boolean
+    locked?: boolean
+    threshold?: number
 }

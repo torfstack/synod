@@ -107,3 +107,83 @@ func (s *Server) PostSecret(c echo.Context) error {
 
 	return c.NoContent(http.StatusCreated)
 }
+
+func (s *Server) PostThresholdSecret(c echo.Context) error {
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	var input models.ThresholdSecretInput
+	if err := c.Bind(&input); err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	id, err := s.domainService.CreateThresholdSecret(c.Request().Context(), input, session.UserID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusCreated, map[string]int64{"id": id})
+}
+
+func (s *Server) StartUnlock(c echo.Context) error {
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	secretID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	id, err := s.domainService.StartUnlock(c.Request().Context(), secretID, session.UserID, session.Cipher)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusCreated, map[string]int64{"id": id})
+}
+
+func (s *Server) GetUnlockRequests(c echo.Context) error {
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	requests, err := s.domainService.GetUnlockRequests(c.Request().Context(), session.UserID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, requests)
+}
+
+func (s *Server) ContributeToUnlock(c echo.Context) error {
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	requestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.domainService.ContributeToUnlock(
+		c.Request().Context(),
+		requestID,
+		session.UserID,
+		session.Cipher,
+	); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) GetUnlockResult(c echo.Context) error {
+	session, ok := getSession(c)
+	if !ok {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	requestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	result, err := s.domainService.GetUnlockResult(c.Request().Context(), requestID, session.UserID, session.Cipher)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, result)
+}

@@ -2,15 +2,18 @@ import type {Secret} from "../../util/secret.ts";
 import React, {useEffect, useRef, useState} from "react";
 import {Eye, EyeSlash} from "../../icons/Eye.tsx";
 import {ShareSecret} from "./ShareSecret.tsx";
+import {ThresholdOptions} from "./ThresholdOptions.tsx";
+import type {ShareRecipient} from "../../util/api.ts";
 
 interface SecretModalProps {
     handleSecret: (s: Secret) => Promise<void>;
+    handleThresholdSecret: (s: Secret, threshold: number, sharingIds: string[]) => Promise<void>;
     existingSecret?: Secret;
     isOpen: boolean;
     closeModal: () => void;
 }
 
-export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingSecret, isOpen, closeModal}) => {
+export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThresholdSecret, existingSecret, isOpen, closeModal}) => {
 	const readOnly = existingSecret?.owned === false;
     const [name, setName] = useState(existingSecret?.key ?? "")
     const [secret, setSecret] = useState(existingSecret?.value ?? "")
@@ -20,6 +23,9 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
     const [passwordVisible, setPasswordVisible] = useState(false)
     const dialogRef = useRef<HTMLDialogElement>(null)
     const [sharePortal, setSharePortal] = useState<HTMLDivElement | null>(null)
+    const [thresholdEnabled, setThresholdEnabled] = useState(false)
+    const [threshold, setThreshold] = useState(2)
+    const [thresholdRecipients, setThresholdRecipients] = useState<ShareRecipient[]>([])
 
     useEffect(() => {
         const dialog = dialogRef.current;
@@ -46,6 +52,9 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
         setTags(existingSecret?.tags ?? [])
         setTag("")
         setPasswordVisible(false)
+        setThresholdEnabled(false)
+        setThreshold(2)
+        setThresholdRecipients([])
     }, [existingSecret, isOpen]);
 
     async function onSubmit() {
@@ -59,12 +68,16 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
             url: url,
             tags: tags,
         }
-        await handleSecret(s)
+        if (thresholdEnabled) {
+            await handleThresholdSecret(s, threshold, thresholdRecipients.map(recipient => recipient.sharingId))
+        } else {
+            await handleSecret(s)
+        }
         closeModal()
     }
 
     function checkInput(): boolean {
-        return name.length > 0 && secret.length > 0
+        return name.length > 0 && secret.length > 0 && (!thresholdEnabled || (thresholdRecipients.length > 0 && threshold <= thresholdRecipients.length + 1))
     }
 
     function removeTag(tag: string): () => void {
@@ -144,6 +157,9 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
                                     </div>
                                 ))}
                             </div>
+                            {!existingSecret && <ThresholdOptions enabled={thresholdEnabled} setEnabled={setThresholdEnabled}
+                                threshold={threshold} setThreshold={setThreshold} recipients={thresholdRecipients}
+                                setRecipients={setThresholdRecipients}/>}
                             <div className="modal-action">
                                 {!readOnly && <button type="button" className="btn btn-primary" onClick={onSubmit}>Submit</button>}
                                 {readOnly && <button type="button" className="btn" onClick={closeModal}>Close</button>}

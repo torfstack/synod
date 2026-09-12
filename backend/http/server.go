@@ -88,6 +88,11 @@ func (s *Server) newRouter() *echo.Echo {
 	secrets.POST("/:id/shares", s.ShareSecret)
 	secrets.GET("/:id/shares", s.GetSecretRecipients)
 	secrets.DELETE("/:id/shares/:sharingId", s.RevokeSecretAccess)
+	secrets.POST("/threshold", s.PostThresholdSecret)
+	secrets.POST("/:id/unlocks", s.StartUnlock)
+	secrets.GET("/unlock-requests", s.GetUnlockRequests)
+	secrets.POST("/unlock-requests/:id/contributions", s.ContributeToUnlock)
+	secrets.GET("/unlock-requests/:id", s.GetUnlockResult)
 
 	authorization := api.Group("/auth", loggerMiddleware)
 	authorization.GET("/start", s.StartAuthentication)

@@ -110,3 +110,66 @@ RETURNING *;
 SELECT *
 FROM passwords
 WHERE id = $1;
+
+-- name: InsertThresholdSecret :one
+INSERT INTO secrets (value, key, url, tags, user_id, secret_sharing, envelope)
+VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+RETURNING *;
+
+-- name: InsertThresholdShare :exec
+INSERT INTO threshold_secret_shares (secret_id, user_id, encrypted_share)
+VALUES ($1, $2, $3);
+
+-- name: SelectThresholdSecrets :many
+SELECT s.id, s.key, s.url, s.tags, s.user_id, s.secret_sharing
+FROM secrets s
+WHERE s.secret_sharing IS NOT NULL
+  AND (s.user_id = $1 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $1
+  ));
+
+-- name: SelectThresholdSecretForParticipant :one
+SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, tss.encrypted_share
+FROM secrets s
+JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $2
+WHERE s.id = $1 AND s.secret_sharing IS NOT NULL;
+
+-- name: InsertUnlockRequest :one
+INSERT INTO unlock_requests (secret_id, requested_by)
+SELECT s.id, $2 FROM secrets s
+WHERE s.id = $1 AND s.secret_sharing IS NOT NULL
+  AND (s.user_id = $2 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $2
+  ))
+RETURNING *;
+
+-- name: SelectPendingUnlockRequests :many
+SELECT ur.id, ur.secret_id, ur.requested_by, ur.created_at, ur.expires_at,
+       s.key, s.secret_sharing, u.full_name AS requester_name,
+       EXISTS (SELECT 1 FROM unlock_contributions uc WHERE uc.request_id = ur.id AND uc.user_id = $1) AS contributed,
+       (SELECT COUNT(*) FROM unlock_contributions uc WHERE uc.request_id = ur.id) AS contributions
+FROM unlock_requests ur
+JOIN secrets s ON s.id = ur.secret_id
+JOIN users u ON u.id = ur.requested_by
+JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $1
+WHERE ur.completed_at IS NULL AND ur.expires_at > NOW()
+ORDER BY ur.created_at DESC;
+
+-- name: SelectUnlockRequest :one
+SELECT ur.*, s.value AS encrypted_payload, s.secret_sharing
+FROM unlock_requests ur
+JOIN secrets s ON s.id = ur.secret_id
+WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.expires_at > NOW();
+
+-- name: InsertUnlockContribution :exec
+INSERT INTO unlock_contributions (request_id, user_id, share)
+SELECT ur.id, $2, $3 FROM unlock_requests ur
+JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $2
+WHERE ur.id = $1 AND ur.completed_at IS NULL AND ur.expires_at > NOW()
+ON CONFLICT (request_id, user_id) DO NOTHING;
+
+-- name: SelectUnlockContributions :many
+SELECT share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id;
+
+-- name: CompleteUnlockRequest :exec
+UPDATE unlock_requests SET completed_at = NOW() WHERE id = $1;

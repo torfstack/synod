@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const completeUnlockRequest = `-- name: CompleteUnlockRequest :exec
+UPDATE unlock_requests SET completed_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) CompleteUnlockRequest(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, completeUnlockRequest, id)
+	return err
+}
+
 const deleteSecretAccess = `-- name: DeleteSecretAccess :execrows
 DELETE FROM secret_access
 WHERE secret_id = $1 AND user_id = $2
@@ -168,6 +177,110 @@ func (q *Queries) InsertSecretAccess(ctx context.Context, arg InsertSecretAccess
 		arg.GrantedBy,
 	)
 	return err
+}
+
+const insertThresholdSecret = `-- name: InsertThresholdSecret :one
+INSERT INTO secrets (value, key, url, tags, user_id, secret_sharing, envelope)
+VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+RETURNING id, value, key, url, tags, user_id, secret_sharing, envelope, created_at, updated_at
+`
+
+type InsertThresholdSecretParams struct {
+	Value         []byte
+	Key           string
+	Url           string
+	Tags          string
+	UserID        int64
+	SecretSharing pgtype.Int4
+}
+
+func (q *Queries) InsertThresholdSecret(ctx context.Context, arg InsertThresholdSecretParams) (Secret, error) {
+	row := q.db.QueryRow(ctx, insertThresholdSecret,
+		arg.Value,
+		arg.Key,
+		arg.Url,
+		arg.Tags,
+		arg.UserID,
+		arg.SecretSharing,
+	)
+	var i Secret
+	err := row.Scan(
+		&i.ID,
+		&i.Value,
+		&i.Key,
+		&i.Url,
+		&i.Tags,
+		&i.UserID,
+		&i.SecretSharing,
+		&i.Envelope,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertThresholdShare = `-- name: InsertThresholdShare :exec
+INSERT INTO threshold_secret_shares (secret_id, user_id, encrypted_share)
+VALUES ($1, $2, $3)
+`
+
+type InsertThresholdShareParams struct {
+	SecretID       int64
+	UserID         int64
+	EncryptedShare []byte
+}
+
+func (q *Queries) InsertThresholdShare(ctx context.Context, arg InsertThresholdShareParams) error {
+	_, err := q.db.Exec(ctx, insertThresholdShare, arg.SecretID, arg.UserID, arg.EncryptedShare)
+	return err
+}
+
+const insertUnlockContribution = `-- name: InsertUnlockContribution :exec
+INSERT INTO unlock_contributions (request_id, user_id, share)
+SELECT ur.id, $2, $3 FROM unlock_requests ur
+JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $2
+WHERE ur.id = $1 AND ur.completed_at IS NULL AND ur.expires_at > NOW()
+ON CONFLICT (request_id, user_id) DO NOTHING
+`
+
+type InsertUnlockContributionParams struct {
+	ID     int64
+	UserID int64
+	Share  []byte
+}
+
+func (q *Queries) InsertUnlockContribution(ctx context.Context, arg InsertUnlockContributionParams) error {
+	_, err := q.db.Exec(ctx, insertUnlockContribution, arg.ID, arg.UserID, arg.Share)
+	return err
+}
+
+const insertUnlockRequest = `-- name: InsertUnlockRequest :one
+INSERT INTO unlock_requests (secret_id, requested_by)
+SELECT s.id, $2 FROM secrets s
+WHERE s.id = $1 AND s.secret_sharing IS NOT NULL
+  AND (s.user_id = $2 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $2
+  ))
+RETURNING id, secret_id, requested_by, created_at, expires_at, completed_at
+`
+
+type InsertUnlockRequestParams struct {
+	ID          int64
+	RequestedBy int64
+}
+
+func (q *Queries) InsertUnlockRequest(ctx context.Context, arg InsertUnlockRequestParams) (UnlockRequest, error) {
+	row := q.db.QueryRow(ctx, insertUnlockRequest, arg.ID, arg.RequestedBy)
+	var i UnlockRequest
+	err := row.Scan(
+		&i.ID,
+		&i.SecretID,
+		&i.RequestedBy,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.CompletedAt,
+	)
+	return i, err
 }
 
 const insertUser = `-- name: InsertUser :one
@@ -346,6 +459,63 @@ func (q *Queries) SelectPassword(ctx context.Context, id int64) (Password, error
 	return i, err
 }
 
+const selectPendingUnlockRequests = `-- name: SelectPendingUnlockRequests :many
+SELECT ur.id, ur.secret_id, ur.requested_by, ur.created_at, ur.expires_at,
+       s.key, s.secret_sharing, u.full_name AS requester_name,
+       EXISTS (SELECT 1 FROM unlock_contributions uc WHERE uc.request_id = ur.id AND uc.user_id = $1) AS contributed,
+       (SELECT COUNT(*) FROM unlock_contributions uc WHERE uc.request_id = ur.id) AS contributions
+FROM unlock_requests ur
+JOIN secrets s ON s.id = ur.secret_id
+JOIN users u ON u.id = ur.requested_by
+JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $1
+WHERE ur.completed_at IS NULL AND ur.expires_at > NOW()
+ORDER BY ur.created_at DESC
+`
+
+type SelectPendingUnlockRequestsRow struct {
+	ID            int64
+	SecretID      int64
+	RequestedBy   int64
+	CreatedAt     pgtype.Timestamp
+	ExpiresAt     pgtype.Timestamp
+	Key           string
+	SecretSharing pgtype.Int4
+	RequesterName string
+	Contributed   bool
+	Contributions int64
+}
+
+func (q *Queries) SelectPendingUnlockRequests(ctx context.Context, userID int64) ([]SelectPendingUnlockRequestsRow, error) {
+	rows, err := q.db.Query(ctx, selectPendingUnlockRequests, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SelectPendingUnlockRequestsRow
+	for rows.Next() {
+		var i SelectPendingUnlockRequestsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SecretID,
+			&i.RequestedBy,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.Key,
+			&i.SecretSharing,
+			&i.RequesterName,
+			&i.Contributed,
+			&i.Contributions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const selectPublicKey = `-- name: SelectPublicKey :one
 SELECT id, public_key FROM keys WHERE user_id = $1 AND public_key IS NOT NULL
 `
@@ -484,6 +654,153 @@ func (q *Queries) SelectSecrets(ctx context.Context, userID int64) ([]Secret, er
 		return nil, err
 	}
 	return items, nil
+}
+
+const selectThresholdSecretForParticipant = `-- name: SelectThresholdSecretForParticipant :one
+SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, tss.encrypted_share
+FROM secrets s
+JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $2
+WHERE s.id = $1 AND s.secret_sharing IS NOT NULL
+`
+
+type SelectThresholdSecretForParticipantParams struct {
+	ID     int64
+	UserID int64
+}
+
+type SelectThresholdSecretForParticipantRow struct {
+	ID             int64
+	Value          []byte
+	Key            string
+	Url            string
+	Tags           string
+	UserID         int64
+	SecretSharing  pgtype.Int4
+	EncryptedShare []byte
+}
+
+func (q *Queries) SelectThresholdSecretForParticipant(ctx context.Context, arg SelectThresholdSecretForParticipantParams) (SelectThresholdSecretForParticipantRow, error) {
+	row := q.db.QueryRow(ctx, selectThresholdSecretForParticipant, arg.ID, arg.UserID)
+	var i SelectThresholdSecretForParticipantRow
+	err := row.Scan(
+		&i.ID,
+		&i.Value,
+		&i.Key,
+		&i.Url,
+		&i.Tags,
+		&i.UserID,
+		&i.SecretSharing,
+		&i.EncryptedShare,
+	)
+	return i, err
+}
+
+const selectThresholdSecrets = `-- name: SelectThresholdSecrets :many
+SELECT s.id, s.key, s.url, s.tags, s.user_id, s.secret_sharing
+FROM secrets s
+WHERE s.secret_sharing IS NOT NULL
+  AND (s.user_id = $1 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $1
+  ))
+`
+
+type SelectThresholdSecretsRow struct {
+	ID            int64
+	Key           string
+	Url           string
+	Tags          string
+	UserID        int64
+	SecretSharing pgtype.Int4
+}
+
+func (q *Queries) SelectThresholdSecrets(ctx context.Context, userID int64) ([]SelectThresholdSecretsRow, error) {
+	rows, err := q.db.Query(ctx, selectThresholdSecrets, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SelectThresholdSecretsRow
+	for rows.Next() {
+		var i SelectThresholdSecretsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Key,
+			&i.Url,
+			&i.Tags,
+			&i.UserID,
+			&i.SecretSharing,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const selectUnlockContributions = `-- name: SelectUnlockContributions :many
+SELECT share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id
+`
+
+func (q *Queries) SelectUnlockContributions(ctx context.Context, requestID int64) ([][]byte, error) {
+	rows, err := q.db.Query(ctx, selectUnlockContributions, requestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items [][]byte
+	for rows.Next() {
+		var share []byte
+		if err := rows.Scan(&share); err != nil {
+			return nil, err
+		}
+		items = append(items, share)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const selectUnlockRequest = `-- name: SelectUnlockRequest :one
+SELECT ur.id, ur.secret_id, ur.requested_by, ur.created_at, ur.expires_at, ur.completed_at, s.value AS encrypted_payload, s.secret_sharing
+FROM unlock_requests ur
+JOIN secrets s ON s.id = ur.secret_id
+WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.expires_at > NOW()
+`
+
+type SelectUnlockRequestParams struct {
+	ID          int64
+	RequestedBy int64
+}
+
+type SelectUnlockRequestRow struct {
+	ID               int64
+	SecretID         int64
+	RequestedBy      int64
+	CreatedAt        pgtype.Timestamp
+	ExpiresAt        pgtype.Timestamp
+	CompletedAt      pgtype.Timestamp
+	EncryptedPayload []byte
+	SecretSharing    pgtype.Int4
+}
+
+func (q *Queries) SelectUnlockRequest(ctx context.Context, arg SelectUnlockRequestParams) (SelectUnlockRequestRow, error) {
+	row := q.db.QueryRow(ctx, selectUnlockRequest, arg.ID, arg.RequestedBy)
+	var i SelectUnlockRequestRow
+	err := row.Scan(
+		&i.ID,
+		&i.SecretID,
+		&i.RequestedBy,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.CompletedAt,
+		&i.EncryptedPayload,
+		&i.SecretSharing,
+	)
+	return i, err
 }
 
 const selectUserByName = `-- name: SelectUserByName :one

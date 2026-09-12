@@ -2,15 +2,54 @@ package models
 
 import (
 	"crypto/rsa"
+	"time"
 )
 
 type Secret struct {
-	ID    *int64   `json:"id,omitempty"`
-	Value string   `json:"value"`
-	Key   string   `json:"key"`
-	Url   string   `json:"url"`
-	Tags  []string `json:"tags"`
-	Owned bool     `json:"owned"`
+	ID        *int64   `json:"id,omitempty"`
+	Value     string   `json:"value"`
+	Key       string   `json:"key"`
+	Url       string   `json:"url"`
+	Tags      []string `json:"tags"`
+	Owned     bool     `json:"owned"`
+	Locked    bool     `json:"locked,omitempty"`
+	Threshold int      `json:"threshold,omitempty"`
+}
+
+type ThresholdSecretInput struct {
+	Secret     Secret   `json:"secret"`
+	Threshold  int      `json:"threshold"`
+	SharingIDs []string `json:"sharingIds"`
+}
+
+type ThresholdSecret struct {
+	ID               int64
+	OwnerID          int64
+	EncryptedPayload []byte
+	EncryptedShare   []byte
+	Threshold        int
+	Key              string
+	Url              string
+	Tags             []string
+}
+
+type UnlockRequest struct {
+	ID            int64     `json:"id"`
+	SecretID      int64     `json:"secretId"`
+	RequesterID   int64     `json:"-"`
+	RequesterName string    `json:"requesterName"`
+	SecretName    string    `json:"secretName"`
+	Threshold     int       `json:"threshold"`
+	Contributions int       `json:"contributions"`
+	Contributed   bool      `json:"contributed"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+}
+
+type UnlockResult struct {
+	Ready         bool    `json:"ready"`
+	Contributions int     `json:"contributions"`
+	Threshold     int     `json:"threshold"`
+	Secret        *Secret `json:"secret,omitempty"`
 }
 
 type EncryptedSecret Secret

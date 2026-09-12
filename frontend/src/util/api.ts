@@ -34,6 +34,47 @@ export async function postSecret(secret: Secret) {
     });
 }
 
+export async function postThresholdSecret(secret: Secret, threshold: number, sharingIds: string[]) {
+    return apiFetchJson<{id: number}>(`${config.backendSecretsUrl}/threshold`, {
+        method: "POST",
+        body: JSON.stringify({secret, threshold, sharingIds}),
+    });
+}
+
+export type UnlockRequest = {
+    id: number;
+    secretId: number;
+    requesterName: string;
+    secretName: string;
+    threshold: number;
+    contributions: number;
+    contributed: boolean;
+    expiresAt: string;
+};
+
+export type UnlockResult = {
+    ready: boolean;
+    contributions: number;
+    threshold: number;
+    secret?: Secret;
+};
+
+export async function startUnlock(secretId: number) {
+    return apiFetchJson<{id: number}>(`/api/secrets/${secretId}/unlocks`, {method: "POST"});
+}
+
+export async function getUnlockRequests() {
+    return apiFetchJson<UnlockRequest[]>("/api/secrets/unlock-requests", {method: "GET"});
+}
+
+export async function contributeToUnlock(requestId: number) {
+    return apiFetch(`/api/secrets/unlock-requests/${requestId}/contributions`, {method: "POST"});
+}
+
+export async function getUnlockResult(requestId: number) {
+    return apiFetchJson<UnlockResult>(`/api/secrets/unlock-requests/${requestId}`, {method: "GET"});
+}
+
 export type ShareRecipient = {
     sharingId: string;
     fullName: string;

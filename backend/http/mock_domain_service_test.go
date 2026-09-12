@@ -91,6 +91,27 @@ func (m *mockDomainService) RevokeSecretAccess(context.Context, int64, int64, st
 func (m *mockDomainService) GetSecretRecipients(context.Context, int64, int64) ([]models.ShareRecipient, error) {
 	return nil, nil
 }
+func (m *mockDomainService) CreateThresholdSecret(context.Context, models.ThresholdSecretInput, int64) (int64, error) {
+	return 1, nil
+}
+func (m *mockDomainService) StartUnlock(context.Context, int64, int64, *crypto.AsymmetricCipher) (int64, error) {
+	return 1, nil
+}
+func (m *mockDomainService) GetUnlockRequests(context.Context, int64) ([]models.UnlockRequest, error) {
+	return nil, nil
+}
+func (m *mockDomainService) ContributeToUnlock(context.Context, int64, int64, *crypto.AsymmetricCipher) error {
+	return nil
+}
+
+func (m *mockDomainService) GetUnlockResult(
+	context.Context,
+	int64,
+	int64,
+	*crypto.AsymmetricCipher,
+) (models.UnlockResult, error) {
+	return models.UnlockResult{}, nil
+}
 
 func (m *mockDomainService) CreateSession(ctx context.Context, userID int64) (domain.Session, error) {
 	if m.createSessionFn != nil {

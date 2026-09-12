@@ -23,6 +23,21 @@ type Database interface {
 	UpdateSecretEnvelope(ctx context.Context, secretID, userID int64, payload []byte) error
 	SearchUsers(ctx context.Context, userID int64, search string) ([]models.ExistingUser, error)
 	SelectUserBySharingID(ctx context.Context, sharingID string) (models.ExistingUser, error)
+	InsertThresholdSecret(
+		ctx context.Context,
+		secret models.EncryptedSecret,
+		userID int64,
+		threshold int,
+	) (int64, error)
+	InsertThresholdShare(ctx context.Context, secretID, userID int64, encryptedShare []byte) error
+	SelectThresholdSecrets(ctx context.Context, userID int64) ([]models.ThresholdSecret, error)
+	SelectThresholdSecretForParticipant(ctx context.Context, secretID, userID int64) (models.ThresholdSecret, error)
+	InsertUnlockRequest(ctx context.Context, secretID, userID int64) (int64, error)
+	SelectPendingUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error)
+	SelectUnlockRequest(ctx context.Context, requestID, userID int64) (models.ThresholdSecret, error)
+	InsertUnlockContribution(ctx context.Context, requestID, userID int64, share []byte) error
+	SelectUnlockContributions(ctx context.Context, requestID int64) ([][]byte, error)
+	CompleteUnlockRequest(ctx context.Context, requestID int64) error
 
 	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
 	SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error)
