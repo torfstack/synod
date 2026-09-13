@@ -464,6 +464,14 @@ func (d *database) CompleteUnlockRequest(ctx context.Context, requestID int64) e
 	return q.CompleteUnlockRequest(ctx, requestID)
 }
 
+func (d *database) DeleteExpiredUnlockRequests(ctx context.Context) (int64, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return 0, err
+	}
+	return q.DeleteExpiredUnlockRequests(ctx)
+}
+
 func splitTags(value string) []string {
 	if value == "" {
 		return []string{}

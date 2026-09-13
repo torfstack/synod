@@ -27,9 +27,21 @@ func NewServer(cfg config.Config, domainService domain.Service) *Server {
 	}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(ctx context.Context) error {
 	e := s.newRouter()
-	return e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := e.Shutdown(shutdownCtx); err != nil {
+			logging.Errorf(shutdownCtx, "could not shut down HTTP server: %v", err)
+		}
+	}()
+	err := e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 func (s *Server) newRouter() *echo.Echo {

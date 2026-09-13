@@ -20,6 +20,25 @@ func (q *Queries) CompleteUnlockRequest(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteExpiredUnlockRequests = `-- name: DeleteExpiredUnlockRequests :execrows
+DELETE FROM unlock_requests ur
+WHERE CASE
+    WHEN ur.completed_at IS NULL THEN ur.expires_at
+    ELSE COALESCE(
+        (SELECT MAX(tug.expires_at) FROM threshold_unlock_grants tug WHERE tug.request_id = ur.id),
+        ur.completed_at
+    )
+END <= NOW()
+`
+
+func (q *Queries) DeleteExpiredUnlockRequests(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredUnlockRequests)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteSecretAccess = `-- name: DeleteSecretAccess :execrows
 DELETE FROM secret_access
 WHERE secret_id = $1 AND user_id = $2

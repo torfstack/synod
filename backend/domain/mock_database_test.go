@@ -235,6 +235,7 @@ func (m *mockDatabase) CompleteUnlockRequest(ctx context.Context, requestID int6
 	}
 	return nil
 }
+func (m *mockDatabase) DeleteExpiredUnlockRequests(context.Context) (int64, error) { return 0, nil }
 
 func (m *mockDatabase) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {
 	if m.insertKeysFn != nil {

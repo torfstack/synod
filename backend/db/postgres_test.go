@@ -95,6 +95,56 @@ func TestDatabase_SecretHandling(t *testing.T) {
 	}
 }
 
+func TestDatabase_DeleteExpiredUnlockRequestsCascadesRelatedData(t *testing.T) {
+	ctx := t.Context()
+	require.NoError(t, pg.Restore(ctx))
+	connStr, err := pg.ConnectionString(ctx)
+	require.NoError(t, err)
+	databaseInterface, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
+	database := databaseInterface.(*database)
+	user, err := database.InsertUser(ctx, TestUser)
+	require.NoError(t, err)
+	secretID, err := database.InsertThresholdSecret(
+		ctx,
+		models.EncryptedSecret{Value: "payload", Key: "key"},
+		user.ID,
+		2,
+	)
+	require.NoError(t, err)
+	requestID, err := database.InsertUnlockRequest(ctx, secretID, user.ID)
+	require.NoError(t, err)
+	_, err = database.pool.Exec(
+		ctx,
+		"INSERT INTO unlock_contributions (request_id, user_id, share) VALUES ($1, $2, $3)",
+		requestID,
+		user.ID,
+		[]byte("share"),
+	)
+	require.NoError(t, err)
+	_, err = database.pool.Exec(
+		ctx,
+		"INSERT INTO threshold_unlock_grants (request_id, secret_id, user_id, encrypted_data_key, expires_at) VALUES ($1, $2, $3, $4, NOW() - INTERVAL '1 minute')",
+		requestID,
+		secretID,
+		user.ID,
+		[]byte("key"),
+	)
+	require.NoError(t, err)
+	require.NoError(t, database.CompleteUnlockRequest(ctx, requestID))
+
+	deleted, err := database.DeleteExpiredUnlockRequests(ctx)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), deleted)
+	var requests, contributions, grants int
+	require.NoError(t, database.pool.QueryRow(ctx, "SELECT COUNT(*) FROM unlock_requests").Scan(&requests))
+	require.NoError(t, database.pool.QueryRow(ctx, "SELECT COUNT(*) FROM unlock_contributions").Scan(&contributions))
+	require.NoError(t, database.pool.QueryRow(ctx, "SELECT COUNT(*) FROM threshold_unlock_grants").Scan(&grants))
+	require.Zero(t, requests)
+	require.Zero(t, contributions)
+	require.Zero(t, grants)
+}
+
 func TestDatabase_UserHandling(t *testing.T) {
 	ctx := t.Context()
 	assert.NoError(t, pg.Restore(ctx))

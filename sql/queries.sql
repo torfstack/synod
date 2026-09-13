@@ -196,3 +196,13 @@ ON CONFLICT (request_id, user_id) DO NOTHING;
 
 -- name: CompleteUnlockRequest :exec
 UPDATE unlock_requests SET completed_at = NOW() WHERE id = $1;
+
+-- name: DeleteExpiredUnlockRequests :execrows
+DELETE FROM unlock_requests ur
+WHERE CASE
+    WHEN ur.completed_at IS NULL THEN ur.expires_at
+    ELSE COALESCE(
+        (SELECT MAX(tug.expires_at) FROM threshold_unlock_grants tug WHERE tug.request_id = ur.id),
+        ur.completed_at
+    )
+END <= NOW();

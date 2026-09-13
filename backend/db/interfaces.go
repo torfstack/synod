@@ -47,6 +47,7 @@ type Database interface {
 		expiresAt time.Time,
 	) error
 	CompleteUnlockRequest(ctx context.Context, requestID int64) error
+	DeleteExpiredUnlockRequests(ctx context.Context) (int64, error)
 
 	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
 	SelectKeys(ctx context.Context, userID int64) (models.UserKeyPair, error)
