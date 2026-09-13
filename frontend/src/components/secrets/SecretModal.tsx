@@ -14,7 +14,7 @@ interface SecretModalProps {
 }
 
 export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThresholdSecret, existingSecret, isOpen, closeModal}) => {
-	const readOnly = existingSecret?.owned === false;
+    const readOnly = existingSecret?.owned === false || Boolean(existingSecret?.threshold);
     const [name, setName] = useState(existingSecret?.key ?? "")
     const [secret, setSecret] = useState(existingSecret?.value ?? "")
     const [url, setUrl] = useState(existingSecret?.url ?? "")
@@ -90,7 +90,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThr
         setPasswordVisible(isPassword)
     }
 
-    const title = readOnly ? "Shared secret" : existingSecret ? "Edit secret" : "Add secret";
+    const title = existingSecret?.threshold ? "Unlocked threshold secret" : readOnly ? "Shared secret" : existingSecret ? "Edit secret" : "Add secret";
 
     return (
         <dialog ref={dialogRef} className="modal">

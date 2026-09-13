@@ -6,14 +6,15 @@ import (
 )
 
 type Secret struct {
-	ID        *int64   `json:"id,omitempty"`
-	Value     string   `json:"value"`
-	Key       string   `json:"key"`
-	Url       string   `json:"url"`
-	Tags      []string `json:"tags"`
-	Owned     bool     `json:"owned"`
-	Locked    bool     `json:"locked,omitempty"`
-	Threshold int      `json:"threshold,omitempty"`
+	ID            *int64     `json:"id,omitempty"`
+	Value         string     `json:"value"`
+	Key           string     `json:"key"`
+	Url           string     `json:"url"`
+	Tags          []string   `json:"tags"`
+	Owned         bool       `json:"owned"`
+	Locked        bool       `json:"locked,omitempty"`
+	Threshold     int        `json:"threshold,omitempty"`
+	UnlockedUntil *time.Time `json:"unlockedUntil,omitempty"`
 }
 
 type ThresholdSecretInput struct {
@@ -64,6 +65,13 @@ type AccessibleSecret struct {
 	Envelope         bool
 	Owned            bool
 	Legacy           EncryptedSecret
+	UnlockedUntil    *time.Time
+	Threshold        int
+}
+
+type ParticipantKey struct {
+	UserID    int64
+	PublicKey []byte
 }
 
 type ShareRecipient struct {

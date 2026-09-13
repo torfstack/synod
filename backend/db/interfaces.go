@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/torfstack/synod/backend/models"
 )
@@ -31,12 +32,20 @@ type Database interface {
 	) (int64, error)
 	InsertThresholdShare(ctx context.Context, secretID, userID int64, encryptedShare []byte) error
 	SelectThresholdSecrets(ctx context.Context, userID int64) ([]models.ThresholdSecret, error)
+	SelectUnlockedThresholdSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
 	SelectThresholdSecretForParticipant(ctx context.Context, secretID, userID int64) (models.ThresholdSecret, error)
 	InsertUnlockRequest(ctx context.Context, secretID, userID int64) (int64, error)
 	SelectPendingUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error)
 	SelectUnlockRequest(ctx context.Context, requestID, userID int64) (models.ThresholdSecret, error)
 	InsertUnlockContribution(ctx context.Context, requestID, userID int64, share []byte) error
 	SelectUnlockContributions(ctx context.Context, requestID int64) ([][]byte, error)
+	SelectThresholdParticipantKeys(ctx context.Context, secretID int64) ([]models.ParticipantKey, error)
+	InsertThresholdUnlockGrant(
+		ctx context.Context,
+		requestID, secretID, userID int64,
+		encryptedDataKey []byte,
+		expiresAt time.Time,
+	) error
 	CompleteUnlockRequest(ctx context.Context, requestID int64) error
 
 	InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)

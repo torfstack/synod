@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/torfstack/synod/backend/crypto"
 	"github.com/torfstack/synod/backend/db"
@@ -41,6 +42,11 @@ func (s *service) GetSecrets(
 	if err != nil {
 		return nil, err
 	}
+	unlockedThreshold, err := s.database.SelectUnlockedThresholdSecrets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	accessible = append(accessible, unlockedThreshold...)
 	for _, stored := range accessible {
 		wrappedKey, err := base64.StdEncoding.DecodeString(string(stored.EncryptedDataKey))
 		if err != nil {
@@ -69,6 +75,8 @@ func (s *service) GetSecrets(
 		}
 		secret.ID = &stored.ID
 		secret.Owned = stored.Owned
+		secret.UnlockedUntil = stored.UnlockedUntil
+		secret.Threshold = stored.Threshold
 		secrets = append(secrets, secret)
 	}
 	thresholdSecrets, err := s.database.SelectThresholdSecrets(ctx, userID)
@@ -531,9 +539,35 @@ func (s *service) GetUnlockResult(
 		return models.UnlockResult{}, err
 	}
 	secret.ID = &stored.ID
+	secret.Threshold = stored.Threshold
 	result.Ready = true
 	result.Secret = &secret
-	if err := s.database.CompleteUnlockRequest(ctx, requestID); err != nil {
+	expiresAt := time.Now().UTC().Add(10 * time.Minute)
+	result.Secret.UnlockedUntil = &expiresAt
+	err = s.database.WithTx(ctx, func(database db.Database) error {
+		participants, err := database.SelectThresholdParticipantKeys(ctx, stored.ID)
+		if err != nil {
+			return err
+		}
+		for _, participant := range participants {
+			participantCipher, err := crypto.AsymmetricCipherFromPublicKeyBytes(participant.PublicKey)
+			if err != nil {
+				return err
+			}
+			wrappedKey, err := participantCipher.Encrypt(key)
+			if err != nil {
+				return err
+			}
+			encodedKey := []byte(base64.StdEncoding.EncodeToString(wrappedKey))
+			if err := database.InsertThresholdUnlockGrant(
+				ctx, requestID, stored.ID, participant.UserID, encodedKey, expiresAt,
+			); err != nil {
+				return err
+			}
+		}
+		return database.CompleteUnlockRequest(ctx, requestID)
+	})
+	if err != nil {
 		return models.UnlockResult{}, err
 	}
 	return result, nil

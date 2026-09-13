@@ -235,6 +235,31 @@ func (q *Queries) InsertThresholdShare(ctx context.Context, arg InsertThresholdS
 	return err
 }
 
+const insertThresholdUnlockGrant = `-- name: InsertThresholdUnlockGrant :exec
+INSERT INTO threshold_unlock_grants (request_id, secret_id, user_id, encrypted_data_key, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (request_id, user_id) DO NOTHING
+`
+
+type InsertThresholdUnlockGrantParams struct {
+	RequestID        int64
+	SecretID         int64
+	UserID           int64
+	EncryptedDataKey []byte
+	ExpiresAt        pgtype.Timestamp
+}
+
+func (q *Queries) InsertThresholdUnlockGrant(ctx context.Context, arg InsertThresholdUnlockGrantParams) error {
+	_, err := q.db.Exec(ctx, insertThresholdUnlockGrant,
+		arg.RequestID,
+		arg.SecretID,
+		arg.UserID,
+		arg.EncryptedDataKey,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const insertUnlockContribution = `-- name: InsertUnlockContribution :exec
 INSERT INTO unlock_contributions (request_id, user_id, share)
 SELECT ur.id, $2, $3 FROM unlock_requests ur
@@ -656,6 +681,39 @@ func (q *Queries) SelectSecrets(ctx context.Context, userID int64) ([]Secret, er
 	return items, nil
 }
 
+const selectThresholdParticipantKeys = `-- name: SelectThresholdParticipantKeys :many
+SELECT tss.user_id, k.public_key
+FROM threshold_secret_shares tss
+JOIN keys k ON k.user_id = tss.user_id AND k.public_key IS NOT NULL
+WHERE tss.secret_id = $1
+ORDER BY tss.user_id
+`
+
+type SelectThresholdParticipantKeysRow struct {
+	UserID    int64
+	PublicKey []byte
+}
+
+func (q *Queries) SelectThresholdParticipantKeys(ctx context.Context, secretID int64) ([]SelectThresholdParticipantKeysRow, error) {
+	rows, err := q.db.Query(ctx, selectThresholdParticipantKeys, secretID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SelectThresholdParticipantKeysRow
+	for rows.Next() {
+		var i SelectThresholdParticipantKeysRow
+		if err := rows.Scan(&i.UserID, &i.PublicKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const selectThresholdSecretForParticipant = `-- name: SelectThresholdSecretForParticipant :one
 SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, tss.encrypted_share
 FROM secrets s
@@ -702,6 +760,10 @@ WHERE s.secret_sharing IS NOT NULL
   AND (s.user_id = $1 OR EXISTS (
       SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $1
   ))
+  AND NOT EXISTS (
+      SELECT 1 FROM threshold_unlock_grants tug
+      WHERE tug.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
+  )
 `
 
 type SelectThresholdSecretsRow struct {
@@ -801,6 +863,64 @@ func (q *Queries) SelectUnlockRequest(ctx context.Context, arg SelectUnlockReque
 		&i.SecretSharing,
 	)
 	return i, err
+}
+
+const selectUnlockedThresholdSecrets = `-- name: SelectUnlockedThresholdSecrets :many
+SELECT DISTINCT ON (s.id) s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, s.envelope, s.created_at, s.updated_at, tug.encrypted_data_key, s.user_id = $1 AS owned, tug.expires_at AS unlocked_until
+FROM secrets s
+JOIN threshold_unlock_grants tug ON tug.secret_id = s.id AND tug.user_id = $1
+WHERE tug.expires_at > NOW()
+ORDER BY s.id, tug.expires_at DESC
+`
+
+type SelectUnlockedThresholdSecretsRow struct {
+	ID               int64
+	Value            []byte
+	Key              string
+	Url              string
+	Tags             string
+	UserID           int64
+	SecretSharing    pgtype.Int4
+	Envelope         bool
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+	EncryptedDataKey []byte
+	Owned            bool
+	UnlockedUntil    pgtype.Timestamp
+}
+
+func (q *Queries) SelectUnlockedThresholdSecrets(ctx context.Context, userID int64) ([]SelectUnlockedThresholdSecretsRow, error) {
+	rows, err := q.db.Query(ctx, selectUnlockedThresholdSecrets, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SelectUnlockedThresholdSecretsRow
+	for rows.Next() {
+		var i SelectUnlockedThresholdSecretsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Value,
+			&i.Key,
+			&i.Url,
+			&i.Tags,
+			&i.UserID,
+			&i.SecretSharing,
+			&i.Envelope,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.EncryptedDataKey,
+			&i.Owned,
+			&i.UnlockedUntil,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const selectUserByName = `-- name: SelectUserByName :one

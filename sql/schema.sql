@@ -76,6 +76,19 @@ CREATE TABLE unlock_contributions
     PRIMARY KEY (request_id, user_id)
 );
 
+CREATE TABLE threshold_unlock_grants
+(
+    request_id         BIGINT    NOT NULL REFERENCES unlock_requests (id) ON DELETE CASCADE,
+    secret_id          BIGINT    NOT NULL REFERENCES secrets (id) ON DELETE CASCADE,
+    user_id            BIGINT    NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    encrypted_data_key BYTEA     NOT NULL,
+    expires_at         TIMESTAMP NOT NULL,
+    PRIMARY KEY (request_id, user_id)
+);
+
+CREATE INDEX threshold_unlock_grants_active_idx
+    ON threshold_unlock_grants (user_id, secret_id, expires_at);
+
 CREATE TABLE passwords
 (
     id         BIGSERIAL PRIMARY KEY,

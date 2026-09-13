@@ -126,7 +126,18 @@ FROM secrets s
 WHERE s.secret_sharing IS NOT NULL
   AND (s.user_id = $1 OR EXISTS (
       SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $1
-  ));
+  ))
+  AND NOT EXISTS (
+      SELECT 1 FROM threshold_unlock_grants tug
+      WHERE tug.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
+  );
+
+-- name: SelectUnlockedThresholdSecrets :many
+SELECT DISTINCT ON (s.id) s.*, tug.encrypted_data_key, s.user_id = $1 AS owned, tug.expires_at AS unlocked_until
+FROM secrets s
+JOIN threshold_unlock_grants tug ON tug.secret_id = s.id AND tug.user_id = $1
+WHERE tug.expires_at > NOW()
+ORDER BY s.id, tug.expires_at DESC;
 
 -- name: SelectThresholdSecretForParticipant :one
 SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, tss.encrypted_share
@@ -170,6 +181,18 @@ ON CONFLICT (request_id, user_id) DO NOTHING;
 
 -- name: SelectUnlockContributions :many
 SELECT share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id;
+
+-- name: SelectThresholdParticipantKeys :many
+SELECT tss.user_id, k.public_key
+FROM threshold_secret_shares tss
+JOIN keys k ON k.user_id = tss.user_id AND k.public_key IS NOT NULL
+WHERE tss.secret_id = $1
+ORDER BY tss.user_id;
+
+-- name: InsertThresholdUnlockGrant :exec
+INSERT INTO threshold_unlock_grants (request_id, secret_id, user_id, encrypted_data_key, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (request_id, user_id) DO NOTHING;
 
 -- name: CompleteUnlockRequest :exec
 UPDATE unlock_requests SET completed_at = NOW() WHERE id = $1;

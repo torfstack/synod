@@ -19,7 +19,14 @@ export const SecretsScreen = () => {
     }, [])
 
     useEffect(() => {
-        const refresh = () => getUnlockRequests().then(setUnlockRequests);
+        const refresh = () => {
+            getUnlockRequests().then(requests => setUnlockRequests(current => {
+                if (current.some(previous => !requests.some(request => request.id === previous.id))) {
+                    retrieveSecrets();
+                }
+                return requests;
+            }));
+        };
         refresh();
         const interval = window.setInterval(refresh, 3000);
         return () => window.clearInterval(interval);

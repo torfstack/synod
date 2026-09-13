@@ -7,4 +7,5 @@ export type Secret = {
     owned?: boolean
     locked?: boolean
     threshold?: number
+    unlockedUntil?: string
 }

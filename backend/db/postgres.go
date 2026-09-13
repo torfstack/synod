@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -298,6 +299,30 @@ func (d *database) SelectThresholdSecrets(ctx context.Context, userID int64) ([]
 	return out, nil
 }
 
+func (d *database) SelectUnlockedThresholdSecrets(
+	ctx context.Context,
+	userID int64,
+) ([]models.AccessibleSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectUnlockedThresholdSecrets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.AccessibleSecret, len(rows))
+	for i, row := range rows {
+		unlockedUntil := row.UnlockedUntil.Time
+		out[i] = models.AccessibleSecret{
+			ID: row.ID, OwnerID: row.UserID, EncryptedPayload: row.Value,
+			EncryptedDataKey: row.EncryptedDataKey, Envelope: true, Owned: row.Owned,
+			UnlockedUntil: &unlockedUntil, Threshold: int(row.SecretSharing.Int32),
+		}
+	}
+	return out, nil
+}
+
 func (d *database) SelectThresholdSecretForParticipant(
 	ctx context.Context,
 	secretID, userID int64,
@@ -393,6 +418,42 @@ func (d *database) SelectUnlockContributions(ctx context.Context, requestID int6
 		return nil, err
 	}
 	return q.SelectUnlockContributions(ctx, requestID)
+}
+
+func (d *database) SelectThresholdParticipantKeys(
+	ctx context.Context,
+	secretID int64,
+) ([]models.ParticipantKey, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectThresholdParticipantKeys(ctx, secretID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.ParticipantKey, len(rows))
+	for i, row := range rows {
+		out[i] = models.ParticipantKey{UserID: row.UserID, PublicKey: row.PublicKey}
+	}
+	return out, nil
+}
+
+func (d *database) InsertThresholdUnlockGrant(
+	ctx context.Context,
+	requestID, secretID, userID int64,
+	encryptedDataKey []byte,
+	expiresAt time.Time,
+) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.InsertThresholdUnlockGrant(ctx, sqlc.InsertThresholdUnlockGrantParams{
+		RequestID: requestID, SecretID: secretID, UserID: userID,
+		EncryptedDataKey: encryptedDataKey,
+		ExpiresAt:        pgtype.Timestamp{Time: expiresAt, Valid: true},
+	})
 }
 
 func (d *database) CompleteUnlockRequest(ctx context.Context, requestID int64) error {

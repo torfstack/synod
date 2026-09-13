@@ -52,6 +52,14 @@ type ThresholdSecretShare struct {
 	CreatedAt      pgtype.Timestamp
 }
 
+type ThresholdUnlockGrant struct {
+	RequestID        int64
+	SecretID         int64
+	UserID           int64
+	EncryptedDataKey []byte
+	ExpiresAt        pgtype.Timestamp
+}
+
 type UnlockContribution struct {
 	RequestID int64
 	UserID    int64

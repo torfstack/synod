@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,6 +111,76 @@ func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 	var secret models.Secret
 	require.NoError(t, json.Unmarshal(plaintext, &secret))
 	require.Equal(t, "correct horse", secret.Value)
+}
+
+func TestGetUnlockResultGrantsEveryParticipantTenMinutesOfAccess(t *testing.T) {
+	requester, err := crypto.NewAsymmetricCipher()
+	require.NoError(t, err)
+	dataKey, err := crypto.NewSymmetricKey()
+	require.NoError(t, err)
+	shares, err := crypto.SplitSecret(dataKey, 2, 3)
+	require.NoError(t, err)
+	encryptedContributions := make([][]byte, 2)
+	for i := range encryptedContributions {
+		encryptedContributions[i], err = requester.Encrypt(shares[i])
+		require.NoError(t, err)
+	}
+	payloadCipher, err := crypto.SymmetricCipherFromKey(dataKey)
+	require.NoError(t, err)
+	plaintext, err := json.Marshal(models.Secret{Key: "shared", Value: "value", Tags: []string{}})
+	require.NoError(t, err)
+	payload, err := payloadCipher.Encrypt(plaintext)
+	require.NoError(t, err)
+
+	participantCiphers := map[int64]*crypto.AsymmetricCipher{}
+	participantKeys := make([]models.ParticipantKey, 3)
+	for i, userID := range []int64{1, 2, 3} {
+		participantCiphers[userID], err = crypto.NewAsymmetricCipher()
+		require.NoError(t, err)
+		participantKeys[i].UserID = userID
+		participantKeys[i].PublicKey, err = participantCiphers[userID].SerializePublicKey()
+		require.NoError(t, err)
+	}
+	granted := map[int64][]byte{}
+	completed := false
+	now := time.Now()
+	database := &mockDatabase{
+		selectUnlockRequestFn: func(context.Context, int64, int64) (models.ThresholdSecret, error) {
+			return models.ThresholdSecret{
+				ID:               9,
+				Threshold:        2,
+				EncryptedPayload: []byte(base64.StdEncoding.EncodeToString(payload)),
+			}, nil
+		},
+		selectUnlockContributionsFn: func(context.Context, int64) ([][]byte, error) {
+			return encryptedContributions, nil
+		},
+		selectThresholdParticipantKeysFn: func(context.Context, int64) ([]models.ParticipantKey, error) {
+			return participantKeys, nil
+		},
+		insertThresholdUnlockGrantFn: func(_ context.Context, requestID, secretID, userID int64, key []byte, expiresAt time.Time) error {
+			require.Equal(t, int64(4), requestID)
+			require.Equal(t, int64(9), secretID)
+			require.WithinDuration(t, now.Add(10*time.Minute), expiresAt, time.Second)
+			granted[userID] = key
+			return nil
+		},
+		completeUnlockRequestFn: func(context.Context, int64) error { completed = true; return nil },
+	}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	result, err := svc.GetUnlockResult(context.Background(), 4, 1, requester)
+	require.NoError(t, err)
+	require.True(t, result.Ready)
+	require.Len(t, granted, 3)
+	require.True(t, completed)
+	for userID, encodedKey := range granted {
+		wrappedKey, decodeErr := base64.StdEncoding.DecodeString(string(encodedKey))
+		require.NoError(t, decodeErr)
+		unwrappedKey, decryptErr := participantCiphers[userID].Decrypt(wrappedKey)
+		require.NoError(t, decryptErr)
+		require.Equal(t, dataKey, unwrappedKey)
+	}
 }
 
 func TestGetSecretsDecryptsSharedEnvelope(t *testing.T) {
