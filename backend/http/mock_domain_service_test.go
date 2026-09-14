@@ -20,6 +20,7 @@ type mockDomainService struct {
 	// SecretService
 	getSecretsFn   func(ctx context.Context, userID int64, cipher *crypto.AsymmetricCipher) ([]models.Secret, error)
 	upsertSecretFn func(ctx context.Context, secret models.Secret, userID int64, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error)
+	startUnlockFn  func(context.Context, int64, int64, *crypto.AsymmetricCipher) (int64, error)
 
 	// SessionService
 	createSessionFn func(ctx context.Context, userID int64) (domain.Session, error)
@@ -90,6 +91,60 @@ func (m *mockDomainService) RevokeSecretAccess(context.Context, int64, int64, st
 }
 func (m *mockDomainService) GetSecretRecipients(context.Context, int64, int64) ([]models.ShareRecipient, error) {
 	return nil, nil
+}
+func (m *mockDomainService) CreateThresholdSecret(context.Context, models.ThresholdSecretInput, int64) (int64, error) {
+	return 1, nil
+}
+func (m *mockDomainService) GetThresholdParticipants(
+	context.Context, int64, int64,
+) ([]models.ThresholdParticipant, error) {
+	return nil, nil
+}
+func (m *mockDomainService) AddThresholdParticipant(
+	context.Context, int64, int64, models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
+func (m *mockDomainService) RemoveThresholdParticipant(
+	context.Context, int64, int64, string, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
+func (m *mockDomainService) SetThresholdParticipantRole(
+	context.Context, int64, int64, models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
+func (m *mockDomainService) SetThresholdParticipants(
+	context.Context, int64, int64, []models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
+
+func (m *mockDomainService) StartUnlock(
+	ctx context.Context,
+	secretID, userID int64,
+	cipher *crypto.AsymmetricCipher,
+) (int64, error) {
+	if m.startUnlockFn != nil {
+		return m.startUnlockFn(ctx, secretID, userID, cipher)
+	}
+	return 1, nil
+}
+func (m *mockDomainService) GetUnlockRequests(context.Context, int64) ([]models.UnlockRequest, error) {
+	return nil, nil
+}
+func (m *mockDomainService) ContributeToUnlock(context.Context, int64, int64, *crypto.AsymmetricCipher) error {
+	return nil
+}
+
+func (m *mockDomainService) GetUnlockResult(
+	context.Context,
+	int64,
+	int64,
+	*crypto.AsymmetricCipher,
+) (models.UnlockResult, error) {
+	return models.UnlockResult{}, nil
 }
 
 func (m *mockDomainService) CreateSession(ctx context.Context, userID int64) (domain.Session, error) {

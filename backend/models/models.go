@@ -2,15 +2,80 @@ package models
 
 import (
 	"crypto/rsa"
+	"time"
 )
 
 type Secret struct {
-	ID    *int64   `json:"id,omitempty"`
-	Value string   `json:"value"`
-	Key   string   `json:"key"`
-	Url   string   `json:"url"`
-	Tags  []string `json:"tags"`
-	Owned bool     `json:"owned"`
+	ID            *int64        `json:"id,omitempty"`
+	Value         string        `json:"value"`
+	Key           string        `json:"key"`
+	Url           string        `json:"url"`
+	Tags          []string      `json:"tags"`
+	Owned         bool          `json:"owned"`
+	Locked        bool          `json:"locked,omitempty"`
+	Threshold     int           `json:"threshold,omitempty"`
+	UnlockedUntil *time.Time    `json:"unlockedUntil,omitempty"`
+	Role          ThresholdRole `json:"role,omitempty"`
+}
+
+type ThresholdRole string
+
+const (
+	ThresholdRoleOwner      ThresholdRole = "owner"
+	ThresholdRoleMaintainer ThresholdRole = "maintainer"
+	ThresholdRoleHolder     ThresholdRole = "holder"
+)
+
+type ThresholdParticipantInput struct {
+	SharingID string        `json:"sharingId"`
+	Role      ThresholdRole `json:"role"`
+}
+
+type ThresholdParticipantsInput struct {
+	Participants []ThresholdParticipantInput `json:"participants"`
+}
+
+type ThresholdParticipant struct {
+	ShareRecipient
+	Role ThresholdRole `json:"role"`
+}
+
+type ThresholdSecretInput struct {
+	Secret       Secret                      `json:"secret"`
+	Threshold    int                         `json:"threshold"`
+	SharingIDs   []string                    `json:"sharingIds"`
+	Participants []ThresholdParticipantInput `json:"participants"`
+}
+
+type ThresholdSecret struct {
+	ID               int64
+	OwnerID          int64
+	EncryptedPayload []byte
+	EncryptedShare   []byte
+	Threshold        int
+	Key              string
+	Url              string
+	Tags             []string
+	Role             ThresholdRole
+}
+
+type UnlockRequest struct {
+	ID            int64     `json:"id"`
+	SecretID      int64     `json:"secretId"`
+	RequesterID   int64     `json:"-"`
+	RequesterName string    `json:"requesterName"`
+	SecretName    string    `json:"secretName"`
+	Threshold     int       `json:"threshold"`
+	Contributions int       `json:"contributions"`
+	Contributed   bool      `json:"contributed"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+}
+
+type UnlockResult struct {
+	Ready         bool    `json:"ready"`
+	Contributions int     `json:"contributions"`
+	Threshold     int     `json:"threshold"`
+	Secret        *Secret `json:"secret,omitempty"`
 }
 
 type EncryptedSecret Secret
@@ -25,6 +90,15 @@ type AccessibleSecret struct {
 	Envelope         bool
 	Owned            bool
 	Legacy           EncryptedSecret
+	UnlockedUntil    *time.Time
+	Threshold        int
+	Role             ThresholdRole
+}
+
+type ParticipantKey struct {
+	UserID    int64
+	PublicKey []byte
+	Role      ThresholdRole
 }
 
 type ShareRecipient struct {

@@ -31,25 +31,43 @@ JOIN secrets s ON s.id = sa.secret_id
 WHERE s.id = $1 AND s.user_id = $2 AND u.id <> s.user_id
 ORDER BY u.full_name, u.id;
 
--- name: SelectSecretForOwner :one
-SELECT s.*, sa.encrypted_data_key
+-- name: SelectSecretForManager :one
+SELECT s.*, COALESCE(sa.encrypted_data_key, tug.encrypted_data_key) AS encrypted_data_key,
+       COALESCE(actor.role, 'owner') AS role
 FROM secrets s
-LEFT JOIN secret_access sa ON sa.secret_id = s.id AND sa.user_id = s.user_id
-WHERE s.id = $1 AND s.user_id = $2;
+LEFT JOIN threshold_secret_shares actor ON actor.secret_id = s.id AND actor.user_id = $2
+LEFT JOIN secret_access sa ON sa.secret_id = s.id AND sa.user_id = $2
+LEFT JOIN LATERAL (
+    SELECT tug.encrypted_data_key
+    FROM threshold_unlock_grants tug
+    JOIN unlock_requests ur ON ur.id = tug.request_id
+    WHERE ur.secret_id = s.id AND tug.user_id = $2 AND tug.expires_at > NOW()
+    ORDER BY tug.expires_at DESC
+    LIMIT 1
+) tug ON TRUE
+WHERE s.id = $1
+  AND (s.user_id = $2 OR actor.role = 'maintainer');
 
 -- name: UpdateSecretEnvelope :exec
-UPDATE secrets
+UPDATE secrets AS s
 SET value = $1, key = '', url = '', tags = '', envelope = TRUE, updated_at = NOW()
-WHERE id = $2 AND user_id = $3;
+WHERE s.id = $2
+  AND (s.user_id = $3 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss
+      WHERE tss.secret_id = s.id AND tss.user_id = $3 AND tss.role = 'maintainer'
+  ));
 
 -- name: UpdateSecret :one
-UPDATE secrets
+UPDATE secrets AS s
 SET value = $1,
     key   = $2,
     url   = $3,
     tags  = $4
-WHERE user_id = $5
-  AND id = $6
+WHERE s.id = $6
+  AND (s.user_id = $5 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss
+      WHERE tss.secret_id = s.id AND tss.user_id = $5 AND tss.role = 'maintainer'
+  ))
 RETURNING *;
 
 -- name: SelectUserByName :one
@@ -67,7 +85,7 @@ ORDER BY CASE WHEN LOWER(email) = LOWER($2) THEN 0 ELSE 1 END, full_name, users.
 LIMIT 10;
 
 -- name: SelectUserBySharingID :one
-SELECT * FROM users WHERE sharing_id = $1;
+SELECT * FROM users WHERE sharing_id = $1 FOR KEY SHARE;
 
 -- name: DoesUserExist :one
 SELECT EXISTS(SELECT 1 FROM users WHERE subject = $1);
@@ -110,3 +128,129 @@ RETURNING *;
 SELECT *
 FROM passwords
 WHERE id = $1;
+
+-- name: InsertThresholdSecret :one
+INSERT INTO secrets (value, key, url, tags, user_id, secret_sharing, envelope)
+VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+RETURNING *;
+
+-- name: InsertThresholdShare :exec
+INSERT INTO threshold_secret_shares (secret_id, user_id, encrypted_share, role)
+VALUES ($1, $2, $3, $4);
+
+-- name: SelectThresholdSecrets :many
+SELECT s.id, s.key, s.url, s.tags, s.user_id, s.secret_sharing, tss.role
+FROM secrets s
+JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $1
+WHERE s.secret_sharing IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM threshold_unlock_grants tug
+      JOIN unlock_requests ur ON ur.id = tug.request_id
+      WHERE ur.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
+  );
+
+-- name: SelectUnlockedThresholdSecrets :many
+SELECT DISTINCT ON (s.id) s.*, tug.encrypted_data_key, s.user_id = $1 AS owned,
+       tug.expires_at AS unlocked_until, tss.role
+FROM threshold_unlock_grants tug
+JOIN unlock_requests ur ON ur.id = tug.request_id
+JOIN secrets s ON s.id = ur.secret_id
+JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $1
+WHERE tug.user_id = $1
+  AND tug.expires_at > NOW()
+ORDER BY s.id, tug.expires_at DESC;
+
+-- name: SelectThresholdSecretForParticipant :one
+SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, tss.encrypted_share
+FROM secrets s
+JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $2
+WHERE s.id = $1 AND s.secret_sharing IS NOT NULL;
+
+-- name: InsertUnlockRequest :one
+WITH expired AS (
+    UPDATE unlock_requests
+    SET completed_at = NOW()
+    WHERE secret_id = $1 AND completed_at IS NULL AND expires_at <= NOW()
+    RETURNING id
+)
+INSERT INTO unlock_requests (secret_id, requested_by)
+SELECT s.id, $2 FROM secrets s
+WHERE s.id = $1 AND s.secret_sharing IS NOT NULL
+  AND (SELECT COUNT(*) FROM expired) >= 0
+  AND (s.user_id = $2 OR EXISTS (
+      SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $2
+  ))
+ON CONFLICT (secret_id) WHERE completed_at IS NULL
+DO UPDATE SET secret_id = EXCLUDED.secret_id
+RETURNING *;
+
+-- name: SelectPendingUnlockRequests :many
+SELECT ur.id, ur.secret_id, ur.requested_by, ur.created_at, ur.expires_at,
+       s.key, s.secret_sharing, u.full_name AS requester_name,
+       EXISTS (SELECT 1 FROM unlock_contributions uc WHERE uc.request_id = ur.id AND uc.user_id = $1) AS contributed,
+       (SELECT COUNT(*) FROM unlock_contributions uc WHERE uc.request_id = ur.id) AS contributions
+FROM unlock_requests ur
+JOIN secrets s ON s.id = ur.secret_id
+JOIN users u ON u.id = ur.requested_by
+JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $1
+WHERE ur.completed_at IS NULL AND ur.expires_at > NOW()
+ORDER BY ur.created_at DESC;
+
+-- name: SelectUnlockRequest :one
+SELECT ur.*, s.value AS encrypted_payload, s.secret_sharing, s.user_id AS owner_id, tss.role
+FROM unlock_requests ur
+JOIN secrets s ON s.id = ur.secret_id
+JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $2
+WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.completed_at IS NULL AND ur.expires_at > NOW();
+
+-- name: InsertUnlockContribution :exec
+INSERT INTO unlock_contributions (request_id, user_id, encrypted_share)
+SELECT ur.id, $2, $3 FROM unlock_requests ur
+JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $2
+WHERE ur.id = $1 AND ur.completed_at IS NULL AND ur.expires_at > NOW()
+ON CONFLICT (request_id, user_id) DO NOTHING;
+
+-- name: SelectUnlockContributions :many
+SELECT encrypted_share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id;
+
+-- name: SelectThresholdParticipantKeys :many
+SELECT tss.user_id, k.public_key, tss.role
+FROM threshold_secret_shares tss
+JOIN keys k ON k.user_id = tss.user_id AND k.public_key IS NOT NULL
+WHERE tss.secret_id = $1
+ORDER BY tss.user_id;
+
+-- name: SelectThresholdParticipants :many
+SELECT u.id, u.subject, u.full_name,
+       CAST(LEFT(u.email, 1) || '***@' || SPLIT_PART(u.email, '@', 2) AS TEXT) AS email,
+       u.sharing_id, u.created_at, u.updated_at, tss.role
+FROM threshold_secret_shares tss
+JOIN users u ON u.id = tss.user_id
+JOIN secrets s ON s.id = tss.secret_id
+JOIN threshold_secret_shares actor ON actor.secret_id = s.id AND actor.user_id = $2
+WHERE s.id = $1 AND actor.role IN ('owner', 'maintainer')
+ORDER BY CASE tss.role WHEN 'owner' THEN 0 WHEN 'maintainer' THEN 1 ELSE 2 END, u.full_name, u.id;
+
+-- name: DeleteThresholdShares :exec
+DELETE FROM threshold_secret_shares WHERE secret_id = $1;
+
+-- name: DeleteUnlockRequestsForSecret :exec
+DELETE FROM unlock_requests WHERE secret_id = $1;
+
+-- name: InsertThresholdUnlockGrant :exec
+INSERT INTO threshold_unlock_grants (request_id, user_id, encrypted_data_key, expires_at)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (request_id, user_id) DO NOTHING;
+
+-- name: CompleteUnlockRequest :exec
+UPDATE unlock_requests SET completed_at = NOW() WHERE id = $1;
+
+-- name: DeleteExpiredUnlockRequests :execrows
+DELETE FROM unlock_requests ur
+WHERE CASE
+    WHEN ur.completed_at IS NULL THEN ur.expires_at
+    ELSE COALESCE(
+        (SELECT MAX(tug.expires_at) FROM threshold_unlock_grants tug WHERE tug.request_id = ur.id),
+        ur.completed_at
+    )
+END <= NOW();

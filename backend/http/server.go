@@ -27,9 +27,21 @@ func NewServer(cfg config.Config, domainService domain.Service) *Server {
 	}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(ctx context.Context) error {
 	e := s.newRouter()
-	return e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := e.Shutdown(shutdownCtx); err != nil {
+			logging.Errorf(shutdownCtx, "could not shut down HTTP server: %v", err)
+		}
+	}()
+	err := e.Start(fmt.Sprintf(":%d", s.cfg.Server.Port))
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 func (s *Server) newRouter() *echo.Echo {
@@ -88,6 +100,16 @@ func (s *Server) newRouter() *echo.Echo {
 	secrets.POST("/:id/shares", s.ShareSecret)
 	secrets.GET("/:id/shares", s.GetSecretRecipients)
 	secrets.DELETE("/:id/shares/:sharingId", s.RevokeSecretAccess)
+	secrets.POST("/threshold", s.PostThresholdSecret)
+	secrets.GET("/:id/participants", s.GetThresholdParticipants)
+	secrets.POST("/:id/participants", s.AddThresholdParticipant)
+	secrets.PUT("/:id/participants", s.SetThresholdParticipants)
+	secrets.PUT("/:id/participants/:sharingId", s.SetThresholdParticipantRole)
+	secrets.DELETE("/:id/participants/:sharingId", s.RemoveThresholdParticipant)
+	secrets.POST("/:id/unlocks", s.StartUnlock)
+	secrets.GET("/unlock-requests", s.GetUnlockRequests)
+	secrets.POST("/unlock-requests/:id/contributions", s.ContributeToUnlock)
+	secrets.GET("/unlock-requests/:id", s.GetUnlockResult)
 
 	authorization := api.Group("/auth", loggerMiddleware)
 	authorization.GET("/start", s.StartAuthentication)
