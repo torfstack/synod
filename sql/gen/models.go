@@ -49,6 +49,7 @@ type ThresholdSecretShare struct {
 	SecretID       int64
 	UserID         int64
 	EncryptedShare []byte
+	Role           string
 	CreatedAt      pgtype.Timestamp
 }
 

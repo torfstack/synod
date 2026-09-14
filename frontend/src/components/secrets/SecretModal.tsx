@@ -2,19 +2,21 @@ import type {Secret} from "../../util/secret.ts";
 import React, {useEffect, useRef, useState} from "react";
 import {Eye, EyeSlash} from "../../icons/Eye.tsx";
 import {ShareSecret} from "./ShareSecret.tsx";
-import {ThresholdOptions} from "./ThresholdOptions.tsx";
-import type {ShareRecipient} from "../../util/api.ts";
+import {ThresholdOptions, type ThresholdRecipient} from "./ThresholdOptions.tsx";
+import type {ThresholdParticipantInput} from "../../util/api.ts";
+import {ThresholdAccess} from "./ThresholdAccess.tsx";
 
 interface SecretModalProps {
     handleSecret: (s: Secret) => Promise<void>;
-    handleThresholdSecret: (s: Secret, threshold: number, sharingIds: string[]) => Promise<void>;
+    handleThresholdSecret: (s: Secret, threshold: number, participants: ThresholdParticipantInput[]) => Promise<void>;
     existingSecret?: Secret;
     isOpen: boolean;
     closeModal: () => void;
+    accessChanged: () => void;
 }
 
-export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThresholdSecret, existingSecret, isOpen, closeModal}) => {
-    const readOnly = existingSecret?.owned === false;
+export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThresholdSecret, existingSecret, isOpen, closeModal, accessChanged}) => {
+    const readOnly = existingSecret?.threshold ? existingSecret.role === "holder" : existingSecret?.owned === false;
     const [name, setName] = useState(existingSecret?.key ?? "")
     const [secret, setSecret] = useState(existingSecret?.value ?? "")
     const [url, setUrl] = useState(existingSecret?.url ?? "")
@@ -25,7 +27,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThr
     const [sharePortal, setSharePortal] = useState<HTMLDivElement | null>(null)
     const [thresholdEnabled, setThresholdEnabled] = useState(false)
     const [threshold, setThreshold] = useState(2)
-    const [thresholdRecipients, setThresholdRecipients] = useState<ShareRecipient[]>([])
+    const [thresholdRecipients, setThresholdRecipients] = useState<ThresholdRecipient[]>([])
 
     useEffect(() => {
         const dialog = dialogRef.current;
@@ -69,7 +71,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThr
             tags: tags,
         }
         if (thresholdEnabled) {
-            await handleThresholdSecret(s, threshold, thresholdRecipients.map(recipient => recipient.sharingId))
+            await handleThresholdSecret(s, threshold, thresholdRecipients.map(({sharingId, role}) => ({sharingId, role})))
         } else {
             await handleSecret(s)
         }
@@ -168,6 +170,8 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThr
                                 {existingSecret?.id && existingSecret.owned !== false && !existingSecret.threshold && sharePortal &&
                                     <ShareSecret secretId={existingSecret.id} portalContainer={sharePortal}/>}
                             </div>
+                            {existingSecret?.id && existingSecret.threshold && existingSecret.role !== "holder" &&
+                                <ThresholdAccess secret={existingSecret} changed={accessChanged}/>}
                         </div>
                     </fieldset>
                 </form>

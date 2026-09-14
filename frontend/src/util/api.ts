@@ -43,10 +43,34 @@ export async function postSecret(secret: Secret) {
     });
 }
 
-export async function postThresholdSecret(secret: Secret, threshold: number, sharingIds: string[]) {
+export type ThresholdRole = "owner" | "maintainer" | "holder";
+export type ThresholdParticipantInput = {sharingId: string; role: Exclude<ThresholdRole, "owner">};
+export type ThresholdParticipant = ShareRecipient & {role: ThresholdRole};
+
+export async function postThresholdSecret(secret: Secret, threshold: number, participants: ThresholdParticipantInput[]) {
     return apiFetchJson<{id: number}>(`${config.backendSecretsUrl}/threshold`, {
         method: "POST",
-        body: JSON.stringify({secret, threshold, sharingIds}),
+        body: JSON.stringify({secret, threshold, participants}),
+    });
+}
+
+export async function getThresholdParticipants(secretId: number) {
+    return apiFetchJson<ThresholdParticipant[]>(`/api/secrets/${secretId}/participants`, {method: "GET"});
+}
+
+export async function addThresholdParticipant(secretId: number, participant: ThresholdParticipantInput) {
+    return apiFetch(`/api/secrets/${secretId}/participants`, {
+        method: "POST", body: JSON.stringify(participant),
+    });
+}
+
+export async function removeThresholdParticipant(secretId: number, sharingId: string) {
+    return apiFetch(`/api/secrets/${secretId}/participants/${sharingId}`, {method: "DELETE"});
+}
+
+export async function setThresholdParticipantRole(secretId: number, participant: ThresholdParticipantInput) {
+    return apiFetch(`/api/secrets/${secretId}/participants/${participant.sharingId}`, {
+        method: "PUT", body: JSON.stringify({role: participant.role}),
     });
 }
 

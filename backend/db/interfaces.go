@@ -17,7 +17,7 @@ type Database interface {
 	UpsertSecret(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
 	SelectSecrets(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
 	SelectAccessibleSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
-	SelectSecretForOwner(ctx context.Context, secretID, userID int64) (models.AccessibleSecret, error)
+	SelectSecretForManager(ctx context.Context, secretID, userID int64) (models.AccessibleSecret, error)
 	InsertSecretAccess(ctx context.Context, secretID, userID, grantedBy int64, encryptedDataKey []byte) error
 	DeleteSecretAccess(ctx context.Context, secretID, userID int64) (int64, error)
 	SelectSecretRecipients(ctx context.Context, secretID, ownerID int64) ([]models.ExistingUser, error)
@@ -30,7 +30,12 @@ type Database interface {
 		userID int64,
 		threshold int,
 	) (int64, error)
-	InsertThresholdShare(ctx context.Context, secretID, userID int64, encryptedShare []byte) error
+	InsertThresholdShare(
+		ctx context.Context,
+		secretID, userID int64,
+		encryptedShare []byte,
+		role models.ThresholdRole,
+	) error
 	SelectThresholdSecrets(ctx context.Context, userID int64) ([]models.ThresholdSecret, error)
 	SelectUnlockedThresholdSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
 	SelectThresholdSecretForParticipant(ctx context.Context, secretID, userID int64) (models.ThresholdSecret, error)
@@ -40,6 +45,9 @@ type Database interface {
 	InsertUnlockContribution(ctx context.Context, requestID, userID int64, share []byte) error
 	SelectUnlockContributions(ctx context.Context, requestID int64) ([][]byte, error)
 	SelectThresholdParticipantKeys(ctx context.Context, secretID int64) ([]models.ParticipantKey, error)
+	SelectThresholdParticipants(ctx context.Context, secretID, actorID int64) ([]models.ThresholdParticipant, error)
+	DeleteThresholdShares(ctx context.Context, secretID int64) error
+	DeleteUnlockRequestsForSecret(ctx context.Context, secretID int64) error
 	InsertThresholdUnlockGrant(
 		ctx context.Context,
 		requestID, userID int64,

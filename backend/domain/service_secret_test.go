@@ -28,7 +28,7 @@ func TestShareSecretWrapsDataKeyForRecipient(t *testing.T) {
 
 	var wrappedForRecipient []byte
 	db := &mockDatabase{
-		selectSecretForOwnerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
 			return models.AccessibleSecret{
 				ID:               9,
 				OwnerID:          1,
@@ -69,6 +69,7 @@ func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 	}
 	users := map[string]int64{"two": 2, "three": 3}
 	shares := map[int64][]byte{}
+	roles := map[int64]models.ThresholdRole{}
 	var payload string
 	database := &mockDatabase{
 		selectUserBySharingIDFn: func(_ context.Context, sharingID string) (models.ExistingUser, error) {
@@ -80,9 +81,12 @@ func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 			payload = secret.Value
 			return 9, nil
 		},
-		insertThresholdShareFn: func(_ context.Context, secretID, userID int64, share []byte) error {
+		insertThresholdShareFn: func(
+			_ context.Context, secretID, userID int64, share []byte, role models.ThresholdRole,
+		) error {
 			require.Equal(t, int64(9), secretID)
 			shares[userID] = share
+			roles[userID] = role
 			return nil
 		},
 	}
@@ -94,6 +98,9 @@ func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 	}, 1)
 	require.NoError(t, err)
 	require.Equal(t, int64(9), id)
+	require.Equal(t, models.ThresholdRoleOwner, roles[1])
+	require.Equal(t, models.ThresholdRoleHolder, roles[2])
+	require.Equal(t, models.ThresholdRoleHolder, roles[3])
 
 	decryptedShares := make([][]byte, 2)
 	for i, userID := range []int64{1, 3} {
@@ -201,7 +208,7 @@ func TestUpsertThresholdSecretUsesActiveGrantWithoutCreatingPermanentAccess(t *t
 	id := int64(9)
 	var storedPayload string
 	database := &mockDatabase{
-		selectSecretForOwnerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
 			return models.AccessibleSecret{
 				ID:               id,
 				Envelope:         true,

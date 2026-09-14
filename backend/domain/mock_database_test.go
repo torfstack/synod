@@ -18,12 +18,12 @@ type mockDatabase struct {
 	upsertSecretFn                   func(ctx context.Context, secret models.EncryptedSecret, userID int64) (models.EncryptedSecret, error)
 	selectSecretsFn                  func(ctx context.Context, userID int64) ([]models.EncryptedSecret, error)
 	selectAccessibleSecretsFn        func(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
-	selectSecretForOwnerFn           func(context.Context, int64, int64) (models.AccessibleSecret, error)
+	selectSecretForManagerFn         func(context.Context, int64, int64) (models.AccessibleSecret, error)
 	insertSecretAccessFn             func(context.Context, int64, int64, int64, []byte) error
 	selectUserBySharingIDFn          func(context.Context, string) (models.ExistingUser, error)
 	selectPublicKeyFn                func(ctx context.Context, userID int64) ([]byte, error)
 	insertThresholdSecretFn          func(context.Context, models.EncryptedSecret, int64, int) (int64, error)
-	insertThresholdShareFn           func(context.Context, int64, int64, []byte) error
+	insertThresholdShareFn           func(context.Context, int64, int64, []byte, models.ThresholdRole) error
 	selectUnlockedThresholdSecretsFn func(context.Context, int64) ([]models.AccessibleSecret, error)
 	selectUnlockRequestFn            func(context.Context, int64, int64) (models.ThresholdSecret, error)
 	selectUnlockContributionsFn      func(context.Context, int64) ([][]byte, error)
@@ -113,12 +113,12 @@ func (m *mockDatabase) SelectAccessibleSecrets(ctx context.Context, userID int64
 	return nil, nil
 }
 
-func (m *mockDatabase) SelectSecretForOwner(
+func (m *mockDatabase) SelectSecretForManager(
 	ctx context.Context,
 	secretID, userID int64,
 ) (models.AccessibleSecret, error) {
-	if m.selectSecretForOwnerFn != nil {
-		return m.selectSecretForOwnerFn(ctx, secretID, userID)
+	if m.selectSecretForManagerFn != nil {
+		return m.selectSecretForManagerFn(ctx, secretID, userID)
 	}
 	return models.AccessibleSecret{}, nil
 }
@@ -156,12 +156,29 @@ func (m *mockDatabase) InsertThresholdSecret(
 	}
 	return 1, nil
 }
-func (m *mockDatabase) InsertThresholdShare(ctx context.Context, secretID, userID int64, share []byte) error {
+func (m *mockDatabase) InsertThresholdShare(
+	ctx context.Context,
+	secretID, userID int64,
+	share []byte,
+	role models.ThresholdRole,
+) error {
 	if m.insertThresholdShareFn != nil {
-		return m.insertThresholdShareFn(ctx, secretID, userID, share)
+		return m.insertThresholdShareFn(ctx, secretID, userID, share, role)
 	}
 	return nil
 }
+
+func (m *mockDatabase) SelectThresholdParticipants(
+	context.Context,
+	int64,
+	int64,
+) ([]models.ThresholdParticipant, error) {
+	return nil, nil
+}
+
+func (m *mockDatabase) DeleteThresholdShares(context.Context, int64) error { return nil }
+
+func (m *mockDatabase) DeleteUnlockRequestsForSecret(context.Context, int64) error { return nil }
 func (m *mockDatabase) SelectThresholdSecrets(context.Context, int64) ([]models.ThresholdSecret, error) {
 	return nil, nil
 }

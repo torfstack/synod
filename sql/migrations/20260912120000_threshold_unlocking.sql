@@ -5,6 +5,7 @@ CREATE TABLE threshold_secret_shares
     secret_id      BIGINT    NOT NULL REFERENCES secrets (id) ON DELETE CASCADE,
     user_id        BIGINT    NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     encrypted_share BYTEA    NOT NULL,
+    role           TEXT      NOT NULL CHECK (role IN ('owner', 'maintainer', 'holder')),
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (secret_id, user_id)
 );

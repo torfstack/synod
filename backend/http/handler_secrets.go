@@ -126,6 +126,77 @@ func (s *Server) PostThresholdSecret(c echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]int64{"id": id})
 }
 
+func (s *Server) GetThresholdParticipants(c echo.Context) error {
+	session, secretID, ok := thresholdParticipantRequest(c)
+	if !ok {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	participants, err := s.domainService.GetThresholdParticipants(
+		c.Request().Context(), secretID, session.UserID,
+	)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, participants)
+}
+
+func (s *Server) AddThresholdParticipant(c echo.Context) error {
+	session, secretID, ok := thresholdParticipantRequest(c)
+	if !ok {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	var input models.ThresholdParticipantInput
+	if err := c.Bind(&input); err != nil || input.SharingID == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.domainService.AddThresholdParticipant(
+		c.Request().Context(), secretID, session.UserID, input, session.Cipher,
+	); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusCreated)
+}
+
+func (s *Server) RemoveThresholdParticipant(c echo.Context) error {
+	session, secretID, ok := thresholdParticipantRequest(c)
+	if !ok || c.Param("sharingId") == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.domainService.RemoveThresholdParticipant(
+		c.Request().Context(), secretID, session.UserID, c.Param("sharingId"), session.Cipher,
+	); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) SetThresholdParticipantRole(c echo.Context) error {
+	session, secretID, ok := thresholdParticipantRequest(c)
+	if !ok || c.Param("sharingId") == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	var input models.ThresholdParticipantInput
+	if err := c.Bind(&input); err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	input.SharingID = c.Param("sharingId")
+	if err := s.domainService.SetThresholdParticipantRole(
+		c.Request().Context(), secretID, session.UserID, input, session.Cipher,
+	); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func thresholdParticipantRequest(c echo.Context) (*domain.Session, int64, bool) {
+	session, ok := getSession(c)
+	if !ok {
+		return nil, 0, false
+	}
+	secretID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	return session, secretID, err == nil
+}
+
 func (s *Server) StartUnlock(c echo.Context) error {
 	session, ok := getSession(c)
 	if !ok {

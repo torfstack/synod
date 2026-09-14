@@ -6,21 +6,41 @@ import (
 )
 
 type Secret struct {
-	ID            *int64     `json:"id,omitempty"`
-	Value         string     `json:"value"`
-	Key           string     `json:"key"`
-	Url           string     `json:"url"`
-	Tags          []string   `json:"tags"`
-	Owned         bool       `json:"owned"`
-	Locked        bool       `json:"locked,omitempty"`
-	Threshold     int        `json:"threshold,omitempty"`
-	UnlockedUntil *time.Time `json:"unlockedUntil,omitempty"`
+	ID            *int64        `json:"id,omitempty"`
+	Value         string        `json:"value"`
+	Key           string        `json:"key"`
+	Url           string        `json:"url"`
+	Tags          []string      `json:"tags"`
+	Owned         bool          `json:"owned"`
+	Locked        bool          `json:"locked,omitempty"`
+	Threshold     int           `json:"threshold,omitempty"`
+	UnlockedUntil *time.Time    `json:"unlockedUntil,omitempty"`
+	Role          ThresholdRole `json:"role,omitempty"`
+}
+
+type ThresholdRole string
+
+const (
+	ThresholdRoleOwner      ThresholdRole = "owner"
+	ThresholdRoleMaintainer ThresholdRole = "maintainer"
+	ThresholdRoleHolder     ThresholdRole = "holder"
+)
+
+type ThresholdParticipantInput struct {
+	SharingID string        `json:"sharingId"`
+	Role      ThresholdRole `json:"role"`
+}
+
+type ThresholdParticipant struct {
+	ShareRecipient
+	Role ThresholdRole `json:"role"`
 }
 
 type ThresholdSecretInput struct {
-	Secret     Secret   `json:"secret"`
-	Threshold  int      `json:"threshold"`
-	SharingIDs []string `json:"sharingIds"`
+	Secret       Secret                      `json:"secret"`
+	Threshold    int                         `json:"threshold"`
+	SharingIDs   []string                    `json:"sharingIds"`
+	Participants []ThresholdParticipantInput `json:"participants"`
 }
 
 type ThresholdSecret struct {
@@ -32,6 +52,7 @@ type ThresholdSecret struct {
 	Key              string
 	Url              string
 	Tags             []string
+	Role             ThresholdRole
 }
 
 type UnlockRequest struct {
@@ -67,11 +88,13 @@ type AccessibleSecret struct {
 	Legacy           EncryptedSecret
 	UnlockedUntil    *time.Time
 	Threshold        int
+	Role             ThresholdRole
 }
 
 type ParticipantKey struct {
 	UserID    int64
 	PublicKey []byte
+	Role      ThresholdRole
 }
 
 type ShareRecipient struct {

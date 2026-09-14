@@ -79,6 +79,7 @@ func (s *service) GetSecrets(
 		secret.Owned = stored.Owned
 		secret.UnlockedUntil = stored.UnlockedUntil
 		secret.Threshold = stored.Threshold
+		secret.Role = stored.Role
 		secrets = append(secrets, secret)
 	}
 	thresholdSecrets, err := s.database.SelectThresholdSecrets(ctx, userID)
@@ -97,6 +98,7 @@ func (s *service) GetSecrets(
 				Owned:     stored.OwnerID == userID,
 				Locked:    true,
 				Threshold: stored.Threshold,
+				Role:      stored.Role,
 			},
 		)
 	}
@@ -120,7 +122,7 @@ func (s *service) UpsertSecret(
 			return err
 		}
 		if secret.ID != nil {
-			stored, err := database.SelectSecretForOwner(ctx, *secret.ID, userID)
+			stored, err := database.SelectSecretForManager(ctx, *secret.ID, userID)
 			if err != nil {
 				return err
 			}
@@ -231,7 +233,7 @@ func (s *service) ShareSecret(
 		return errors.New("need cipher to share secret")
 	}
 	return s.database.WithTx(ctx, func(database db.Database) error {
-		stored, err := database.SelectSecretForOwner(ctx, secretID, ownerID)
+		stored, err := database.SelectSecretForManager(ctx, secretID, ownerID)
 		if err != nil {
 			return err
 		}
@@ -325,7 +327,7 @@ func (s *service) dataKeyForSharing(
 }
 
 func (s *service) RevokeSecretAccess(ctx context.Context, secretID, ownerID int64, recipientSharingID string) error {
-	_, err := s.database.SelectSecretForOwner(ctx, secretID, ownerID)
+	_, err := s.database.SelectSecretForManager(ctx, secretID, ownerID)
 	if err != nil {
 		return err
 	}
@@ -353,8 +355,22 @@ func (s *service) CreateThresholdSecret(
 	input models.ThresholdSecretInput,
 	userID int64,
 ) (int64, error) {
-	if input.Threshold < 2 || input.Threshold > len(input.SharingIDs)+1 || input.Secret.ID != nil {
+	participantsInput := input.Participants
+	if len(participantsInput) == 0 {
+		participantsInput = make([]models.ThresholdParticipantInput, len(input.SharingIDs))
+		for i, sharingID := range input.SharingIDs {
+			participantsInput[i] = models.ThresholdParticipantInput{
+				SharingID: sharingID, Role: models.ThresholdRoleHolder,
+			}
+		}
+	}
+	if input.Threshold < 2 || input.Threshold > len(participantsInput)+1 || input.Secret.ID != nil {
 		return 0, errors.New("invalid threshold secret")
+	}
+	for _, participant := range participantsInput {
+		if participant.Role != models.ThresholdRoleHolder && participant.Role != models.ThresholdRoleMaintainer {
+			return 0, errors.New("invalid threshold participant role")
+		}
 	}
 	key, err := crypto.NewSymmetricKey()
 	if err != nil {
@@ -373,17 +389,17 @@ func (s *service) CreateThresholdSecret(
 	if err != nil {
 		return 0, err
 	}
-	shares, err := crypto.SplitSecret(key, input.Threshold, len(input.SharingIDs)+1)
+	shares, err := crypto.SplitSecret(key, input.Threshold, len(participantsInput)+1)
 	if err != nil {
 		return 0, err
 	}
 	returnID := int64(0)
 	err = s.database.WithTx(ctx, func(database db.Database) error {
-		participants := make([]models.ExistingUser, 0, len(input.SharingIDs)+1)
-		participants = append(participants, models.ExistingUser{ID: userID})
+		participants := make([]models.ParticipantKey, 0, len(participantsInput)+1)
+		participants = append(participants, models.ParticipantKey{UserID: userID, Role: models.ThresholdRoleOwner})
 		seen := map[int64]struct{}{userID: {}}
-		for _, sharingID := range input.SharingIDs {
-			participant, err := database.SelectUserBySharingID(ctx, sharingID)
+		for _, participantInput := range participantsInput {
+			participant, err := database.SelectUserBySharingID(ctx, participantInput.SharingID)
 			if err != nil {
 				return err
 			}
@@ -391,7 +407,9 @@ func (s *service) CreateThresholdSecret(
 				return errors.New("duplicate threshold participant")
 			}
 			seen[participant.ID] = struct{}{}
-			participants = append(participants, participant)
+			participants = append(participants, models.ParticipantKey{
+				UserID: participant.ID, Role: participantInput.Role,
+			})
 		}
 		stored := models.EncryptedSecret{
 			Value: base64.StdEncoding.EncodeToString(payload),
@@ -405,7 +423,7 @@ func (s *service) CreateThresholdSecret(
 		}
 		returnID = secretID
 		for i, participant := range participants {
-			publicKey, err := database.SelectPublicKey(ctx, participant.ID)
+			publicKey, err := database.SelectPublicKey(ctx, participant.UserID)
 			if err != nil {
 				return err
 			}
@@ -417,13 +435,233 @@ func (s *service) CreateThresholdSecret(
 			if err != nil {
 				return err
 			}
-			if err := database.InsertThresholdShare(ctx, secretID, participant.ID, encryptedShare); err != nil {
+			if err := database.InsertThresholdShare(
+				ctx, secretID, participant.UserID, encryptedShare, participant.Role,
+			); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
 	return returnID, err
+}
+
+func (s *service) GetThresholdParticipants(
+	ctx context.Context,
+	secretID, userID int64,
+) ([]models.ThresholdParticipant, error) {
+	return s.database.SelectThresholdParticipants(ctx, secretID, userID)
+}
+
+func (s *service) AddThresholdParticipant(
+	ctx context.Context,
+	secretID, userID int64,
+	input models.ThresholdParticipantInput,
+	cipher *crypto.AsymmetricCipher,
+) error {
+	if input.Role != models.ThresholdRoleHolder && input.Role != models.ThresholdRoleMaintainer {
+		return errors.New("invalid threshold participant role")
+	}
+	return s.changeThresholdParticipants(ctx, secretID, userID, cipher, func(
+		database db.Database, actor models.AccessibleSecret, participants []models.ParticipantKey,
+	) ([]models.ParticipantKey, error) {
+		if actor.Role == models.ThresholdRoleMaintainer && input.Role != models.ThresholdRoleHolder {
+			return nil, errors.New("only the owner can grant maintainer access")
+		}
+		user, err := database.SelectUserBySharingID(ctx, input.SharingID)
+		if err != nil {
+			return nil, err
+		}
+		for _, participant := range participants {
+			if participant.UserID == user.ID {
+				return nil, errors.New("threshold participant already exists")
+			}
+		}
+		publicKey, err := database.SelectPublicKey(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+		return append(participants, models.ParticipantKey{
+			UserID: user.ID, PublicKey: publicKey, Role: input.Role,
+		}), nil
+	})
+}
+
+func (s *service) RemoveThresholdParticipant(
+	ctx context.Context,
+	secretID, userID int64,
+	sharingID string,
+	cipher *crypto.AsymmetricCipher,
+) error {
+	return s.changeThresholdParticipants(ctx, secretID, userID, cipher, func(
+		database db.Database, actor models.AccessibleSecret, participants []models.ParticipantKey,
+	) ([]models.ParticipantKey, error) {
+		user, err := database.SelectUserBySharingID(ctx, sharingID)
+		if err != nil {
+			return nil, err
+		}
+		kept := make([]models.ParticipantKey, 0, len(participants)-1)
+		found := false
+		for _, participant := range participants {
+			if participant.UserID != user.ID {
+				kept = append(kept, participant)
+				continue
+			}
+			found = true
+			if participant.Role == models.ThresholdRoleOwner ||
+				(actor.Role == models.ThresholdRoleMaintainer && participant.Role != models.ThresholdRoleHolder) {
+				return nil, errors.New("participant cannot be removed")
+			}
+		}
+		if !found {
+			return nil, errors.New("threshold participant not found")
+		}
+		return kept, nil
+	})
+}
+
+func (s *service) SetThresholdParticipantRole(
+	ctx context.Context,
+	secretID, userID int64,
+	input models.ThresholdParticipantInput,
+	cipher *crypto.AsymmetricCipher,
+) error {
+	if input.Role != models.ThresholdRoleHolder && input.Role != models.ThresholdRoleMaintainer {
+		return errors.New("invalid threshold participant role")
+	}
+	return s.changeThresholdParticipants(ctx, secretID, userID, cipher, func(
+		database db.Database, actor models.AccessibleSecret, participants []models.ParticipantKey,
+	) ([]models.ParticipantKey, error) {
+		if actor.Role != models.ThresholdRoleOwner {
+			return nil, errors.New("only the owner can change participant roles")
+		}
+		user, err := database.SelectUserBySharingID(ctx, input.SharingID)
+		if err != nil {
+			return nil, err
+		}
+		found := false
+		for i := range participants {
+			if participants[i].UserID == user.ID {
+				if participants[i].Role == models.ThresholdRoleOwner {
+					return nil, errors.New("owner role cannot be changed")
+				}
+				participants[i].Role = input.Role
+				found = true
+			}
+		}
+		if !found {
+			return nil, errors.New("threshold participant not found")
+		}
+		return participants, nil
+	})
+}
+
+func (s *service) changeThresholdParticipants(
+	ctx context.Context,
+	secretID, userID int64,
+	cipher *crypto.AsymmetricCipher,
+	change func(db.Database, models.AccessibleSecret, []models.ParticipantKey) ([]models.ParticipantKey, error),
+) error {
+	if cipher == nil {
+		return errors.New("secret must be unlocked to manage access")
+	}
+	return s.database.WithTx(ctx, func(database db.Database) error {
+		stored, err := database.SelectSecretForManager(ctx, secretID, userID)
+		if err != nil {
+			return err
+		}
+		if stored.Threshold == 0 ||
+			(stored.Role != models.ThresholdRoleOwner && stored.Role != models.ThresholdRoleMaintainer) {
+			return errors.New("threshold access cannot be managed")
+		}
+		participants, err := database.SelectThresholdParticipantKeys(ctx, secretID)
+		if err != nil {
+			return err
+		}
+		participants, err = change(database, stored, participants)
+		if err != nil {
+			return err
+		}
+		if len(participants) < stored.Threshold {
+			return errors.New("participant count cannot be lower than the threshold")
+		}
+		return s.rotateThresholdShares(ctx, database, stored, userID, participants, cipher)
+	})
+}
+
+func (s *service) rotateThresholdShares(
+	ctx context.Context,
+	database db.Database,
+	stored models.AccessibleSecret,
+	userID int64,
+	participants []models.ParticipantKey,
+	cipher *crypto.AsymmetricCipher,
+) error {
+	wrapped, err := base64.StdEncoding.DecodeString(string(stored.EncryptedDataKey))
+	if err != nil {
+		return err
+	}
+	oldKey, err := cipher.Decrypt(wrapped)
+	if err != nil {
+		return err
+	}
+	defer clear(oldKey)
+	oldCipher, err := crypto.SymmetricCipherFromKey(oldKey)
+	if err != nil {
+		return err
+	}
+	payload, err := base64.StdEncoding.DecodeString(string(stored.EncryptedPayload))
+	if err != nil {
+		return err
+	}
+	plaintext, err := oldCipher.Decrypt(payload)
+	if err != nil {
+		return err
+	}
+	newKey, err := crypto.NewSymmetricKey()
+	if err != nil {
+		return err
+	}
+	defer clear(newKey)
+	newCipher, err := crypto.SymmetricCipherFromKey(newKey)
+	if err != nil {
+		return err
+	}
+	newPayload, err := newCipher.Encrypt(plaintext)
+	if err != nil {
+		return err
+	}
+	shares, err := crypto.SplitSecret(newKey, stored.Threshold, len(participants))
+	if err != nil {
+		return err
+	}
+	if err := database.UpdateSecretEnvelope(
+		ctx, stored.ID, userID, []byte(base64.StdEncoding.EncodeToString(newPayload)),
+	); err != nil {
+		return err
+	}
+	if err := database.DeleteUnlockRequestsForSecret(ctx, stored.ID); err != nil {
+		return err
+	}
+	if err := database.DeleteThresholdShares(ctx, stored.ID); err != nil {
+		return err
+	}
+	for i, participant := range participants {
+		participantCipher, err := crypto.AsymmetricCipherFromPublicKeyBytes(participant.PublicKey)
+		if err != nil {
+			return err
+		}
+		encryptedShare, err := participantCipher.Encrypt(shares[i])
+		if err != nil {
+			return err
+		}
+		if err := database.InsertThresholdShare(
+			ctx, stored.ID, participant.UserID, encryptedShare, participant.Role,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *service) StartUnlock(
@@ -551,6 +789,7 @@ func (s *service) GetUnlockResult(
 	secret.ID = &stored.ID
 	secret.Threshold = stored.Threshold
 	secret.Owned = stored.OwnerID == userID
+	secret.Role = stored.Role
 	result.Ready = true
 	result.Secret = &secret
 	expiresAt := time.Now().UTC().Add(10 * time.Minute)

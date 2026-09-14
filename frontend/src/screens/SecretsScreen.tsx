@@ -1,7 +1,7 @@
 import {SecretsList} from "../components/secrets/SecretsList.tsx";
 import type {Secret} from "../util/secret.ts";
 import {useEffect, useState} from "react";
-import {ApiError, contributeToUnlock, getSecrets, getUnlockRequests, getUnlockResult, postSecret, postThresholdSecret, startUnlock, type UnlockRequest} from "../util/api.ts";
+import {ApiError, contributeToUnlock, getSecrets, getUnlockRequests, getUnlockResult, postSecret, postThresholdSecret, startUnlock, type ThresholdParticipantInput, type UnlockRequest} from "../util/api.ts";
 import {SecretModal} from "../components/secrets/SecretModal.tsx";
 import {UnlockRequests} from "../components/secrets/UnlockRequests.tsx";
 
@@ -67,8 +67,8 @@ export const SecretsScreen = () => {
         return postSecret(s).then(() => retrieveSecrets())
     }
 
-    async function uploadThresholdSecret(s: Secret, threshold: number, sharingIds: string[]) {
-        await postThresholdSecret(s, threshold, sharingIds);
+    async function uploadThresholdSecret(s: Secret, threshold: number, participants: ThresholdParticipantInput[]) {
+        await postThresholdSecret(s, threshold, participants);
         retrieveSecrets();
     }
 
@@ -123,6 +123,7 @@ export const SecretsScreen = () => {
             existingSecret={selectedSecret}
             isOpen={isModalOpen}
             closeModal={() => setModalOpen(false)}
+            accessChanged={() => { setModalOpen(false); retrieveSecrets(); }}
         />
     </>
 }

@@ -8,4 +8,5 @@ export type Secret = {
     locked?: boolean
     threshold?: number
     unlockedUntil?: string
+    role?: "owner" | "maintainer" | "holder"
 }

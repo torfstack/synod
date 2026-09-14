@@ -1,13 +1,15 @@
 import {useEffect, useState} from "react";
-import {searchShareRecipients, type ShareRecipient} from "../../util/api.ts";
+import {searchShareRecipients, type ShareRecipient, type ThresholdParticipantInput} from "../../util/api.ts";
+
+export type ThresholdRecipient = ShareRecipient & ThresholdParticipantInput;
 
 type Props = {
     enabled: boolean;
     setEnabled: (enabled: boolean) => void;
     threshold: number;
     setThreshold: (threshold: number) => void;
-    recipients: ShareRecipient[];
-    setRecipients: (recipients: ShareRecipient[]) => void;
+    recipients: ThresholdRecipient[];
+    setRecipients: (recipients: ThresholdRecipient[]) => void;
 };
 
 export const ThresholdOptions = ({enabled, setEnabled, threshold, setThreshold, recipients, setRecipients}: Props) => {
@@ -37,12 +39,17 @@ export const ThresholdOptions = ({enabled, setEnabled, threshold, setThreshold, 
             <input className="input input-bordered w-full" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find by name or exact email"/>
             {matches.length > 0 && <div className="rounded-box border border-base-300 p-1">
                 {matches.map(match => <button type="button" className="btn btn-ghost w-full justify-start" key={match.sharingId} onClick={() => {
-                    setRecipients([...recipients, match]); setQuery(""); setMatches([]);
+                    setRecipients([...recipients, {...match, role: "holder"}]); setQuery(""); setMatches([]);
                 }}>{match.fullName} <span className="opacity-60">{match.emailHint}</span></button>)}
             </div>}
             {recipients.map(recipient => <div className="flex items-center justify-between" key={recipient.sharingId}>
                 <span>{recipient.fullName} <span className="text-sm opacity-60">{recipient.emailHint}</span></span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRecipients(recipients.filter(item => item.sharingId !== recipient.sharingId))}>Remove</button>
+                <div className="flex items-center gap-2">
+                    <select className="select select-bordered select-sm" value={recipient.role} onChange={event => setRecipients(recipients.map(item => item.sharingId === recipient.sharingId ? {...item, role: event.target.value as "holder" | "maintainer"} : item))}>
+                        <option value="holder">Holder</option><option value="maintainer">Maintainer</option>
+                    </select>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRecipients(recipients.filter(item => item.sharingId !== recipient.sharingId))}>Remove</button>
+                </div>
             </div>)}
             <label className="label flex-col items-start">
                 Shares required ({threshold} of {participantCount})

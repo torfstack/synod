@@ -95,6 +95,26 @@ func (m *mockDomainService) GetSecretRecipients(context.Context, int64, int64) (
 func (m *mockDomainService) CreateThresholdSecret(context.Context, models.ThresholdSecretInput, int64) (int64, error) {
 	return 1, nil
 }
+func (m *mockDomainService) GetThresholdParticipants(
+	context.Context, int64, int64,
+) ([]models.ThresholdParticipant, error) {
+	return nil, nil
+}
+func (m *mockDomainService) AddThresholdParticipant(
+	context.Context, int64, int64, models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
+func (m *mockDomainService) RemoveThresholdParticipant(
+	context.Context, int64, int64, string, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
+func (m *mockDomainService) SetThresholdParticipantRole(
+	context.Context, int64, int64, models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
+) error {
+	return nil
+}
 
 func (m *mockDomainService) StartUnlock(
 	ctx context.Context,

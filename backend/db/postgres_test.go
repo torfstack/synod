@@ -167,7 +167,9 @@ func TestDatabase_AllowsOnlyOneActiveUnlockRequestPerSecret(t *testing.T) {
 		2,
 	)
 	require.NoError(t, err)
-	require.NoError(t, database.InsertThresholdShare(ctx, secretID, participant.ID, []byte("share")))
+	require.NoError(t, database.InsertThresholdShare(
+		ctx, secretID, participant.ID, []byte("share"), models.ThresholdRoleHolder,
+	))
 
 	first, err := database.InsertUnlockRequest(ctx, secretID, owner.ID)
 	require.NoError(t, err)
@@ -213,7 +215,7 @@ func TestDatabase_ThresholdOwnerCanUseActiveUnlockGrant(t *testing.T) {
 		database.InsertThresholdUnlockGrant(ctx, request.ID, owner.ID, encryptedKey, time.Now().Add(time.Minute)),
 	)
 
-	secret, err := database.SelectSecretForOwner(ctx, secretID, owner.ID)
+	secret, err := database.SelectSecretForManager(ctx, secretID, owner.ID)
 	require.NoError(t, err)
 	require.Equal(t, encryptedKey, secret.EncryptedDataKey)
 	require.Equal(t, 2, secret.Threshold)
