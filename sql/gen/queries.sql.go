@@ -1078,7 +1078,7 @@ func (q *Queries) SelectUserByName(ctx context.Context, subject string) (User, e
 }
 
 const selectUserBySharingID = `-- name: SelectUserBySharingID :one
-SELECT id, subject, email, full_name, sharing_id, created_at, updated_at FROM users WHERE sharing_id = $1
+SELECT id, subject, email, full_name, sharing_id, created_at, updated_at FROM users WHERE sharing_id = $1 FOR KEY SHARE
 `
 
 func (q *Queries) SelectUserBySharingID(ctx context.Context, sharingID pgtype.UUID) (User, error) {

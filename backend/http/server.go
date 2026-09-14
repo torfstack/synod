@@ -103,6 +103,7 @@ func (s *Server) newRouter() *echo.Echo {
 	secrets.POST("/threshold", s.PostThresholdSecret)
 	secrets.GET("/:id/participants", s.GetThresholdParticipants)
 	secrets.POST("/:id/participants", s.AddThresholdParticipant)
+	secrets.PUT("/:id/participants", s.SetThresholdParticipants)
 	secrets.PUT("/:id/participants/:sharingId", s.SetThresholdParticipantRole)
 	secrets.DELETE("/:id/participants/:sharingId", s.RemoveThresholdParticipant)
 	secrets.POST("/:id/unlocks", s.StartUnlock)

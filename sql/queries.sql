@@ -85,7 +85,7 @@ ORDER BY CASE WHEN LOWER(email) = LOWER($2) THEN 0 ELSE 1 END, full_name, users.
 LIMIT 10;
 
 -- name: SelectUserBySharingID :one
-SELECT * FROM users WHERE sharing_id = $1;
+SELECT * FROM users WHERE sharing_id = $1 FOR KEY SHARE;
 
 -- name: DoesUserExist :one
 SELECT EXISTS(SELECT 1 FROM users WHERE subject = $1);

@@ -51,6 +51,10 @@ type SecretService interface {
 		ctx context.Context, secretID, userID int64, participant models.ThresholdParticipantInput,
 		cipher *crypto.AsymmetricCipher,
 	) error
+	SetThresholdParticipants(
+		ctx context.Context, secretID, userID int64, participants []models.ThresholdParticipantInput,
+		cipher *crypto.AsymmetricCipher,
+	) error
 	StartUnlock(ctx context.Context, secretID, userID int64, cipher *crypto.AsymmetricCipher) (int64, error)
 	GetUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error)
 	ContributeToUnlock(ctx context.Context, requestID, userID int64, cipher *crypto.AsymmetricCipher) error

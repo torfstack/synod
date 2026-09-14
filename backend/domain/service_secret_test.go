@@ -120,6 +120,29 @@ func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 	require.Equal(t, "correct horse", secret.Value)
 }
 
+func TestSetThresholdParticipantsRejectsUserThatDisappearedBeforeSubmit(t *testing.T) {
+	cipher, err := crypto.NewAsymmetricCipher()
+	require.NoError(t, err)
+	database := &mockDatabase{
+		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+			return models.AccessibleSecret{ID: 9, Threshold: 2, Role: models.ThresholdRoleOwner}, nil
+		},
+		selectThresholdParticipantKeysFn: func(context.Context, int64) ([]models.ParticipantKey, error) {
+			return []models.ParticipantKey{{UserID: 1, Role: models.ThresholdRoleOwner}}, nil
+		},
+		selectUserBySharingIDFn: func(context.Context, string) (models.ExistingUser, error) {
+			return models.ExistingUser{}, errors.New("user no longer exists")
+		},
+	}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	err = svc.SetThresholdParticipants(context.Background(), 9, 1, []models.ThresholdParticipantInput{{
+		SharingID: "gone", Role: models.ThresholdRoleHolder,
+	}}, cipher)
+
+	require.ErrorIs(t, err, ErrThresholdParticipantsChanged)
+}
+
 func TestGetUnlockResultGrantsEveryParticipantTenMinutesOfAccess(t *testing.T) {
 	requester, err := crypto.NewAsymmetricCipher()
 	require.NoError(t, err)

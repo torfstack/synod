@@ -188,6 +188,26 @@ func (s *Server) SetThresholdParticipantRole(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+func (s *Server) SetThresholdParticipants(c echo.Context) error {
+	session, secretID, ok := thresholdParticipantRequest(c)
+	if !ok {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	var input models.ThresholdParticipantsInput
+	if err := c.Bind(&input); err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.domainService.SetThresholdParticipants(
+		c.Request().Context(), secretID, session.UserID, input.Participants, session.Cipher,
+	); err != nil {
+		if errors.Is(err, domain.ErrThresholdParticipantsChanged) {
+			return c.String(http.StatusConflict, err.Error())
+		}
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
 func thresholdParticipantRequest(c echo.Context) (*domain.Session, int64, bool) {
 	session, ok := getSession(c)
 	if !ok {

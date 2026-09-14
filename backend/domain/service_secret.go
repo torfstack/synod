@@ -17,6 +17,7 @@ import (
 var _ SecretService = &service{}
 
 var ErrUnlockAlreadyActive = errors.New("another user is already unlocking this secret")
+var ErrThresholdParticipantsChanged = errors.New("threshold participants changed; reload and try again")
 
 func (s *service) GetSecrets(
 	ctx context.Context,
@@ -553,6 +554,71 @@ func (s *service) SetThresholdParticipantRole(
 			return nil, errors.New("threshold participant not found")
 		}
 		return participants, nil
+	})
+}
+
+func (s *service) SetThresholdParticipants(
+	ctx context.Context,
+	secretID, userID int64,
+	inputs []models.ThresholdParticipantInput,
+	cipher *crypto.AsymmetricCipher,
+) error {
+	return s.changeThresholdParticipants(ctx, secretID, userID, cipher, func(
+		database db.Database, actor models.AccessibleSecret, current []models.ParticipantKey,
+	) ([]models.ParticipantKey, error) {
+		currentByID := make(map[int64]models.ParticipantKey, len(current))
+		var owner models.ParticipantKey
+		for _, participant := range current {
+			currentByID[participant.UserID] = participant
+			if participant.Role == models.ThresholdRoleOwner {
+				owner = participant
+			}
+		}
+		if owner.UserID == 0 {
+			return nil, errors.New("threshold owner is missing")
+		}
+		updated := []models.ParticipantKey{owner}
+		seen := map[int64]struct{}{owner.UserID: {}}
+		for _, input := range inputs {
+			if input.Role != models.ThresholdRoleHolder && input.Role != models.ThresholdRoleMaintainer {
+				return nil, errors.New("invalid threshold participant role")
+			}
+			user, err := database.SelectUserBySharingID(ctx, input.SharingID)
+			if err != nil {
+				return nil, ErrThresholdParticipantsChanged
+			}
+			if _, exists := seen[user.ID]; exists {
+				return nil, errors.New("duplicate threshold participant")
+			}
+			seen[user.ID] = struct{}{}
+			if actor.Role == models.ThresholdRoleMaintainer {
+				existing, exists := currentByID[user.ID]
+				if (input.Role == models.ThresholdRoleMaintainer &&
+					(!exists || existing.Role != models.ThresholdRoleMaintainer)) ||
+					(exists && existing.Role == models.ThresholdRoleMaintainer &&
+						input.Role != models.ThresholdRoleMaintainer) {
+					return nil, errors.New("only the owner can grant maintainer access")
+				}
+			}
+			publicKey, err := database.SelectPublicKey(ctx, user.ID)
+			if err != nil {
+				return nil, ErrThresholdParticipantsChanged
+			}
+			updated = append(updated, models.ParticipantKey{
+				UserID: user.ID, PublicKey: publicKey, Role: input.Role,
+			})
+		}
+		if actor.Role == models.ThresholdRoleMaintainer {
+			for _, participant := range current {
+				if participant.Role == models.ThresholdRoleMaintainer {
+					_, exists := seen[participant.UserID]
+					if !exists {
+						return nil, errors.New("only the owner can remove maintainer access")
+					}
+				}
+			}
+		}
+		return updated, nil
 	})
 }
 

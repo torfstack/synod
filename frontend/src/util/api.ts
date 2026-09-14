@@ -74,6 +74,12 @@ export async function setThresholdParticipantRole(secretId: number, participant:
     });
 }
 
+export async function setThresholdParticipants(secretId: number, participants: ThresholdParticipantInput[]) {
+    return apiFetch(`/api/secrets/${secretId}/participants`, {
+        method: "PUT", body: JSON.stringify({participants}),
+    });
+}
+
 export type UnlockRequest = {
     id: number;
     secretId: number;

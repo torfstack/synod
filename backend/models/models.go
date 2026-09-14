@@ -31,6 +31,10 @@ type ThresholdParticipantInput struct {
 	Role      ThresholdRole `json:"role"`
 }
 
+type ThresholdParticipantsInput struct {
+	Participants []ThresholdParticipantInput `json:"participants"`
+}
+
 type ThresholdParticipant struct {
 	ShareRecipient
 	Role ThresholdRole `json:"role"`
