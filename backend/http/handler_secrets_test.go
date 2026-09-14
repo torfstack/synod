@@ -181,3 +181,19 @@ func TestPostSecret_Success_Returns201(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 }
+
+func TestStartUnlock_ActiveRequestReturnsConflict(t *testing.T) {
+	session := &domain.Session{UserID: 2, Cipher: newTestCipher(t)}
+	service := &mockDomainService{
+		startUnlockFn: func(context.Context, int64, int64, *crypto.AsymmetricCipher) (int64, error) {
+			return 0, domain.ErrUnlockAlreadyActive
+		},
+	}
+	server := NewServer(testConfig(), service)
+	e := newEchoWithSession(session)
+	e.POST("/secrets/:id/unlocks", server.StartUnlock)
+	recorder := httptest.NewRecorder()
+	e.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/secrets/9/unlocks", nil))
+
+	require.Equal(t, http.StatusConflict, recorder.Code)
+}

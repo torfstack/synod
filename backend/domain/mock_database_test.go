@@ -28,8 +28,9 @@ type mockDatabase struct {
 	selectUnlockRequestFn            func(context.Context, int64, int64) (models.ThresholdSecret, error)
 	selectUnlockContributionsFn      func(context.Context, int64) ([][]byte, error)
 	selectThresholdParticipantKeysFn func(context.Context, int64) ([]models.ParticipantKey, error)
-	insertThresholdUnlockGrantFn     func(context.Context, int64, int64, int64, []byte, time.Time) error
+	insertThresholdUnlockGrantFn     func(context.Context, int64, int64, []byte, time.Time) error
 	completeUnlockRequestFn          func(context.Context, int64) error
+	insertUnlockRequestFn            func(context.Context, int64, int64) (models.UnlockRequest, error)
 
 	insertKeysFn      func(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error)
 	selectKeysFn      func(ctx context.Context, userID int64) (models.UserKeyPair, error)
@@ -182,8 +183,11 @@ func (m *mockDatabase) SelectThresholdSecretForParticipant(
 ) (models.ThresholdSecret, error) {
 	return models.ThresholdSecret{}, nil
 }
-func (m *mockDatabase) InsertUnlockRequest(context.Context, int64, int64) (int64, error) {
-	return 1, nil
+func (m *mockDatabase) InsertUnlockRequest(ctx context.Context, secretID, userID int64) (models.UnlockRequest, error) {
+	if m.insertUnlockRequestFn != nil {
+		return m.insertUnlockRequestFn(ctx, secretID, userID)
+	}
+	return models.UnlockRequest{ID: 1, SecretID: secretID, RequesterID: userID}, nil
 }
 func (m *mockDatabase) SelectPendingUnlockRequests(context.Context, int64) ([]models.UnlockRequest, error) {
 	return nil, nil
@@ -220,12 +224,12 @@ func (m *mockDatabase) SelectThresholdParticipantKeys(
 
 func (m *mockDatabase) InsertThresholdUnlockGrant(
 	ctx context.Context,
-	requestID, secretID, userID int64,
+	requestID, userID int64,
 	key []byte,
 	expiresAt time.Time,
 ) error {
 	if m.insertThresholdUnlockGrantFn != nil {
-		return m.insertThresholdUnlockGrantFn(ctx, requestID, secretID, userID, key, expiresAt)
+		return m.insertThresholdUnlockGrantFn(ctx, requestID, userID, key, expiresAt)
 	}
 	return nil
 }

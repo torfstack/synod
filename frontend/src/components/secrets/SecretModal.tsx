@@ -14,7 +14,7 @@ interface SecretModalProps {
 }
 
 export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThresholdSecret, existingSecret, isOpen, closeModal}) => {
-    const readOnly = existingSecret?.owned === false || Boolean(existingSecret?.threshold);
+    const readOnly = existingSecret?.owned === false;
     const [name, setName] = useState(existingSecret?.key ?? "")
     const [secret, setSecret] = useState(existingSecret?.value ?? "")
     const [url, setUrl] = useState(existingSecret?.url ?? "")
@@ -165,7 +165,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThr
                                 {readOnly && <button type="button" className="btn" onClick={closeModal}>Close</button>}
                             </div>
                             <div ref={setSharePortal}>
-                                {existingSecret?.id && existingSecret.owned !== false && sharePortal &&
+                                {existingSecret?.id && existingSecret.owned !== false && !existingSecret.threshold && sharePortal &&
                                     <ShareSecret secretId={existingSecret.id} portalContainer={sharePortal}/>}
                             </div>
                         </div>

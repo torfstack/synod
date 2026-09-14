@@ -2,6 +2,15 @@ import {config} from "./config.ts";
 import type {Secret} from './secret.ts';
 import type {AuthStatus} from "./authStatus.ts";
 
+export class ApiError extends Error {
+    readonly status: number;
+
+    constructor(status: number, message: string) {
+        super(message);
+        this.status = status;
+    }
+}
+
 export async function getAuth() {
     return apiFetchJson<AuthStatus>(config.backendAuthUrl, {
         method: 'GET',
@@ -144,7 +153,7 @@ async function apiFetch(url: string, options: RequestInit = {}): Promise<Respons
 
     if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(errorText || "API request failed");
+        throw new ApiError(res.status, errorText || "API request failed");
     }
 
     return res;

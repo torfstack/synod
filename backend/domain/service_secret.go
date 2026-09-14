@@ -16,6 +16,8 @@ import (
 
 var _ SecretService = &service{}
 
+var ErrUnlockAlreadyActive = errors.New("another user is already unlocking this secret")
+
 func (s *service) GetSecrets(
 	ctx context.Context,
 	userID int64,
@@ -112,6 +114,7 @@ func (s *service) UpsertSecret(
 	}
 	var result models.EncryptedSecret
 	err := s.database.WithTx(ctx, func(database db.Database) error {
+		thresholdSecret := false
 		key, err := crypto.NewSymmetricKey()
 		if err != nil {
 			return err
@@ -121,6 +124,7 @@ func (s *service) UpsertSecret(
 			if err != nil {
 				return err
 			}
+			thresholdSecret = stored.Threshold > 0
 			if stored.Envelope {
 				wrapped, err := base64.StdEncoding.DecodeString(string(stored.EncryptedDataKey))
 				if err != nil {
@@ -145,10 +149,6 @@ func (s *service) UpsertSecret(
 		if err != nil {
 			return err
 		}
-		wrappedKey, err := cipher.Encrypt(key)
-		if err != nil {
-			return err
-		}
 		encrypted := models.EncryptedSecret{
 			ID:    secret.ID,
 			Value: base64.StdEncoding.EncodeToString(payload),
@@ -164,6 +164,13 @@ func (s *service) UpsertSecret(
 			return errors.New("secret id missing after insert")
 		}
 		if err := database.UpdateSecretEnvelope(ctx, *result.ID, userID, []byte(result.Value)); err != nil {
+			return err
+		}
+		if thresholdSecret {
+			return nil
+		}
+		wrappedKey, err := cipher.Encrypt(key)
+		if err != nil {
 			return err
 		}
 		return database.InsertSecretAccess(
@@ -427,14 +434,17 @@ func (s *service) StartUnlock(
 	if cipher == nil {
 		return 0, errors.New("need cipher to unlock secret")
 	}
-	requestID, err := s.database.InsertUnlockRequest(ctx, secretID, userID)
+	request, err := s.database.InsertUnlockRequest(ctx, secretID, userID)
 	if err != nil {
 		return 0, err
 	}
-	if err := s.ContributeToUnlock(ctx, requestID, userID, cipher); err != nil {
+	if request.RequesterID != userID {
+		return 0, ErrUnlockAlreadyActive
+	}
+	if err := s.ContributeToUnlock(ctx, request.ID, userID, cipher); err != nil {
 		return 0, err
 	}
-	return requestID, nil
+	return request.ID, nil
 }
 
 func (s *service) GetUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error) {
@@ -540,6 +550,7 @@ func (s *service) GetUnlockResult(
 	}
 	secret.ID = &stored.ID
 	secret.Threshold = stored.Threshold
+	secret.Owned = stored.OwnerID == userID
 	result.Ready = true
 	result.Secret = &secret
 	expiresAt := time.Now().UTC().Add(10 * time.Minute)
@@ -560,7 +571,7 @@ func (s *service) GetUnlockResult(
 			}
 			encodedKey := []byte(base64.StdEncoding.EncodeToString(wrappedKey))
 			if err := database.InsertThresholdUnlockGrant(
-				ctx, requestID, stored.ID, participant.UserID, encodedKey, expiresAt,
+				ctx, requestID, participant.UserID, encodedKey, expiresAt,
 			); err != nil {
 				return err
 			}

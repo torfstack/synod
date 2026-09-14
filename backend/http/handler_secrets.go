@@ -1,9 +1,11 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/torfstack/synod/backend/domain"
 	"github.com/torfstack/synod/backend/logging"
 
 	"github.com/labstack/echo/v4"
@@ -135,6 +137,9 @@ func (s *Server) StartUnlock(c echo.Context) error {
 	}
 	id, err := s.domainService.StartUnlock(c.Request().Context(), secretID, session.UserID, session.Cipher)
 	if err != nil {
+		if errors.Is(err, domain.ErrUnlockAlreadyActive) {
+			return c.NoContent(http.StatusConflict)
+		}
 		return err
 	}
 	return c.JSON(http.StatusCreated, map[string]int64{"id": id})

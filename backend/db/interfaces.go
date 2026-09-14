@@ -34,7 +34,7 @@ type Database interface {
 	SelectThresholdSecrets(ctx context.Context, userID int64) ([]models.ThresholdSecret, error)
 	SelectUnlockedThresholdSecrets(ctx context.Context, userID int64) ([]models.AccessibleSecret, error)
 	SelectThresholdSecretForParticipant(ctx context.Context, secretID, userID int64) (models.ThresholdSecret, error)
-	InsertUnlockRequest(ctx context.Context, secretID, userID int64) (int64, error)
+	InsertUnlockRequest(ctx context.Context, secretID, userID int64) (models.UnlockRequest, error)
 	SelectPendingUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error)
 	SelectUnlockRequest(ctx context.Context, requestID, userID int64) (models.ThresholdSecret, error)
 	InsertUnlockContribution(ctx context.Context, requestID, userID int64, share []byte) error
@@ -42,7 +42,7 @@ type Database interface {
 	SelectThresholdParticipantKeys(ctx context.Context, secretID int64) ([]models.ParticipantKey, error)
 	InsertThresholdUnlockGrant(
 		ctx context.Context,
-		requestID, secretID, userID int64,
+		requestID, userID int64,
 		encryptedDataKey []byte,
 		expiresAt time.Time,
 	) error

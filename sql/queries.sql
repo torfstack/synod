@@ -32,9 +32,17 @@ WHERE s.id = $1 AND s.user_id = $2 AND u.id <> s.user_id
 ORDER BY u.full_name, u.id;
 
 -- name: SelectSecretForOwner :one
-SELECT s.*, sa.encrypted_data_key
+SELECT s.*, COALESCE(sa.encrypted_data_key, tug.encrypted_data_key) AS encrypted_data_key
 FROM secrets s
 LEFT JOIN secret_access sa ON sa.secret_id = s.id AND sa.user_id = s.user_id
+LEFT JOIN LATERAL (
+    SELECT tug.encrypted_data_key
+    FROM threshold_unlock_grants tug
+    JOIN unlock_requests ur ON ur.id = tug.request_id
+    WHERE ur.secret_id = s.id AND tug.user_id = s.user_id AND tug.expires_at > NOW()
+    ORDER BY tug.expires_at DESC
+    LIMIT 1
+) tug ON TRUE
 WHERE s.id = $1 AND s.user_id = $2;
 
 -- name: UpdateSecretEnvelope :exec
@@ -129,14 +137,17 @@ WHERE s.secret_sharing IS NOT NULL
   ))
   AND NOT EXISTS (
       SELECT 1 FROM threshold_unlock_grants tug
-      WHERE tug.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
+      JOIN unlock_requests ur ON ur.id = tug.request_id
+      WHERE ur.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
   );
 
 -- name: SelectUnlockedThresholdSecrets :many
 SELECT DISTINCT ON (s.id) s.*, tug.encrypted_data_key, s.user_id = $1 AS owned, tug.expires_at AS unlocked_until
-FROM secrets s
-JOIN threshold_unlock_grants tug ON tug.secret_id = s.id AND tug.user_id = $1
-WHERE tug.expires_at > NOW()
+FROM threshold_unlock_grants tug
+JOIN unlock_requests ur ON ur.id = tug.request_id
+JOIN secrets s ON s.id = ur.secret_id
+WHERE tug.user_id = $1
+  AND tug.expires_at > NOW()
 ORDER BY s.id, tug.expires_at DESC;
 
 -- name: SelectThresholdSecretForParticipant :one
@@ -146,12 +157,21 @@ JOIN threshold_secret_shares tss ON tss.secret_id = s.id AND tss.user_id = $2
 WHERE s.id = $1 AND s.secret_sharing IS NOT NULL;
 
 -- name: InsertUnlockRequest :one
+WITH expired AS (
+    UPDATE unlock_requests
+    SET completed_at = NOW()
+    WHERE secret_id = $1 AND completed_at IS NULL AND expires_at <= NOW()
+    RETURNING id
+)
 INSERT INTO unlock_requests (secret_id, requested_by)
 SELECT s.id, $2 FROM secrets s
 WHERE s.id = $1 AND s.secret_sharing IS NOT NULL
+  AND (SELECT COUNT(*) FROM expired) >= 0
   AND (s.user_id = $2 OR EXISTS (
       SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $2
   ))
+ON CONFLICT (secret_id) WHERE completed_at IS NULL
+DO UPDATE SET secret_id = EXCLUDED.secret_id
 RETURNING *;
 
 -- name: SelectPendingUnlockRequests :many
@@ -167,20 +187,20 @@ WHERE ur.completed_at IS NULL AND ur.expires_at > NOW()
 ORDER BY ur.created_at DESC;
 
 -- name: SelectUnlockRequest :one
-SELECT ur.*, s.value AS encrypted_payload, s.secret_sharing
+SELECT ur.*, s.value AS encrypted_payload, s.secret_sharing, s.user_id AS owner_id
 FROM unlock_requests ur
 JOIN secrets s ON s.id = ur.secret_id
-WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.expires_at > NOW();
+WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.completed_at IS NULL AND ur.expires_at > NOW();
 
 -- name: InsertUnlockContribution :exec
-INSERT INTO unlock_contributions (request_id, user_id, share)
+INSERT INTO unlock_contributions (request_id, user_id, encrypted_share)
 SELECT ur.id, $2, $3 FROM unlock_requests ur
 JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $2
 WHERE ur.id = $1 AND ur.completed_at IS NULL AND ur.expires_at > NOW()
 ON CONFLICT (request_id, user_id) DO NOTHING;
 
 -- name: SelectUnlockContributions :many
-SELECT share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id;
+SELECT encrypted_share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id;
 
 -- name: SelectThresholdParticipantKeys :many
 SELECT tss.user_id, k.public_key
@@ -190,8 +210,8 @@ WHERE tss.secret_id = $1
 ORDER BY tss.user_id;
 
 -- name: InsertThresholdUnlockGrant :exec
-INSERT INTO threshold_unlock_grants (request_id, secret_id, user_id, encrypted_data_key, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO threshold_unlock_grants (request_id, user_id, encrypted_data_key, expires_at)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (request_id, user_id) DO NOTHING;
 
 -- name: CompleteUnlockRequest :exec

@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -112,26 +113,25 @@ func TestDatabase_DeleteExpiredUnlockRequestsCascadesRelatedData(t *testing.T) {
 		2,
 	)
 	require.NoError(t, err)
-	requestID, err := database.InsertUnlockRequest(ctx, secretID, user.ID)
+	request, err := database.InsertUnlockRequest(ctx, secretID, user.ID)
 	require.NoError(t, err)
 	_, err = database.pool.Exec(
 		ctx,
-		"INSERT INTO unlock_contributions (request_id, user_id, share) VALUES ($1, $2, $3)",
-		requestID,
+		"INSERT INTO unlock_contributions (request_id, user_id, encrypted_share) VALUES ($1, $2, $3)",
+		request.ID,
 		user.ID,
 		[]byte("share"),
 	)
 	require.NoError(t, err)
 	_, err = database.pool.Exec(
 		ctx,
-		"INSERT INTO threshold_unlock_grants (request_id, secret_id, user_id, encrypted_data_key, expires_at) VALUES ($1, $2, $3, $4, NOW() - INTERVAL '1 minute')",
-		requestID,
-		secretID,
+		"INSERT INTO threshold_unlock_grants (request_id, user_id, encrypted_data_key, expires_at) VALUES ($1, $2, $3, NOW() - INTERVAL '1 minute')",
+		request.ID,
 		user.ID,
 		[]byte("key"),
 	)
 	require.NoError(t, err)
-	require.NoError(t, database.CompleteUnlockRequest(ctx, requestID))
+	require.NoError(t, database.CompleteUnlockRequest(ctx, request.ID))
 
 	deleted, err := database.DeleteExpiredUnlockRequests(ctx)
 	require.NoError(t, err)
@@ -143,6 +143,83 @@ func TestDatabase_DeleteExpiredUnlockRequestsCascadesRelatedData(t *testing.T) {
 	require.Zero(t, requests)
 	require.Zero(t, contributions)
 	require.Zero(t, grants)
+}
+
+func TestDatabase_AllowsOnlyOneActiveUnlockRequestPerSecret(t *testing.T) {
+	ctx := t.Context()
+	require.NoError(t, pg.Restore(ctx))
+	connStr, err := pg.ConnectionString(ctx)
+	require.NoError(t, err)
+	databaseInterface, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
+	database := databaseInterface.(*database)
+	owner, err := database.InsertUser(ctx, TestUser)
+	require.NoError(t, err)
+	participant, err := database.InsertUser(
+		ctx,
+		models.User{Subject: "participant", Email: "participant@example.com", FullName: "Participant"},
+	)
+	require.NoError(t, err)
+	secretID, err := database.InsertThresholdSecret(
+		ctx,
+		models.EncryptedSecret{Value: "payload", Key: "key"},
+		owner.ID,
+		2,
+	)
+	require.NoError(t, err)
+	require.NoError(t, database.InsertThresholdShare(ctx, secretID, participant.ID, []byte("share")))
+
+	first, err := database.InsertUnlockRequest(ctx, secretID, owner.ID)
+	require.NoError(t, err)
+	second, err := database.InsertUnlockRequest(ctx, secretID, participant.ID)
+	require.NoError(t, err)
+	require.Equal(t, first.ID, second.ID)
+	require.Equal(t, owner.ID, second.RequesterID)
+
+	_, err = database.pool.Exec(
+		ctx,
+		"UPDATE unlock_requests SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1",
+		first.ID,
+	)
+	require.NoError(t, err)
+	replacement, err := database.InsertUnlockRequest(ctx, secretID, participant.ID)
+	require.NoError(t, err)
+	require.NotEqual(t, first.ID, replacement.ID)
+	require.Equal(t, participant.ID, replacement.RequesterID)
+}
+
+func TestDatabase_ThresholdOwnerCanUseActiveUnlockGrant(t *testing.T) {
+	ctx := t.Context()
+	require.NoError(t, pg.Restore(ctx))
+	connStr, err := pg.ConnectionString(ctx)
+	require.NoError(t, err)
+	databaseInterface, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
+	database := databaseInterface.(*database)
+	owner, err := database.InsertUser(ctx, TestUser)
+	require.NoError(t, err)
+	secretID, err := database.InsertThresholdSecret(
+		ctx,
+		models.EncryptedSecret{Value: "payload", Key: "key"},
+		owner.ID,
+		2,
+	)
+	require.NoError(t, err)
+	request, err := database.InsertUnlockRequest(ctx, secretID, owner.ID)
+	require.NoError(t, err)
+	encryptedKey := []byte("encrypted key")
+	require.NoError(
+		t,
+		database.InsertThresholdUnlockGrant(ctx, request.ID, owner.ID, encryptedKey, time.Now().Add(time.Minute)),
+	)
+
+	secret, err := database.SelectSecretForOwner(ctx, secretID, owner.ID)
+	require.NoError(t, err)
+	require.Equal(t, encryptedKey, secret.EncryptedDataKey)
+	require.Equal(t, 2, secret.Threshold)
+	require.NoError(t, database.CompleteUnlockRequest(ctx, request.ID))
+	_, err = database.SelectUnlockRequest(ctx, request.ID, owner.ID)
+	require.Error(t, err)
 }
 
 func TestDatabase_UserHandling(t *testing.T) {

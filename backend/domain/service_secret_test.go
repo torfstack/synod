@@ -158,9 +158,8 @@ func TestGetUnlockResultGrantsEveryParticipantTenMinutesOfAccess(t *testing.T) {
 		selectThresholdParticipantKeysFn: func(context.Context, int64) ([]models.ParticipantKey, error) {
 			return participantKeys, nil
 		},
-		insertThresholdUnlockGrantFn: func(_ context.Context, requestID, secretID, userID int64, key []byte, expiresAt time.Time) error {
+		insertThresholdUnlockGrantFn: func(_ context.Context, requestID, userID int64, key []byte, expiresAt time.Time) error {
 			require.Equal(t, int64(4), requestID)
-			require.Equal(t, int64(9), secretID)
 			require.WithinDuration(t, now.Add(10*time.Minute), expiresAt, time.Second)
 			granted[userID] = key
 			return nil
@@ -181,6 +180,62 @@ func TestGetUnlockResultGrantsEveryParticipantTenMinutesOfAccess(t *testing.T) {
 		require.NoError(t, decryptErr)
 		require.Equal(t, dataKey, unwrappedKey)
 	}
+}
+
+func TestStartUnlockRejectsSecondRequester(t *testing.T) {
+	database := &mockDatabase{insertUnlockRequestFn: func(context.Context, int64, int64) (models.UnlockRequest, error) {
+		return models.UnlockRequest{ID: 8, SecretID: 9, RequesterID: 1}, nil
+	}}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	_, err := svc.StartUnlock(context.Background(), 9, 2, newTestCipher(t))
+	require.ErrorIs(t, err, ErrUnlockAlreadyActive)
+}
+
+func TestUpsertThresholdSecretUsesActiveGrantWithoutCreatingPermanentAccess(t *testing.T) {
+	cipher := newTestCipher(t)
+	key, err := crypto.NewSymmetricKey()
+	require.NoError(t, err)
+	wrappedKey, err := cipher.Encrypt(key)
+	require.NoError(t, err)
+	id := int64(9)
+	var storedPayload string
+	database := &mockDatabase{
+		selectSecretForOwnerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+			return models.AccessibleSecret{
+				ID:               id,
+				Envelope:         true,
+				Threshold:        2,
+				EncryptedDataKey: []byte(base64.StdEncoding.EncodeToString(wrappedKey)),
+			}, nil
+		},
+		upsertSecretFn: func(_ context.Context, secret models.EncryptedSecret, _ int64) (models.EncryptedSecret, error) {
+			storedPayload = secret.Value
+			return secret, nil
+		},
+		insertSecretAccessFn: func(context.Context, int64, int64, int64, []byte) error {
+			t.Fatal("threshold edit created permanent access")
+			return nil
+		},
+	}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	_, err = svc.UpsertSecret(
+		context.Background(),
+		models.Secret{ID: &id, Key: "updated", Value: "new value", Tags: []string{}},
+		1,
+		cipher,
+	)
+	require.NoError(t, err)
+	encodedPayload, err := base64.StdEncoding.DecodeString(storedPayload)
+	require.NoError(t, err)
+	payloadCipher, err := crypto.SymmetricCipherFromKey(key)
+	require.NoError(t, err)
+	plaintext, err := payloadCipher.Decrypt(encodedPayload)
+	require.NoError(t, err)
+	var updated models.Secret
+	require.NoError(t, json.Unmarshal(plaintext, &updated))
+	require.Equal(t, "new value", updated.Value)
 }
 
 func TestGetSecretsDecryptsSharedEnvelope(t *testing.T) {

@@ -144,6 +144,7 @@ func (d *database) SelectSecretForOwner(ctx context.Context, secretID, userID in
 		EncryptedPayload: row.Value,
 		EncryptedDataKey: row.EncryptedDataKey,
 		Envelope:         row.Envelope,
+		Threshold:        int(row.SecretSharing.Int32),
 		Legacy: fromdb.Secret(
 			sqlc.Secret{
 				ID:            row.ID,
@@ -253,9 +254,7 @@ func (d *database) InsertThresholdSecret(
 		return 0, err
 	}
 	stored, err := q.InsertThresholdSecret(ctx, sqlc.InsertThresholdSecretParams{
-		Value: []byte(
-			secret.Value,
-		),
+		Value:         []byte(secret.Value),
 		Key:           secret.Key,
 		Url:           secret.Url,
 		Tags:          strings.Join(secret.Tags, ","),
@@ -350,13 +349,13 @@ func (d *database) SelectThresholdSecretForParticipant(
 	}, nil
 }
 
-func (d *database) InsertUnlockRequest(ctx context.Context, secretID, userID int64) (int64, error) {
+func (d *database) InsertUnlockRequest(ctx context.Context, secretID, userID int64) (models.UnlockRequest, error) {
 	q, err := startQuery(d)
 	if err != nil {
-		return 0, err
+		return models.UnlockRequest{}, err
 	}
 	row, err := q.InsertUnlockRequest(ctx, sqlc.InsertUnlockRequestParams{ID: secretID, RequestedBy: userID})
-	return row.ID, err
+	return models.UnlockRequest{ID: row.ID, SecretID: row.SecretID, RequesterID: row.RequestedBy}, err
 }
 
 func (d *database) SelectPendingUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error) {
@@ -396,6 +395,7 @@ func (d *database) SelectUnlockRequest(ctx context.Context, requestID, userID in
 	}
 	return models.ThresholdSecret{
 		ID:               row.SecretID,
+		OwnerID:          row.OwnerID,
 		EncryptedPayload: row.EncryptedPayload,
 		Threshold:        int(row.SecretSharing.Int32),
 	}, nil
@@ -408,7 +408,7 @@ func (d *database) InsertUnlockContribution(ctx context.Context, requestID, user
 	}
 	return q.InsertUnlockContribution(
 		ctx,
-		sqlc.InsertUnlockContributionParams{ID: requestID, UserID: userID, Share: share},
+		sqlc.InsertUnlockContributionParams{ID: requestID, UserID: userID, EncryptedShare: share},
 	)
 }
 
@@ -441,7 +441,7 @@ func (d *database) SelectThresholdParticipantKeys(
 
 func (d *database) InsertThresholdUnlockGrant(
 	ctx context.Context,
-	requestID, secretID, userID int64,
+	requestID, userID int64,
 	encryptedDataKey []byte,
 	expiresAt time.Time,
 ) error {
@@ -450,9 +450,9 @@ func (d *database) InsertThresholdUnlockGrant(
 		return err
 	}
 	return q.InsertThresholdUnlockGrant(ctx, sqlc.InsertThresholdUnlockGrantParams{
-		RequestID: requestID, SecretID: secretID, UserID: userID,
+		RequestID: requestID, UserID: userID,
 		EncryptedDataKey: encryptedDataKey,
-		ExpiresAt:        pgtype.Timestamp{Time: expiresAt, Valid: true},
+		ExpiresAt:        pgtype.Timestamptz{Time: expiresAt, Valid: true},
 	})
 }
 

@@ -20,6 +20,7 @@ type mockDomainService struct {
 	// SecretService
 	getSecretsFn   func(ctx context.Context, userID int64, cipher *crypto.AsymmetricCipher) ([]models.Secret, error)
 	upsertSecretFn func(ctx context.Context, secret models.Secret, userID int64, cipher *crypto.AsymmetricCipher) (models.EncryptedSecret, error)
+	startUnlockFn  func(context.Context, int64, int64, *crypto.AsymmetricCipher) (int64, error)
 
 	// SessionService
 	createSessionFn func(ctx context.Context, userID int64) (domain.Session, error)
@@ -94,7 +95,15 @@ func (m *mockDomainService) GetSecretRecipients(context.Context, int64, int64) (
 func (m *mockDomainService) CreateThresholdSecret(context.Context, models.ThresholdSecretInput, int64) (int64, error) {
 	return 1, nil
 }
-func (m *mockDomainService) StartUnlock(context.Context, int64, int64, *crypto.AsymmetricCipher) (int64, error) {
+
+func (m *mockDomainService) StartUnlock(
+	ctx context.Context,
+	secretID, userID int64,
+	cipher *crypto.AsymmetricCipher,
+) (int64, error) {
+	if m.startUnlockFn != nil {
+		return m.startUnlockFn(ctx, secretID, userID, cipher)
+	}
 	return 1, nil
 }
 func (m *mockDomainService) GetUnlockRequests(context.Context, int64) ([]models.UnlockRequest, error) {

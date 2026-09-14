@@ -255,23 +255,21 @@ func (q *Queries) InsertThresholdShare(ctx context.Context, arg InsertThresholdS
 }
 
 const insertThresholdUnlockGrant = `-- name: InsertThresholdUnlockGrant :exec
-INSERT INTO threshold_unlock_grants (request_id, secret_id, user_id, encrypted_data_key, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO threshold_unlock_grants (request_id, user_id, encrypted_data_key, expires_at)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (request_id, user_id) DO NOTHING
 `
 
 type InsertThresholdUnlockGrantParams struct {
 	RequestID        int64
-	SecretID         int64
 	UserID           int64
 	EncryptedDataKey []byte
-	ExpiresAt        pgtype.Timestamp
+	ExpiresAt        pgtype.Timestamptz
 }
 
 func (q *Queries) InsertThresholdUnlockGrant(ctx context.Context, arg InsertThresholdUnlockGrantParams) error {
 	_, err := q.db.Exec(ctx, insertThresholdUnlockGrant,
 		arg.RequestID,
-		arg.SecretID,
 		arg.UserID,
 		arg.EncryptedDataKey,
 		arg.ExpiresAt,
@@ -280,7 +278,7 @@ func (q *Queries) InsertThresholdUnlockGrant(ctx context.Context, arg InsertThre
 }
 
 const insertUnlockContribution = `-- name: InsertUnlockContribution :exec
-INSERT INTO unlock_contributions (request_id, user_id, share)
+INSERT INTO unlock_contributions (request_id, user_id, encrypted_share)
 SELECT ur.id, $2, $3 FROM unlock_requests ur
 JOIN threshold_secret_shares tss ON tss.secret_id = ur.secret_id AND tss.user_id = $2
 WHERE ur.id = $1 AND ur.completed_at IS NULL AND ur.expires_at > NOW()
@@ -288,23 +286,32 @@ ON CONFLICT (request_id, user_id) DO NOTHING
 `
 
 type InsertUnlockContributionParams struct {
-	ID     int64
-	UserID int64
-	Share  []byte
+	ID             int64
+	UserID         int64
+	EncryptedShare []byte
 }
 
 func (q *Queries) InsertUnlockContribution(ctx context.Context, arg InsertUnlockContributionParams) error {
-	_, err := q.db.Exec(ctx, insertUnlockContribution, arg.ID, arg.UserID, arg.Share)
+	_, err := q.db.Exec(ctx, insertUnlockContribution, arg.ID, arg.UserID, arg.EncryptedShare)
 	return err
 }
 
 const insertUnlockRequest = `-- name: InsertUnlockRequest :one
+WITH expired AS (
+    UPDATE unlock_requests
+    SET completed_at = NOW()
+    WHERE secret_id = $1 AND completed_at IS NULL AND expires_at <= NOW()
+    RETURNING id
+)
 INSERT INTO unlock_requests (secret_id, requested_by)
 SELECT s.id, $2 FROM secrets s
 WHERE s.id = $1 AND s.secret_sharing IS NOT NULL
+  AND (SELECT COUNT(*) FROM expired) >= 0
   AND (s.user_id = $2 OR EXISTS (
       SELECT 1 FROM threshold_secret_shares tss WHERE tss.secret_id = s.id AND tss.user_id = $2
   ))
+ON CONFLICT (secret_id) WHERE completed_at IS NULL
+DO UPDATE SET secret_id = EXCLUDED.secret_id
 RETURNING id, secret_id, requested_by, created_at, expires_at, completed_at
 `
 
@@ -413,7 +420,7 @@ type SelectAccessibleSecretsRow struct {
 	UserID           int64
 	SecretSharing    pgtype.Int4
 	Envelope         bool
-	CreatedAt        pgtype.Timestamp
+	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamp
 	EncryptedDataKey []byte
 	Owned            bool
@@ -520,8 +527,8 @@ type SelectPendingUnlockRequestsRow struct {
 	ID            int64
 	SecretID      int64
 	RequestedBy   int64
-	CreatedAt     pgtype.Timestamp
-	ExpiresAt     pgtype.Timestamp
+	CreatedAt     pgtype.Timestamptz
+	ExpiresAt     pgtype.Timestamptz
 	Key           string
 	SecretSharing pgtype.Int4
 	RequesterName string
@@ -577,9 +584,17 @@ func (q *Queries) SelectPublicKey(ctx context.Context, userID int64) (SelectPubl
 }
 
 const selectSecretForOwner = `-- name: SelectSecretForOwner :one
-SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, s.envelope, s.created_at, s.updated_at, sa.encrypted_data_key
+SELECT s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, s.envelope, s.created_at, s.updated_at, COALESCE(sa.encrypted_data_key, tug.encrypted_data_key) AS encrypted_data_key
 FROM secrets s
 LEFT JOIN secret_access sa ON sa.secret_id = s.id AND sa.user_id = s.user_id
+LEFT JOIN LATERAL (
+    SELECT tug.encrypted_data_key
+    FROM threshold_unlock_grants tug
+    JOIN unlock_requests ur ON ur.id = tug.request_id
+    WHERE ur.secret_id = s.id AND tug.user_id = s.user_id AND tug.expires_at > NOW()
+    ORDER BY tug.expires_at DESC
+    LIMIT 1
+) tug ON TRUE
 WHERE s.id = $1 AND s.user_id = $2
 `
 
@@ -597,7 +612,7 @@ type SelectSecretForOwnerRow struct {
 	UserID           int64
 	SecretSharing    pgtype.Int4
 	Envelope         bool
-	CreatedAt        pgtype.Timestamp
+	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamp
 	EncryptedDataKey []byte
 }
@@ -781,7 +796,8 @@ WHERE s.secret_sharing IS NOT NULL
   ))
   AND NOT EXISTS (
       SELECT 1 FROM threshold_unlock_grants tug
-      WHERE tug.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
+      JOIN unlock_requests ur ON ur.id = tug.request_id
+      WHERE ur.secret_id = s.id AND tug.user_id = $1 AND tug.expires_at > NOW()
   )
 `
 
@@ -822,7 +838,7 @@ func (q *Queries) SelectThresholdSecrets(ctx context.Context, userID int64) ([]S
 }
 
 const selectUnlockContributions = `-- name: SelectUnlockContributions :many
-SELECT share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id
+SELECT encrypted_share FROM unlock_contributions WHERE request_id = $1 ORDER BY user_id
 `
 
 func (q *Queries) SelectUnlockContributions(ctx context.Context, requestID int64) ([][]byte, error) {
@@ -833,11 +849,11 @@ func (q *Queries) SelectUnlockContributions(ctx context.Context, requestID int64
 	defer rows.Close()
 	var items [][]byte
 	for rows.Next() {
-		var share []byte
-		if err := rows.Scan(&share); err != nil {
+		var encrypted_share []byte
+		if err := rows.Scan(&encrypted_share); err != nil {
 			return nil, err
 		}
-		items = append(items, share)
+		items = append(items, encrypted_share)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -846,10 +862,10 @@ func (q *Queries) SelectUnlockContributions(ctx context.Context, requestID int64
 }
 
 const selectUnlockRequest = `-- name: SelectUnlockRequest :one
-SELECT ur.id, ur.secret_id, ur.requested_by, ur.created_at, ur.expires_at, ur.completed_at, s.value AS encrypted_payload, s.secret_sharing
+SELECT ur.id, ur.secret_id, ur.requested_by, ur.created_at, ur.expires_at, ur.completed_at, s.value AS encrypted_payload, s.secret_sharing, s.user_id AS owner_id
 FROM unlock_requests ur
 JOIN secrets s ON s.id = ur.secret_id
-WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.expires_at > NOW()
+WHERE ur.id = $1 AND ur.requested_by = $2 AND ur.completed_at IS NULL AND ur.expires_at > NOW()
 `
 
 type SelectUnlockRequestParams struct {
@@ -861,11 +877,12 @@ type SelectUnlockRequestRow struct {
 	ID               int64
 	SecretID         int64
 	RequestedBy      int64
-	CreatedAt        pgtype.Timestamp
-	ExpiresAt        pgtype.Timestamp
-	CompletedAt      pgtype.Timestamp
+	CreatedAt        pgtype.Timestamptz
+	ExpiresAt        pgtype.Timestamptz
+	CompletedAt      pgtype.Timestamptz
 	EncryptedPayload []byte
 	SecretSharing    pgtype.Int4
+	OwnerID          int64
 }
 
 func (q *Queries) SelectUnlockRequest(ctx context.Context, arg SelectUnlockRequestParams) (SelectUnlockRequestRow, error) {
@@ -880,15 +897,18 @@ func (q *Queries) SelectUnlockRequest(ctx context.Context, arg SelectUnlockReque
 		&i.CompletedAt,
 		&i.EncryptedPayload,
 		&i.SecretSharing,
+		&i.OwnerID,
 	)
 	return i, err
 }
 
 const selectUnlockedThresholdSecrets = `-- name: SelectUnlockedThresholdSecrets :many
 SELECT DISTINCT ON (s.id) s.id, s.value, s.key, s.url, s.tags, s.user_id, s.secret_sharing, s.envelope, s.created_at, s.updated_at, tug.encrypted_data_key, s.user_id = $1 AS owned, tug.expires_at AS unlocked_until
-FROM secrets s
-JOIN threshold_unlock_grants tug ON tug.secret_id = s.id AND tug.user_id = $1
-WHERE tug.expires_at > NOW()
+FROM threshold_unlock_grants tug
+JOIN unlock_requests ur ON ur.id = tug.request_id
+JOIN secrets s ON s.id = ur.secret_id
+WHERE tug.user_id = $1
+  AND tug.expires_at > NOW()
 ORDER BY s.id, tug.expires_at DESC
 `
 
@@ -901,11 +921,11 @@ type SelectUnlockedThresholdSecretsRow struct {
 	UserID           int64
 	SecretSharing    pgtype.Int4
 	Envelope         bool
-	CreatedAt        pgtype.Timestamp
+	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamp
 	EncryptedDataKey []byte
 	Owned            bool
-	UnlockedUntil    pgtype.Timestamp
+	UnlockedUntil    pgtype.Timestamptz
 }
 
 func (q *Queries) SelectUnlockedThresholdSecrets(ctx context.Context, userID int64) ([]SelectUnlockedThresholdSecretsRow, error) {

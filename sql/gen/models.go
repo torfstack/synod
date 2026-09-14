@@ -33,7 +33,7 @@ type Secret struct {
 	UserID        int64
 	SecretSharing pgtype.Int4
 	Envelope      bool
-	CreatedAt     pgtype.Timestamp
+	CreatedAt     pgtype.Timestamptz
 	UpdatedAt     pgtype.Timestamp
 }
 
@@ -54,26 +54,25 @@ type ThresholdSecretShare struct {
 
 type ThresholdUnlockGrant struct {
 	RequestID        int64
-	SecretID         int64
 	UserID           int64
 	EncryptedDataKey []byte
-	ExpiresAt        pgtype.Timestamp
+	ExpiresAt        pgtype.Timestamptz
 }
 
 type UnlockContribution struct {
-	RequestID int64
-	UserID    int64
-	Share     []byte
-	CreatedAt pgtype.Timestamp
+	RequestID      int64
+	UserID         int64
+	EncryptedShare []byte
+	CreatedAt      pgtype.Timestamptz
 }
 
 type UnlockRequest struct {
 	ID          int64
 	SecretID    int64
 	RequestedBy int64
-	CreatedAt   pgtype.Timestamp
-	ExpiresAt   pgtype.Timestamp
-	CompletedAt pgtype.Timestamp
+	CreatedAt   pgtype.Timestamptz
+	ExpiresAt   pgtype.Timestamptz
+	CompletedAt pgtype.Timestamptz
 }
 
 type User struct {

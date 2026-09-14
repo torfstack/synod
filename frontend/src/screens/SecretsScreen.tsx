@@ -1,7 +1,7 @@
 import {SecretsList} from "../components/secrets/SecretsList.tsx";
 import type {Secret} from "../util/secret.ts";
 import {useEffect, useState} from "react";
-import {contributeToUnlock, getSecrets, getUnlockRequests, getUnlockResult, postSecret, postThresholdSecret, startUnlock, type UnlockRequest} from "../util/api.ts";
+import {ApiError, contributeToUnlock, getSecrets, getUnlockRequests, getUnlockResult, postSecret, postThresholdSecret, startUnlock, type UnlockRequest} from "../util/api.ts";
 import {SecretModal} from "../components/secrets/SecretModal.tsx";
 import {UnlockRequests} from "../components/secrets/UnlockRequests.tsx";
 
@@ -74,7 +74,16 @@ export const SecretsScreen = () => {
 
     async function selectSecret(s: Secret) {
         if (s.locked && s.id) {
-            const request = await startUnlock(s.id);
+            let request;
+            try {
+                request = await startUnlock(s.id);
+            } catch (error) {
+                if (error instanceof ApiError && error.status === 409) {
+                    setUnlockRequests(await getUnlockRequests());
+                    return;
+                }
+                throw error;
+            }
             setActiveUnlock(request.id);
             setUnlockProgress(`1 of ${s.threshold} shares contributed`);
             return;
