@@ -18,6 +18,7 @@ var _ SecretService = &service{}
 
 var ErrUnlockAlreadyActive = errors.New("another user is already unlocking this secret")
 var ErrThresholdParticipantsChanged = errors.New("threshold participants changed; reload and try again")
+var ErrThresholdSecretPermanentSharing = errors.New("threshold secrets cannot be shared permanently")
 
 func (s *service) GetSecrets(
 	ctx context.Context,
@@ -237,6 +238,9 @@ func (s *service) ShareSecret(
 		stored, err := database.SelectSecretForManager(ctx, secretID, ownerID)
 		if err != nil {
 			return err
+		}
+		if stored.Threshold > 0 {
+			return ErrThresholdSecretPermanentSharing
 		}
 		key, err := s.dataKeyForSharing(ctx, database, stored, ownerID, cipher)
 		if err != nil {

@@ -13,40 +13,70 @@ export const SecretsScreen = () => {
     const [unlockRequests, setUnlockRequests] = useState<UnlockRequest[]>([]);
     const [activeUnlock, setActiveUnlock] = useState<number | undefined>();
     const [unlockProgress, setUnlockProgress] = useState("");
+    const [requestPollingError, setRequestPollingError] = useState("");
+    const [unlockError, setUnlockError] = useState("");
 
     useEffect(() => {
         retrieveSecrets()
     }, [])
 
     useEffect(() => {
-        const refresh = () => {
-            getUnlockRequests().then(requests => setUnlockRequests(current => {
-                if (current.some(previous => !requests.some(request => request.id === previous.id))) {
-                    retrieveSecrets();
-                }
-                return requests;
-            }));
+        let stopped = false;
+        let timeout: number | undefined;
+        const refresh = async () => {
+            try {
+                const requests = await getUnlockRequests();
+                if (stopped) return;
+                setUnlockRequests(current => {
+                    if (current.some(previous => !requests.some(request => request.id === previous.id))) {
+                        retrieveSecrets();
+                    }
+                    return requests;
+                });
+                setRequestPollingError("");
+            } catch {
+                if (!stopped) setRequestPollingError("Could not refresh unlock requests. Retrying automatically.");
+            } finally {
+                if (!stopped) timeout = window.setTimeout(refresh, 3000);
+            }
         };
         refresh();
-        const interval = window.setInterval(refresh, 3000);
-        return () => window.clearInterval(interval);
+        return () => {
+            stopped = true;
+            if (timeout !== undefined) window.clearTimeout(timeout);
+        };
     }, []);
 
     useEffect(() => {
         if (!activeUnlock) return;
+        let stopped = false;
+        let timeout: number | undefined;
         const refresh = async () => {
-            const result = await getUnlockResult(activeUnlock);
-            setUnlockProgress(`${result.contributions} of ${result.threshold} shares contributed`);
-            if (result.ready && result.secret) {
-                setSelectedSecret({...result.secret, locked: false});
-                setModalOpen(true);
+            try {
+                const result = await getUnlockResult(activeUnlock);
+                if (stopped) return;
+                setUnlockProgress(`${result.contributions} of ${result.threshold} shares contributed`);
+                if (result.ready && result.secret) {
+                    setSelectedSecret({...result.secret, locked: false});
+                    setModalOpen(true);
+                    setActiveUnlock(undefined);
+                    setUnlockProgress("");
+                    setUnlockError("");
+                    return;
+                }
+                timeout = window.setTimeout(refresh, 2000);
+            } catch {
+                if (stopped) return;
                 setActiveUnlock(undefined);
                 setUnlockProgress("");
+                setUnlockError("The unlock request expired or could not be refreshed. Start a new unlock request and try again.");
             }
         };
         refresh();
-        const interval = window.setInterval(refresh, 2000);
-        return () => window.clearInterval(interval);
+        return () => {
+            stopped = true;
+            if (timeout !== undefined) window.clearTimeout(timeout);
+        };
     }, [activeUnlock]);
 
     const filteredSecrets = filterSecrets(secrets, filterValue)
@@ -74,6 +104,7 @@ export const SecretsScreen = () => {
 
     async function selectSecret(s: Secret) {
         if (s.locked && s.id) {
+            setUnlockError("");
             let request;
             try {
                 request = await startUnlock(s.id);
@@ -100,6 +131,8 @@ export const SecretsScreen = () => {
     return <>
         <div className="flex flex-row justify-center bg-base-200 h-full">
             <div className="w-full md:w-3/4 flex flex-col gap-4 p-4">
+                {requestPollingError && <div role="alert" className="alert alert-error"><span>{requestPollingError}</span></div>}
+                {unlockError && <div role="alert" className="alert alert-error"><span>{unlockError}</span></div>}
                 <UnlockRequests requests={unlockRequests} contribute={contribute}/>
                 {activeUnlock && <div className="alert alert-info"><span>Waiting for people to participate: {unlockProgress}</span></div>}
                 <div className="flex flex-row gap-4">

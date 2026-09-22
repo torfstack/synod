@@ -57,6 +57,23 @@ func TestShareSecretWrapsDataKeyForRecipient(t *testing.T) {
 	require.Equal(t, dataKey, unwrapped)
 }
 
+func TestShareSecretRejectsThresholdSecret(t *testing.T) {
+	database := &mockDatabase{
+		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+			return models.AccessibleSecret{ID: 9, Threshold: 2}, nil
+		},
+		insertSecretAccessFn: func(context.Context, int64, int64, int64, []byte) error {
+			t.Fatal("threshold secret received permanent access")
+			return nil
+		},
+	}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	err := svc.ShareSecret(context.Background(), 9, 1, "recipient", newTestCipher(t))
+
+	require.ErrorIs(t, err, ErrThresholdSecretPermanentSharing)
+}
+
 func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 	ciphers := map[int64]*crypto.AsymmetricCipher{}
 	publicKeys := map[int64][]byte{}
