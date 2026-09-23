@@ -111,7 +111,10 @@ func TestCreateThresholdSecretDistributesRecoverableShares(t *testing.T) {
 
 	id, err := svc.CreateThresholdSecret(context.Background(), models.ThresholdSecretInput{
 		Secret:    models.Secret{Key: "recovery", Value: "correct horse", Tags: []string{}},
-		Threshold: 2, SharingIDs: []string{"two", "three"},
+		Threshold: 2, Participants: []models.ThresholdParticipantInput{
+			{SharingID: "two", Role: models.ThresholdRoleHolder},
+			{SharingID: "three", Role: models.ThresholdRoleHolder},
+		},
 	}, 1)
 	require.NoError(t, err)
 	require.Equal(t, int64(9), id)

@@ -44,7 +44,6 @@ type ThresholdParticipant struct {
 type ThresholdSecretInput struct {
 	Secret       Secret                      `json:"secret"`
 	Threshold    int                         `json:"threshold"`
-	SharingIDs   []string                    `json:"sharingIds"`
 	Participants []ThresholdParticipantInput `json:"participants"`
 }
 

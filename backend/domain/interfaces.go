@@ -40,17 +40,6 @@ type SecretService interface {
 	GetSecretRecipients(ctx context.Context, secretID, ownerID int64) ([]models.ShareRecipient, error)
 	CreateThresholdSecret(ctx context.Context, input models.ThresholdSecretInput, userID int64) (int64, error)
 	GetThresholdParticipants(ctx context.Context, secretID, userID int64) ([]models.ThresholdParticipant, error)
-	AddThresholdParticipant(
-		ctx context.Context, secretID, userID int64, participant models.ThresholdParticipantInput,
-		cipher *crypto.AsymmetricCipher,
-	) error
-	RemoveThresholdParticipant(
-		ctx context.Context, secretID, userID int64, sharingID string, cipher *crypto.AsymmetricCipher,
-	) error
-	SetThresholdParticipantRole(
-		ctx context.Context, secretID, userID int64, participant models.ThresholdParticipantInput,
-		cipher *crypto.AsymmetricCipher,
-	) error
 	SetThresholdParticipants(
 		ctx context.Context, secretID, userID int64, input models.ThresholdParticipantsInput,
 		cipher *crypto.AsymmetricCipher,

@@ -100,21 +100,6 @@ func (m *mockDomainService) GetThresholdParticipants(
 ) ([]models.ThresholdParticipant, error) {
 	return nil, nil
 }
-func (m *mockDomainService) AddThresholdParticipant(
-	context.Context, int64, int64, models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
-) error {
-	return nil
-}
-func (m *mockDomainService) RemoveThresholdParticipant(
-	context.Context, int64, int64, string, *crypto.AsymmetricCipher,
-) error {
-	return nil
-}
-func (m *mockDomainService) SetThresholdParticipantRole(
-	context.Context, int64, int64, models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
-) error {
-	return nil
-}
 func (m *mockDomainService) SetThresholdParticipants(
 	context.Context, int64, int64, models.ThresholdParticipantsInput, *crypto.AsymmetricCipher,
 ) error {
