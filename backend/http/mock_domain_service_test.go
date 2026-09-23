@@ -116,7 +116,7 @@ func (m *mockDomainService) SetThresholdParticipantRole(
 	return nil
 }
 func (m *mockDomainService) SetThresholdParticipants(
-	context.Context, int64, int64, []models.ThresholdParticipantInput, *crypto.AsymmetricCipher,
+	context.Context, int64, int64, models.ThresholdParticipantsInput, *crypto.AsymmetricCipher,
 ) error {
 	return nil
 }

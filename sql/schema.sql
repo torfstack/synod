@@ -19,7 +19,7 @@ CREATE TABLE secrets
     user_id        BIGINT    NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     secret_sharing INTEGER,
     envelope       BOOLEAN   NOT NULL DEFAULT FALSE,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at     TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -51,7 +51,7 @@ CREATE TABLE threshold_secret_shares
     user_id         BIGINT    NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     encrypted_share BYTEA     NOT NULL,
     role            TEXT      NOT NULL CHECK (role IN ('owner', 'maintainer', 'holder')),
-    created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (secret_id, user_id)
 );
 

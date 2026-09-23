@@ -33,7 +33,7 @@ type Secret struct {
 	UserID        int64
 	SecretSharing pgtype.Int4
 	Envelope      bool
-	CreatedAt     pgtype.Timestamptz
+	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
 }
 
@@ -50,7 +50,7 @@ type ThresholdSecretShare struct {
 	UserID         int64
 	EncryptedShare []byte
 	Role           string
-	CreatedAt      pgtype.Timestamp
+	CreatedAt      pgtype.Timestamptz
 }
 
 type ThresholdUnlockGrant struct {

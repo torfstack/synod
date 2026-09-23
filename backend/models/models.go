@@ -32,7 +32,8 @@ type ThresholdParticipantInput struct {
 }
 
 type ThresholdParticipantsInput struct {
-	Participants []ThresholdParticipantInput `json:"participants"`
+	Participants         []ThresholdParticipantInput `json:"participants"`
+	ExpectedParticipants []ThresholdParticipantInput `json:"expectedParticipants"`
 }
 
 type ThresholdParticipant struct {

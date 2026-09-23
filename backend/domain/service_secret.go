@@ -160,6 +160,11 @@ func (s *service) UpsertSecret(
 			Url:   "",
 			Tags:  []string{},
 		}
+		if thresholdSecret {
+			encrypted.Key = secret.Key
+			encrypted.Url = secret.Url
+			encrypted.Tags = secret.Tags
+		}
 		result, err = database.UpsertSecret(ctx, encrypted, userID)
 		if err != nil {
 			return err
@@ -564,12 +569,19 @@ func (s *service) SetThresholdParticipantRole(
 func (s *service) SetThresholdParticipants(
 	ctx context.Context,
 	secretID, userID int64,
-	inputs []models.ThresholdParticipantInput,
+	input models.ThresholdParticipantsInput,
 	cipher *crypto.AsymmetricCipher,
 ) error {
 	return s.changeThresholdParticipants(ctx, secretID, userID, cipher, func(
 		database db.Database, actor models.AccessibleSecret, current []models.ParticipantKey,
 	) ([]models.ParticipantKey, error) {
+		listed, err := database.SelectThresholdParticipants(ctx, secretID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !sameThresholdParticipants(input.ExpectedParticipants, listed) {
+			return nil, ErrThresholdParticipantsChanged
+		}
 		currentByID := make(map[int64]models.ParticipantKey, len(current))
 		var owner models.ParticipantKey
 		for _, participant := range current {
@@ -583,11 +595,12 @@ func (s *service) SetThresholdParticipants(
 		}
 		updated := []models.ParticipantKey{owner}
 		seen := map[int64]struct{}{owner.UserID: {}}
-		for _, input := range inputs {
-			if input.Role != models.ThresholdRoleHolder && input.Role != models.ThresholdRoleMaintainer {
+		for _, participantInput := range input.Participants {
+			if participantInput.Role != models.ThresholdRoleHolder &&
+				participantInput.Role != models.ThresholdRoleMaintainer {
 				return nil, errors.New("invalid threshold participant role")
 			}
-			user, err := database.SelectUserBySharingID(ctx, input.SharingID)
+			user, err := database.SelectUserBySharingID(ctx, participantInput.SharingID)
 			if err != nil {
 				return nil, ErrThresholdParticipantsChanged
 			}
@@ -597,10 +610,10 @@ func (s *service) SetThresholdParticipants(
 			seen[user.ID] = struct{}{}
 			if actor.Role == models.ThresholdRoleMaintainer {
 				existing, exists := currentByID[user.ID]
-				if (input.Role == models.ThresholdRoleMaintainer &&
+				if (participantInput.Role == models.ThresholdRoleMaintainer &&
 					(!exists || existing.Role != models.ThresholdRoleMaintainer)) ||
 					(exists && existing.Role == models.ThresholdRoleMaintainer &&
-						input.Role != models.ThresholdRoleMaintainer) {
+						participantInput.Role != models.ThresholdRoleMaintainer) {
 					return nil, errors.New("only the owner can grant maintainer access")
 				}
 			}
@@ -609,7 +622,7 @@ func (s *service) SetThresholdParticipants(
 				return nil, ErrThresholdParticipantsChanged
 			}
 			updated = append(updated, models.ParticipantKey{
-				UserID: user.ID, PublicKey: publicKey, Role: input.Role,
+				UserID: user.ID, PublicKey: publicKey, Role: participantInput.Role,
 			})
 		}
 		if actor.Role == models.ThresholdRoleMaintainer {
@@ -624,6 +637,28 @@ func (s *service) SetThresholdParticipants(
 		}
 		return updated, nil
 	})
+}
+
+func sameThresholdParticipants(
+	expected []models.ThresholdParticipantInput,
+	current []models.ThresholdParticipant,
+) bool {
+	roles := make(map[string]models.ThresholdRole, len(current))
+	for _, participant := range current {
+		if participant.Role != models.ThresholdRoleOwner {
+			roles[participant.Subject] = participant.Role
+		}
+	}
+	if len(expected) != len(roles) {
+		return false
+	}
+	for _, participant := range expected {
+		if roles[participant.SharingID] != participant.Role || participant.Role == "" {
+			return false
+		}
+		delete(roles, participant.SharingID)
+	}
+	return len(roles) == 0
 }
 
 func (s *service) changeThresholdParticipants(

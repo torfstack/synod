@@ -28,6 +28,7 @@ type mockDatabase struct {
 	selectUnlockRequestFn            func(context.Context, int64, int64) (models.ThresholdSecret, error)
 	selectUnlockContributionsFn      func(context.Context, int64) ([][]byte, error)
 	selectThresholdParticipantKeysFn func(context.Context, int64) ([]models.ParticipantKey, error)
+	selectThresholdParticipantsFn    func(context.Context, int64, int64) ([]models.ThresholdParticipant, error)
 	insertThresholdUnlockGrantFn     func(context.Context, int64, int64, []byte, time.Time) error
 	completeUnlockRequestFn          func(context.Context, int64) error
 	insertUnlockRequestFn            func(context.Context, int64, int64) (models.UnlockRequest, error)
@@ -169,10 +170,13 @@ func (m *mockDatabase) InsertThresholdShare(
 }
 
 func (m *mockDatabase) SelectThresholdParticipants(
-	context.Context,
-	int64,
-	int64,
+	ctx context.Context,
+	secretID int64,
+	actorID int64,
 ) ([]models.ThresholdParticipant, error) {
+	if m.selectThresholdParticipantsFn != nil {
+		return m.selectThresholdParticipantsFn(ctx, secretID, actorID)
+	}
 	return nil, nil
 }
 

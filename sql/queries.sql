@@ -46,11 +46,16 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) tug ON TRUE
 WHERE s.id = $1
-  AND (s.user_id = $2 OR actor.role = 'maintainer');
+  AND (s.user_id = $2 OR actor.role = 'maintainer')
+FOR UPDATE OF s;
 
 -- name: UpdateSecretEnvelope :exec
 UPDATE secrets AS s
-SET value = $1, key = '', url = '', tags = '', envelope = TRUE, updated_at = NOW()
+SET value = $1,
+    key = CASE WHEN s.secret_sharing IS NULL THEN '' ELSE s.key END,
+    url = CASE WHEN s.secret_sharing IS NULL THEN '' ELSE s.url END,
+    tags = CASE WHEN s.secret_sharing IS NULL THEN '' ELSE s.tags END,
+    envelope = TRUE, updated_at = NOW()
 WHERE s.id = $2
   AND (s.user_id = $3 OR EXISTS (
       SELECT 1 FROM threshold_secret_shares tss

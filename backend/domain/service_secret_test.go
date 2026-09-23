@@ -144,6 +144,12 @@ func TestSetThresholdParticipantsRejectsUserThatDisappearedBeforeSubmit(t *testi
 		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
 			return models.AccessibleSecret{ID: 9, Threshold: 2, Role: models.ThresholdRoleOwner}, nil
 		},
+		selectThresholdParticipantsFn: func(context.Context, int64, int64) ([]models.ThresholdParticipant, error) {
+			return []models.ThresholdParticipant{
+				{ShareRecipient: models.ShareRecipient{Subject: "owner"}, Role: models.ThresholdRoleOwner},
+				{ShareRecipient: models.ShareRecipient{Subject: "gone"}, Role: models.ThresholdRoleHolder},
+			}, nil
+		},
 		selectThresholdParticipantKeysFn: func(context.Context, int64) ([]models.ParticipantKey, error) {
 			return []models.ParticipantKey{{UserID: 1, Role: models.ThresholdRoleOwner}}, nil
 		},
@@ -153,9 +159,39 @@ func TestSetThresholdParticipantsRejectsUserThatDisappearedBeforeSubmit(t *testi
 	}
 	svc := &service{database: database, sessions: make(sessionStore)}
 
-	err = svc.SetThresholdParticipants(context.Background(), 9, 1, []models.ThresholdParticipantInput{{
-		SharingID: "gone", Role: models.ThresholdRoleHolder,
-	}}, cipher)
+	err = svc.SetThresholdParticipants(context.Background(), 9, 1, models.ThresholdParticipantsInput{
+		ExpectedParticipants: []models.ThresholdParticipantInput{{SharingID: "gone", Role: models.ThresholdRoleHolder}},
+		Participants:         []models.ThresholdParticipantInput{{SharingID: "gone", Role: models.ThresholdRoleHolder}},
+	}, cipher)
+
+	require.ErrorIs(t, err, ErrThresholdParticipantsChanged)
+}
+
+func TestSetThresholdParticipantsRejectsStaleList(t *testing.T) {
+	database := &mockDatabase{
+		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
+			return models.AccessibleSecret{ID: 9, Threshold: 2, Role: models.ThresholdRoleOwner}, nil
+		},
+		selectThresholdParticipantsFn: func(context.Context, int64, int64) ([]models.ThresholdParticipant, error) {
+			return []models.ThresholdParticipant{
+				{ShareRecipient: models.ShareRecipient{Subject: "owner"}, Role: models.ThresholdRoleOwner},
+				{ShareRecipient: models.ShareRecipient{Subject: "current"}, Role: models.ThresholdRoleHolder},
+			}, nil
+		},
+		selectThresholdParticipantKeysFn: func(context.Context, int64) ([]models.ParticipantKey, error) {
+			return []models.ParticipantKey{{UserID: 1, Role: models.ThresholdRoleOwner}}, nil
+		},
+	}
+	svc := &service{database: database, sessions: make(sessionStore)}
+
+	err := svc.SetThresholdParticipants(context.Background(), 9, 1, models.ThresholdParticipantsInput{
+		ExpectedParticipants: []models.ThresholdParticipantInput{
+			{SharingID: "removed", Role: models.ThresholdRoleHolder},
+		},
+		Participants: []models.ThresholdParticipantInput{
+			{SharingID: "removed", Role: models.ThresholdRoleHolder},
+		},
+	}, newTestCipher(t))
 
 	require.ErrorIs(t, err, ErrThresholdParticipantsChanged)
 }
@@ -247,6 +283,7 @@ func TestUpsertThresholdSecretUsesActiveGrantWithoutCreatingPermanentAccess(t *t
 	require.NoError(t, err)
 	id := int64(9)
 	var storedPayload string
+	var storedSecret models.EncryptedSecret
 	database := &mockDatabase{
 		selectSecretForManagerFn: func(context.Context, int64, int64) (models.AccessibleSecret, error) {
 			return models.AccessibleSecret{
@@ -258,6 +295,7 @@ func TestUpsertThresholdSecretUsesActiveGrantWithoutCreatingPermanentAccess(t *t
 		},
 		upsertSecretFn: func(_ context.Context, secret models.EncryptedSecret, _ int64) (models.EncryptedSecret, error) {
 			storedPayload = secret.Value
+			storedSecret = secret
 			return secret, nil
 		},
 		insertSecretAccessFn: func(context.Context, int64, int64, int64, []byte) error {
@@ -269,11 +307,20 @@ func TestUpsertThresholdSecretUsesActiveGrantWithoutCreatingPermanentAccess(t *t
 
 	_, err = svc.UpsertSecret(
 		context.Background(),
-		models.Secret{ID: &id, Key: "updated", Value: "new value", Tags: []string{}},
+		models.Secret{
+			ID:    &id,
+			Key:   "updated",
+			Value: "new value",
+			Url:   "https://example.com",
+			Tags:  []string{"recovery"},
+		},
 		1,
 		cipher,
 	)
 	require.NoError(t, err)
+	require.Equal(t, "updated", storedSecret.Key)
+	require.Equal(t, "https://example.com", storedSecret.Url)
+	require.Equal(t, []string{"recovery"}, storedSecret.Tags)
 	encodedPayload, err := base64.StdEncoding.DecodeString(storedPayload)
 	require.NoError(t, err)
 	payloadCipher, err := crypto.SymmetricCipherFromKey(key)

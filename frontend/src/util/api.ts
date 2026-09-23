@@ -74,9 +74,9 @@ export async function setThresholdParticipantRole(secretId: number, participant:
     });
 }
 
-export async function setThresholdParticipants(secretId: number, participants: ThresholdParticipantInput[]) {
+export async function setThresholdParticipants(secretId: number, expectedParticipants: ThresholdParticipantInput[], participants: ThresholdParticipantInput[]) {
     return apiFetch(`/api/secrets/${secretId}/participants`, {
-        method: "PUT", body: JSON.stringify({participants}),
+        method: "PUT", body: JSON.stringify({expectedParticipants, participants}),
     });
 }
 

@@ -52,7 +52,7 @@ type SecretService interface {
 		cipher *crypto.AsymmetricCipher,
 	) error
 	SetThresholdParticipants(
-		ctx context.Context, secretID, userID int64, participants []models.ThresholdParticipantInput,
+		ctx context.Context, secretID, userID int64, input models.ThresholdParticipantsInput,
 		cipher *crypto.AsymmetricCipher,
 	) error
 	StartUnlock(ctx context.Context, secretID, userID int64, cipher *crypto.AsymmetricCipher) (int64, error)

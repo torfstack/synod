@@ -1,15 +1,25 @@
 import {useEffect, useState} from "react";
 import type {Secret} from "../../util/secret.ts";
-import {ApiError, getThresholdParticipants, searchShareRecipients, setThresholdParticipants, type ShareRecipient, type ThresholdParticipant} from "../../util/api.ts";
+import {ApiError, getThresholdParticipants, searchShareRecipients, setThresholdParticipants, type ShareRecipient, type ThresholdParticipant, type ThresholdParticipantInput} from "../../util/api.ts";
+
+const editableParticipants = (participants: ThresholdParticipant[]): ThresholdParticipantInput[] =>
+    participants.filter(participant => participant.role !== "owner")
+        .map(({sharingId, role}) => ({sharingId, role: role as "holder" | "maintainer"}));
 
 export const ThresholdAccess = ({secret, changed}: {secret: Secret; changed: () => void}) => {
     const [participants, setParticipants] = useState<ThresholdParticipant[]>([]);
+    const [expectedParticipants, setExpectedParticipants] = useState<ThresholdParticipant[]>([]);
     const [query, setQuery] = useState("");
     const [matches, setMatches] = useState<ShareRecipient[]>([]);
     const [role, setRole] = useState<"holder" | "maintainer">("holder");
     const [dirty, setDirty] = useState(false);
     const [error, setError] = useState("");
-    useEffect(() => { getThresholdParticipants(secret.id!).then(setParticipants); }, [secret.id]);
+    useEffect(() => {
+        getThresholdParticipants(secret.id!).then(current => {
+            setParticipants(current);
+            setExpectedParticipants(current);
+        });
+    }, [secret.id]);
     useEffect(() => {
         if (query.trim().length < 2) { setMatches([]); return; }
         const controller = new AbortController();
@@ -40,12 +50,14 @@ export const ThresholdAccess = ({secret, changed}: {secret: Secret; changed: () 
         }}>{match.fullName} <span className="opacity-60">{match.emailHint}</span></button>)}
         <button type="button" className="btn btn-primary self-end" disabled={!dirty || participants.length < (secret.threshold ?? 0)} onClick={async () => {
             try {
-                await setThresholdParticipants(secret.id!, participants.filter(participant => participant.role !== "owner").map(({sharingId, role}) => ({sharingId, role: role as "holder" | "maintainer"})));
+                await setThresholdParticipants(secret.id!, editableParticipants(expectedParticipants), editableParticipants(participants));
                 changed();
             } catch (caught) {
                 if (!(caught instanceof ApiError) || caught.status !== 409) throw caught;
                 setError("The participant list changed while you were editing it. Nothing was changed; review the refreshed list and try again.");
-                setParticipants(await getThresholdParticipants(secret.id!));
+                const current = await getThresholdParticipants(secret.id!);
+                setParticipants(current);
+                setExpectedParticipants(current);
                 setDirty(false);
             }
         }}>Apply access changes</button>

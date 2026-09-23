@@ -224,6 +224,64 @@ func TestDatabase_ThresholdOwnerCanUseActiveUnlockGrant(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestDatabase_ThresholdMetadataSurvivesEnvelopeUpdate(t *testing.T) {
+	ctx := t.Context()
+	require.NoError(t, pg.Restore(ctx))
+	connStr, err := pg.ConnectionString(ctx)
+	require.NoError(t, err)
+	databaseInterface, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
+	database := databaseInterface.(*database)
+	owner, err := database.InsertUser(ctx, TestUser)
+	require.NoError(t, err)
+	secretID, err := database.InsertThresholdSecret(ctx, models.EncryptedSecret{
+		Value: "payload", Key: "recovery", Url: "https://example.com", Tags: []string{"critical"},
+	}, owner.ID, 2)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		database.InsertThresholdShare(ctx, secretID, owner.ID, []byte("share"), models.ThresholdRoleOwner),
+	)
+	require.NoError(t, database.UpdateSecretEnvelope(ctx, secretID, owner.ID, []byte("updated payload")))
+
+	locked, err := database.SelectThresholdSecrets(ctx, owner.ID)
+	require.NoError(t, err)
+	require.Len(t, locked, 1)
+	require.Equal(t, "recovery", locked[0].Key)
+	require.Equal(t, "https://example.com", locked[0].Url)
+	require.Equal(t, []string{"critical"}, locked[0].Tags)
+}
+
+func TestDatabase_SelectSecretForManagerLocksSecret(t *testing.T) {
+	ctx := t.Context()
+	require.NoError(t, pg.Restore(ctx))
+	connStr, err := pg.ConnectionString(ctx)
+	require.NoError(t, err)
+	databaseInterface, err := NewDatabase(ctx, connStr)
+	require.NoError(t, err)
+	database := databaseInterface.(*database)
+	owner, err := database.InsertUser(ctx, TestUser)
+	require.NoError(t, err)
+	secretID, err := database.InsertThresholdSecret(
+		ctx,
+		models.EncryptedSecret{Value: "payload", Key: "key"},
+		owner.ID,
+		2,
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, database.WithTx(ctx, func(tx Database) error {
+		_, err := tx.SelectSecretForManager(ctx, secretID, owner.ID)
+		require.NoError(t, err)
+		blockedCtx, cancel := context.WithTimeout(ctx, 150*time.Millisecond)
+		defer cancel()
+		_, err = database.SelectSecretForManager(blockedCtx, secretID, owner.ID)
+		require.Error(t, err)
+		require.ErrorIs(t, blockedCtx.Err(), context.DeadlineExceeded)
+		return nil
+	}))
+}
+
 func TestDatabase_UserHandling(t *testing.T) {
 	ctx := t.Context()
 	assert.NoError(t, pg.Restore(ctx))

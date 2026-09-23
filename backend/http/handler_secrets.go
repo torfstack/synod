@@ -198,7 +198,7 @@ func (s *Server) SetThresholdParticipants(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 	if err := s.domainService.SetThresholdParticipants(
-		c.Request().Context(), secretID, session.UserID, input.Participants, session.Cipher,
+		c.Request().Context(), secretID, session.UserID, input, session.Cipher,
 	); err != nil {
 		if errors.Is(err, domain.ErrThresholdParticipantsChanged) {
 			return c.String(http.StatusConflict, err.Error())

@@ -444,7 +444,7 @@ type SelectAccessibleSecretsRow struct {
 	UserID           int64
 	SecretSharing    pgtype.Int4
 	Envelope         bool
-	CreatedAt        pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
 	EncryptedDataKey []byte
 	Owned            bool
@@ -623,6 +623,7 @@ LEFT JOIN LATERAL (
 ) tug ON TRUE
 WHERE s.id = $1
   AND (s.user_id = $2 OR actor.role = 'maintainer')
+FOR UPDATE OF s
 `
 
 type SelectSecretForManagerParams struct {
@@ -639,7 +640,7 @@ type SelectSecretForManagerRow struct {
 	UserID           int64
 	SecretSharing    pgtype.Int4
 	Envelope         bool
-	CreatedAt        pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
 	EncryptedDataKey []byte
 	Role             string
@@ -1013,7 +1014,7 @@ type SelectUnlockedThresholdSecretsRow struct {
 	UserID           int64
 	SecretSharing    pgtype.Int4
 	Envelope         bool
-	CreatedAt        pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
 	EncryptedDataKey []byte
 	Owned            bool
@@ -1160,7 +1161,11 @@ func (q *Queries) UpdateSecret(ctx context.Context, arg UpdateSecretParams) (Sec
 
 const updateSecretEnvelope = `-- name: UpdateSecretEnvelope :exec
 UPDATE secrets AS s
-SET value = $1, key = '', url = '', tags = '', envelope = TRUE, updated_at = NOW()
+SET value = $1,
+    key = CASE WHEN s.secret_sharing IS NULL THEN '' ELSE s.key END,
+    url = CASE WHEN s.secret_sharing IS NULL THEN '' ELSE s.url END,
+    tags = CASE WHEN s.secret_sharing IS NULL THEN '' ELSE s.tags END,
+    envelope = TRUE, updated_at = NOW()
 WHERE s.id = $2
   AND (s.user_id = $3 OR EXISTS (
       SELECT 1 FROM threshold_secret_shares tss
