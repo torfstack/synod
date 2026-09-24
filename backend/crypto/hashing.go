@@ -37,21 +37,27 @@ func HashPassword(p Password) (HashedPassword, error) {
 	if read != 32 {
 		return HashedPassword{}, errors.New("failed to generate 32 bytes of random salt")
 	}
-	h, _ := pbkdf2.Key(sha256.New, string(p), salt, KeyDerivationIterations, 32)
-	return HashedPassword{
-		Hash:           h,
-		Salt:           salt,
-		IterationsUsed: int64(KeyDerivationIterations),
-	}, nil
+	return HashPasswordWithOptions(p, HashOptions{Salt: salt, Iterations: KeyDerivationIterations})
 }
 
 // HashPasswordWithOptions derives a hash using the caller-supplied salt and iterations.
 // The caller is responsible for providing a cryptographically random salt.
 func HashPasswordWithOptions(p Password, o HashOptions) (HashedPassword, error) {
-	h, _ := pbkdf2.Key(sha256.New, string(p), o.Salt, int(o.Iterations), 32)
+	h, err := derivePasswordKey(p, o)
+	if err != nil {
+		return HashedPassword{}, err
+	}
 	return HashedPassword{
 		Hash:           h,
 		Salt:           o.Salt,
 		IterationsUsed: o.Iterations,
 	}, nil
+}
+
+func derivePasswordKey(password Password, options HashOptions) ([]byte, error) {
+	if len(options.Salt) < KDFSaltLength || options.Iterations < KeyDerivationIterations ||
+		options.Iterations > 2_000_000 {
+		return nil, errors.New("invalid password derivation parameters")
+	}
+	return pbkdf2.Key(sha256.New, string(password), options.Salt, int(options.Iterations), AesKeyLengthInBytes)
 }

@@ -1,12 +1,9 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/pbkdf2"
 	"crypto/rand"
-	"crypto/sha256"
 	"slices"
 
 	"github.com/torfstack/synod/backend/util"
@@ -33,24 +30,29 @@ func (s *SymmetricCipher) Encrypt(plaintext []byte) ([]byte, error) {
 }
 
 func (s *SymmetricCipher) Decrypt(ciphertext []byte) ([]byte, error) {
-	b := bytes.NewBuffer(ciphertext)
-
-	marker := b.Next(4)
-	if !slices.Equal(marker, MarkerBytes) {
+	if len(ciphertext) < 8 {
+		return nil, ErrCryptoInvalidCiphertext
+	}
+	if !slices.Equal(ciphertext[:4], MarkerBytes) {
 		return nil, ErrCryptoInvalidMarker
 	}
-
-	algorithm := b.Next(4)
-	if !slices.Equal(algorithm, AesGcmMarkerBytes) {
+	if !slices.Equal(ciphertext[4:8], AesGcmMarkerBytes) {
 		return nil, ErrCryptoAlgorithmMarker
 	}
-
-	nonceLen := util.BytesToInt(b.Next(4))
-	nonce := b.Next(int(nonceLen))
-	sealedLen := util.BytesToInt(b.Next(4))
-	sealed := b.Next(int(sealedLen))
-
-	return s.cipher.Open(nil, nonce, sealed, nil)
+	if len(ciphertext) < 12 {
+		return nil, ErrCryptoInvalidCiphertext
+	}
+	nonceLen := util.BytesToInt(ciphertext[8:12])
+	if nonceLen != uint32(s.cipher.NonceSize()) || len(ciphertext) < 12+int(nonceLen)+4 {
+		return nil, ErrCryptoInvalidCiphertext
+	}
+	nonceEnd := 12 + int(nonceLen)
+	sealedLen := util.BytesToInt(ciphertext[nonceEnd : nonceEnd+4])
+	sealed := ciphertext[nonceEnd+4:]
+	if sealedLen < uint32(s.cipher.Overhead()) || uint64(sealedLen) != uint64(len(sealed)) {
+		return nil, ErrCryptoInvalidCiphertext
+	}
+	return s.cipher.Open(nil, ciphertext[12:nonceEnd], sealed, nil)
 }
 
 func NewSymmetricKey() ([]byte, error) {
@@ -75,7 +77,11 @@ func SymmetricCipherFromKey(key []byte) (*SymmetricCipher, error) {
 }
 
 func SymmetricCipherFromPasswordWithSalt(password Password, salt []byte) (*SymmetricCipher, error) {
-	derivedKey, _ := pbkdf2.Key(sha256.New, string(password), salt, 600000, 32)
+	derivedKey, err := derivePasswordKey(password, HashOptions{Salt: salt, Iterations: KeyDerivationIterations})
+	if err != nil {
+		return nil, err
+	}
+	defer clear(derivedKey)
 	return SymmetricCipherFromKey(derivedKey)
 }
 

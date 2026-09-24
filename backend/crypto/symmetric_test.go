@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"encoding/binary"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -69,6 +70,43 @@ func Test_SymmetricCipher_Encrypt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.run(t)
+		})
+	}
+}
+
+func TestSymmetricCipherDecryptRejectsMalformedCiphertext(t *testing.T) {
+	cipher, err := NewSymmetricCipher()
+	require.NoError(t, err)
+	valid, err := cipher.Encrypt([]byte("secret"))
+	require.NoError(t, err)
+
+	for length := range valid {
+		_, err := cipher.Decrypt(valid[:length])
+		require.Error(t, err, "truncated at byte %d", length)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		mutate func([]byte) []byte
+	}{
+		{"short nonce", func(b []byte) []byte {
+			binary.LittleEndian.PutUint32(b[8:12], 11)
+			return b
+		}},
+		{"long nonce", func(b []byte) []byte {
+			binary.LittleEndian.PutUint32(b[8:12], ^uint32(0))
+			return b
+		}},
+		{"oversized ciphertext", func(b []byte) []byte {
+			binary.LittleEndian.PutUint32(b[24:28], ^uint32(0))
+			return b
+		}},
+		{"trailing bytes", func(b []byte) []byte { return append(b, 0) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			malformed := tc.mutate(append([]byte(nil), valid...))
+			_, err := cipher.Decrypt(malformed)
+			require.Error(t, err)
 		})
 	}
 }
