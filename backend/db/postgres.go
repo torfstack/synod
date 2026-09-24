@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -127,12 +129,15 @@ func (d *database) SelectAccessibleSecrets(ctx context.Context, userID int64) ([
 	return out, nil
 }
 
-func (d *database) SelectSecretForOwner(ctx context.Context, secretID, userID int64) (models.AccessibleSecret, error) {
+func (d *database) SelectSecretForManager(
+	ctx context.Context,
+	secretID, userID int64,
+) (models.AccessibleSecret, error) {
 	q, err := startQuery(d)
 	if err != nil {
 		return models.AccessibleSecret{}, err
 	}
-	row, err := q.SelectSecretForOwner(ctx, sqlc.SelectSecretForOwnerParams{ID: secretID, UserID: userID})
+	row, err := q.SelectSecretForManager(ctx, sqlc.SelectSecretForManagerParams{ID: secretID, UserID: userID})
 	if err != nil {
 		return models.AccessibleSecret{}, err
 	}
@@ -142,6 +147,8 @@ func (d *database) SelectSecretForOwner(ctx context.Context, secretID, userID in
 		EncryptedPayload: row.Value,
 		EncryptedDataKey: row.EncryptedDataKey,
 		Envelope:         row.Envelope,
+		Threshold:        int(row.SecretSharing.Int32),
+		Role:             models.ThresholdRole(row.Role),
 		Legacy: fromdb.Secret(
 			sqlc.Secret{
 				ID:            row.ID,
@@ -238,6 +245,304 @@ func (d *database) SelectUserBySharingID(ctx context.Context, sharingID string) 
 	}
 	user, err := q.SelectUserBySharingID(ctx, pgtype.UUID{Bytes: id, Valid: true})
 	return fromdb.User(user), err
+}
+
+func (d *database) InsertThresholdSecret(
+	ctx context.Context,
+	secret models.EncryptedSecret,
+	userID int64,
+	threshold int,
+) (int64, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return 0, err
+	}
+	stored, err := q.InsertThresholdSecret(ctx, sqlc.InsertThresholdSecretParams{
+		Value:         []byte(secret.Value),
+		Key:           secret.Key,
+		Url:           secret.Url,
+		Tags:          strings.Join(secret.Tags, ","),
+		UserID:        userID,
+		SecretSharing: pgtype.Int4{Int32: int32(threshold), Valid: true},
+	})
+	return stored.ID, err
+}
+
+func (d *database) InsertThresholdShare(
+	ctx context.Context,
+	secretID, userID int64,
+	encryptedShare []byte,
+	role models.ThresholdRole,
+) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.InsertThresholdShare(
+		ctx,
+		sqlc.InsertThresholdShareParams{
+			SecretID: secretID, UserID: userID, EncryptedShare: encryptedShare, Role: string(role),
+		},
+	)
+}
+
+func (d *database) SelectThresholdSecrets(ctx context.Context, userID int64) ([]models.ThresholdSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectThresholdSecrets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.ThresholdSecret, len(rows))
+	for i, row := range rows {
+		out[i] = models.ThresholdSecret{
+			ID:        row.ID,
+			OwnerID:   row.UserID,
+			Threshold: int(row.SecretSharing.Int32),
+			Key:       row.Key,
+			Url:       row.Url,
+			Tags:      splitTags(row.Tags),
+			Role:      models.ThresholdRole(row.Role),
+		}
+	}
+	return out, nil
+}
+
+func (d *database) SelectUnlockedThresholdSecrets(
+	ctx context.Context,
+	userID int64,
+) ([]models.AccessibleSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectUnlockedThresholdSecrets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.AccessibleSecret, len(rows))
+	for i, row := range rows {
+		unlockedUntil := row.UnlockedUntil.Time
+		out[i] = models.AccessibleSecret{
+			ID: row.ID, OwnerID: row.UserID, EncryptedPayload: row.Value,
+			EncryptedDataKey: row.EncryptedDataKey, Envelope: true, Owned: row.Owned,
+			UnlockedUntil: &unlockedUntil, Threshold: int(row.SecretSharing.Int32),
+			Role: models.ThresholdRole(row.Role),
+		}
+	}
+	return out, nil
+}
+
+func (d *database) SelectThresholdSecretForParticipant(
+	ctx context.Context,
+	secretID, userID int64,
+) (models.ThresholdSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return models.ThresholdSecret{}, err
+	}
+	row, err := q.SelectThresholdSecretForParticipant(
+		ctx,
+		sqlc.SelectThresholdSecretForParticipantParams{ID: secretID, UserID: userID},
+	)
+	if err != nil {
+		return models.ThresholdSecret{}, err
+	}
+	return models.ThresholdSecret{
+		ID:               row.ID,
+		OwnerID:          row.UserID,
+		EncryptedPayload: row.Value,
+		EncryptedShare:   row.EncryptedShare,
+		Threshold:        int(row.SecretSharing.Int32),
+		Key:              row.Key,
+		Url:              row.Url,
+		Tags:             splitTags(row.Tags),
+	}, nil
+}
+
+func (d *database) InsertUnlockRequest(ctx context.Context, secretID, userID int64) (models.UnlockRequest, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return models.UnlockRequest{}, err
+	}
+	row, err := q.InsertUnlockRequest(ctx, sqlc.InsertUnlockRequestParams{ID: secretID, RequestedBy: userID})
+	return models.UnlockRequest{ID: row.ID, SecretID: row.SecretID, RequesterID: row.RequestedBy}, err
+}
+
+func (d *database) SelectPendingUnlockRequests(ctx context.Context, userID int64) ([]models.UnlockRequest, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectPendingUnlockRequests(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.UnlockRequest, len(rows))
+	for i, row := range rows {
+		out[i] = models.UnlockRequest{
+			ID:            row.ID,
+			SecretID:      row.SecretID,
+			RequesterID:   row.RequestedBy,
+			RequesterName: row.RequesterName,
+			SecretName:    row.Key,
+			Threshold:     int(row.SecretSharing.Int32),
+			Contributions: int(row.Contributions),
+			Contributed:   row.Contributed,
+			ExpiresAt:     row.ExpiresAt.Time,
+		}
+	}
+	return out, nil
+}
+
+func (d *database) SelectUnlockRequest(ctx context.Context, requestID, userID int64) (models.ThresholdSecret, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return models.ThresholdSecret{}, err
+	}
+	row, err := q.SelectUnlockRequest(ctx, sqlc.SelectUnlockRequestParams{ID: requestID, UserID: userID})
+	if err != nil {
+		return models.ThresholdSecret{}, err
+	}
+	return models.ThresholdSecret{
+		ID:               row.SecretID,
+		OwnerID:          row.OwnerID,
+		EncryptedPayload: row.EncryptedPayload,
+		Threshold:        int(row.SecretSharing.Int32),
+		Role:             models.ThresholdRole(row.Role),
+	}, nil
+}
+
+func (d *database) InsertUnlockContribution(ctx context.Context, requestID, userID int64, share []byte) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.InsertUnlockContribution(
+		ctx,
+		sqlc.InsertUnlockContributionParams{ID: requestID, UserID: userID, EncryptedShare: share},
+	)
+}
+
+func (d *database) SelectUnlockContributions(ctx context.Context, requestID int64) ([][]byte, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	return q.SelectUnlockContributions(ctx, requestID)
+}
+
+func (d *database) SelectThresholdParticipantKeys(
+	ctx context.Context,
+	secretID int64,
+) ([]models.ParticipantKey, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectThresholdParticipantKeys(ctx, secretID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.ParticipantKey, len(rows))
+	for i, row := range rows {
+		out[i] = models.ParticipantKey{
+			UserID: row.UserID, PublicKey: row.PublicKey, Role: models.ThresholdRole(row.Role),
+		}
+	}
+	return out, nil
+}
+
+func (d *database) SelectThresholdParticipants(
+	ctx context.Context,
+	secretID, actorID int64,
+) ([]models.ThresholdParticipant, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.SelectThresholdParticipants(
+		ctx,
+		sqlc.SelectThresholdParticipantsParams{ID: secretID, UserID: actorID},
+	)
+	if err != nil {
+		return nil, err
+	}
+	participants := make([]models.ThresholdParticipant, len(rows))
+	for i, row := range rows {
+		user := fromdb.User(sqlc.User{
+			ID: row.ID, Subject: row.Subject, Email: row.Email, FullName: row.FullName,
+			SharingID: row.SharingID, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		})
+		participants[i] = models.ThresholdParticipant{
+			ShareRecipient: shareRecipient(user), Role: models.ThresholdRole(row.Role),
+		}
+	}
+	return participants, nil
+}
+
+func shareRecipient(user models.ExistingUser) models.ShareRecipient {
+	return models.ShareRecipient{
+		ID: user.ID, Subject: user.SharingID, Email: user.Email, FullName: user.FullName,
+	}
+}
+
+func (d *database) DeleteThresholdShares(ctx context.Context, secretID int64) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.DeleteThresholdShares(ctx, secretID)
+}
+
+func (d *database) DeleteUnlockRequestsForSecret(ctx context.Context, secretID int64) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.DeleteUnlockRequestsForSecret(ctx, secretID)
+}
+
+func (d *database) InsertThresholdUnlockGrant(
+	ctx context.Context,
+	requestID, userID int64,
+	encryptedDataKey []byte,
+	expiresAt time.Time,
+) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.InsertThresholdUnlockGrant(ctx, sqlc.InsertThresholdUnlockGrantParams{
+		RequestID: requestID, UserID: userID,
+		EncryptedDataKey: encryptedDataKey,
+		ExpiresAt:        pgtype.Timestamptz{Time: expiresAt, Valid: true},
+	})
+}
+
+func (d *database) CompleteUnlockRequest(ctx context.Context, requestID int64) error {
+	q, err := startQuery(d)
+	if err != nil {
+		return err
+	}
+	return q.CompleteUnlockRequest(ctx, requestID)
+}
+
+func (d *database) DeleteExpiredUnlockRequests(ctx context.Context) (int64, error) {
+	q, err := startQuery(d)
+	if err != nil {
+		return 0, err
+	}
+	return q.DeleteExpiredUnlockRequests(ctx)
+}
+
+func splitTags(value string) []string {
+	if value == "" {
+		return []string{}
+	}
+	return strings.Split(value, ",")
 }
 
 func (d *database) InsertKeys(ctx context.Context, pair models.UserKeyPair) (models.UserKeyPair, error) {

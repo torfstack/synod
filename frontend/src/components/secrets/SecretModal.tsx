@@ -2,16 +2,21 @@ import type {Secret} from "../../util/secret.ts";
 import React, {useEffect, useRef, useState} from "react";
 import {Eye, EyeSlash} from "../../icons/Eye.tsx";
 import {ShareSecret} from "./ShareSecret.tsx";
+import {ThresholdOptions, type ThresholdRecipient} from "./ThresholdOptions.tsx";
+import type {ThresholdParticipantInput} from "../../util/api.ts";
+import {ThresholdAccess} from "./ThresholdAccess.tsx";
 
 interface SecretModalProps {
     handleSecret: (s: Secret) => Promise<void>;
+    handleThresholdSecret: (s: Secret, threshold: number, participants: ThresholdParticipantInput[]) => Promise<void>;
     existingSecret?: Secret;
     isOpen: boolean;
     closeModal: () => void;
+    accessChanged: () => void;
 }
 
-export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingSecret, isOpen, closeModal}) => {
-	const readOnly = existingSecret?.owned === false;
+export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, handleThresholdSecret, existingSecret, isOpen, closeModal, accessChanged}) => {
+    const readOnly = existingSecret?.threshold ? existingSecret.role === "holder" : existingSecret?.owned === false;
     const [name, setName] = useState(existingSecret?.key ?? "")
     const [secret, setSecret] = useState(existingSecret?.value ?? "")
     const [url, setUrl] = useState(existingSecret?.url ?? "")
@@ -20,6 +25,9 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
     const [passwordVisible, setPasswordVisible] = useState(false)
     const dialogRef = useRef<HTMLDialogElement>(null)
     const [sharePortal, setSharePortal] = useState<HTMLDivElement | null>(null)
+    const [thresholdEnabled, setThresholdEnabled] = useState(false)
+    const [threshold, setThreshold] = useState(2)
+    const [thresholdRecipients, setThresholdRecipients] = useState<ThresholdRecipient[]>([])
 
     useEffect(() => {
         const dialog = dialogRef.current;
@@ -46,6 +54,9 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
         setTags(existingSecret?.tags ?? [])
         setTag("")
         setPasswordVisible(false)
+        setThresholdEnabled(false)
+        setThreshold(2)
+        setThresholdRecipients([])
     }, [existingSecret, isOpen]);
 
     async function onSubmit() {
@@ -59,12 +70,16 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
             url: url,
             tags: tags,
         }
-        await handleSecret(s)
+        if (thresholdEnabled) {
+            await handleThresholdSecret(s, threshold, thresholdRecipients.map(({sharingId, role}) => ({sharingId, role})))
+        } else {
+            await handleSecret(s)
+        }
         closeModal()
     }
 
     function checkInput(): boolean {
-        return name.length > 0 && secret.length > 0
+        return name.length > 0 && secret.length > 0 && (!thresholdEnabled || (thresholdRecipients.length > 0 && threshold <= thresholdRecipients.length + 1))
     }
 
     function removeTag(tag: string): () => void {
@@ -77,7 +92,7 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
         setPasswordVisible(isPassword)
     }
 
-    const title = readOnly ? "Shared secret" : existingSecret ? "Edit secret" : "Add secret";
+    const title = existingSecret?.threshold ? "Unlocked threshold secret" : readOnly ? "Shared secret" : existingSecret ? "Edit secret" : "Add secret";
 
     return (
         <dialog ref={dialogRef} className="modal">
@@ -144,14 +159,19 @@ export const SecretModal: React.FC<SecretModalProps> = ({handleSecret, existingS
                                     </div>
                                 ))}
                             </div>
+                            {!existingSecret && <ThresholdOptions enabled={thresholdEnabled} setEnabled={setThresholdEnabled}
+                                threshold={threshold} setThreshold={setThreshold} recipients={thresholdRecipients}
+                                setRecipients={setThresholdRecipients}/>}
                             <div className="modal-action">
                                 {!readOnly && <button type="button" className="btn btn-primary" onClick={onSubmit}>Submit</button>}
                                 {readOnly && <button type="button" className="btn" onClick={closeModal}>Close</button>}
                             </div>
                             <div ref={setSharePortal}>
-                                {existingSecret?.id && existingSecret.owned !== false && sharePortal &&
+                                {existingSecret?.id && existingSecret.owned !== false && !existingSecret.threshold && sharePortal &&
                                     <ShareSecret secretId={existingSecret.id} portalContainer={sharePortal}/>}
                             </div>
+                            {existingSecret?.id && existingSecret.threshold && existingSecret.role !== "holder" &&
+                                <ThresholdAccess secret={existingSecret} changed={accessChanged}/>}
                         </div>
                     </fieldset>
                 </form>
